@@ -26,6 +26,8 @@ class Link
 		Link(const Eigen::Affine3f &transform,			// Static transform from origin to endpoint	
 		     const bool &jointType,					// 1 = Revolute, 0 = Prismatic
 		     const Eigen::Vector3f &axisOfActuation,			// Unit vector in local origin frame
+			 const Eigen::Vector3f &com,
+			 const float &linkMass,
 		     const float position_limits[2],				// Min. and max. values on joint position
 		     const float velocity_limits[2]);				// Min. and max. values on joint velocity
 		
@@ -34,6 +36,8 @@ class Link
 		bool is_revolute() const {return this->isRevolute;}		// Returns 1 for Revolute joint,  0 for Prismatic joint
 		
 		Eigen::Vector3f get_axis() const {return this->axis;}	// Return the axis of actuation
+		Eigen::Vector3f get_com() const {return this->com;}		// Return the location of the centre of mass
+		float get_mass() const {return this->mass;}				// Return the mass
 		
 		Eigen::Affine3f get_pose(const float &pos);			// Get the link-to-link transform for given joint position
 		
@@ -79,15 +83,17 @@ Link::Link() :
 
 // Constructor with basic kinematics
 Link::Link(	const Eigen::Affine3f &transform,
-	   	const bool &jointType,
-	  	const Eigen::Vector3f &axisOfActuation,
+		const bool &jointType,
+		const Eigen::Vector3f &axisOfActuation,
+		const Eigen::Vector3f &linkCom,
+		const float &linkMass,
 		const float position_limits[2], 
 		const float velocity_limits[2])
 		:
 		staticTF(transform),
-		com(Eigen::Vector3f(0.5,0,0)),				// Default value
+		com(linkCom),
 		inertia(Eigen::Matrix3f::Identity()),				// Default value
-		mass(1.0),							// Default value
+		mass(linkMass),							// Default value
 		axis(axisOfActuation),
 		isRevolute(jointType),
 		offset(0),							// DO WE NEED THIS?
