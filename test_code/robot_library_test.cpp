@@ -86,9 +86,9 @@ bool test_serial_link()
 
 	std::vector<Eigen::Affine3f> trans;
 	std::vector<Eigen::Affine3f> rot;
-	std::vector<Eigen::Vector3f> com;
 	std::vector<float> link_mass;
-
+	std::vector<Eigen::Vector3f> com;
+	std::vector<Eigen::VectorXf> inertia;
 
 	Eigen::Affine3f baseLinkTF(Eigen::Translation3f(0, 0, 0));
 
@@ -101,6 +101,9 @@ bool test_serial_link()
 	Eigen::Vector3f linkCom(Eigen::Vector3f(0,0,0));
 	com.push_back(linkCom);
 	link_mass.push_back(2.0687);
+	Eigen::VectorXf linkInertia(Eigen::VectorXf::Zero(6));
+	linkInertia << 0.0067599, 0, 0, 0.0067877, 0, 0.0074031;
+	inertia.push_back(linkInertia);
 
 
 	linkTfTrans = Eigen::Translation3f(0.081, 0.05, 0.237);
@@ -112,6 +115,9 @@ bool test_serial_link()
 	linkCom = Eigen::Vector3f(0.024366, 0.010969, 0.14363);
 	com.push_back(linkCom);
 	link_mass.push_back(5.3213);
+	linkInertia << 0.053314, 0.0047093, 0.011734, 0.057902, 0.0080179, 0.023659;
+	inertia.push_back(linkInertia);
+
 
 	linkTfTrans = Eigen::Translation3f(0, -0.14, 0.1425);
 	linkTfRot = Eigen::AngleAxisf(M_PI_2, Eigen::Vector3f::UnitX()) *
@@ -122,6 +128,8 @@ bool test_serial_link()
 	linkCom = Eigen::Vector3f(-0.0030849, -0.026811, 0.092521);
 	com.push_back(linkCom);
 	link_mass.push_back(4.505);
+	linkInertia << 0.022398, -0.00023986, -0.00029362, 0.014613, -0.0060875, 0.017295;
+	inertia.push_back(linkInertia);
 
 
 	linkTfTrans = Eigen::Translation3f(0, -0.042, 0.26);
@@ -133,7 +141,8 @@ bool test_serial_link()
 	linkCom = Eigen::Vector3f(-0.00016044, -0.014967, 0.13582);
 	com.push_back(linkCom);
 	link_mass.push_back(1.745);
-
+	linkInertia << 0.025506, 0, 0, 0.0253, -0.0033204, 0.0034179;
+	inertia.push_back(linkInertia);
 
 	linkTfTrans = Eigen::Translation3f(0, -0.125, -0.1265);
 	linkTfRot = Eigen::AngleAxisf(M_PI_2, Eigen::Vector3f::UnitX()) *
@@ -144,7 +153,8 @@ bool test_serial_link()
 	linkCom = Eigen::Vector3f(-0.0048135, -0.0281, -0.084154);
 	com.push_back(linkCom);
 	link_mass.push_back(2.5097);
-
+	linkInertia << 0.01016, 0, 0.00026624, 0.0065685, 0.0030316, 0.0069078;
+	inertia.push_back(linkInertia);
 
 	linkTfTrans = Eigen::Translation3f(0, 0.031, 0.275);
 	linkTfRot = Eigen::AngleAxisf(-M_PI_2, Eigen::Vector3f::UnitX()) *
@@ -155,7 +165,8 @@ bool test_serial_link()
 	linkCom = Eigen::Vector3f(-0.0018844, 0.0069001, 0.1341);
 	com.push_back(linkCom);
 	link_mass.push_back(1.1136);
-
+	linkInertia << 0.013557, 0, 0.00013523, 0.013555, 0.0010561, 0.0013658;
+	inertia.push_back(linkInertia);
 
 	linkTfTrans = Eigen::Translation3f(0, -0.11, 0.1053);
 	linkTfRot = Eigen::AngleAxisf(-M_PI_2, Eigen::Vector3f::UnitX()) *
@@ -166,7 +177,8 @@ bool test_serial_link()
 	linkCom = Eigen::Vector3f(0.0061133, -0.023697, 0.076416);
 	com.push_back(linkCom);
 	link_mass.push_back(1.5625);
-
+	linkInertia << 0.0047328, 0.00011526, 0, 0.0029676, -0.0011557, 0.0031762;
+	inertia.push_back(linkInertia);
 
 	linkTfTrans = Eigen::Translation3f(0, 0, 0.0245);
 	linkTfRot = Eigen::AngleAxisf(0, Eigen::Vector3f::UnitX()) *
@@ -177,14 +189,15 @@ bool test_serial_link()
 	linkCom = Eigen::Vector3f(0, 0.0085838, -0.0049566);
 	com.push_back(linkCom);
 	link_mass.push_back(0.3292);
-
+	linkInertia << 0.00031105, 0, 0, 0.00021549, 0, 0.00035976;
+	inertia.push_back(linkInertia);
 
 	std::vector<Link> links;
 	for (int i = 0; i < trans.size(); ++i)
 	{
 		Eigen::Affine3f currentLinkTf = trans[i] * rot[i];
 		float temp[2] = {0,0};
-		Link currentLink(currentLinkTf, true, Eigen::Vector3f(0, 0, 1), com[i], link_mass[i], temp, temp);
+		Link currentLink(currentLinkTf, true, Eigen::Vector3f(0, 0, 1), link_mass[i], com[i], inertia[i], temp, temp);
 		links.push_back(currentLink);
 	}
 
@@ -195,16 +208,19 @@ bool test_serial_link()
 	std::cout << "Here is the end-effector pose:" << std::endl;
 	std::cout << robot.get_endpoint().matrix() << std::endl;
 
-	std::cout << "Here is the Jacobian:" << std::endl;
+	std::cout << "\nHere is the Jacobian:" << std::endl;
 	std::cout << robot.get_jacobian() << std::endl;
 
 	std::vector<Eigen::MatrixXf> Jm = robot.get_mass_jacobian();
-	std::cout << "Here is the Mass Jacobian:" << std::endl;
+	std::cout << "\nHere is the mass Jacobian:" << std::endl;
 	for(int i = 0; i < Jm.size(); ++i)
 		std::cout << "\nLink: " << i << "\n" << Jm[i]<< std::endl;
 
-	std::cout << "Here is the Gravity Torque:" << std::endl;
+	std::cout << "\nHere is the gravity torque:" << std::endl;
 	std::cout << robot.get_gravity_torque() << std::endl;
+
+	std::cout << "\nHere is the joint-space inertia:" << std::endl;
+	std::cout << robot.get_inertia() << std::endl;
 	
 	return 1;
 }
