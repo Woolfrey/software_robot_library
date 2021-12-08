@@ -4,12 +4,7 @@
 *	If n = 3, it automatically generates a cubic spline (minimum acceleration)
 *	
 */
-
-#include <CubicSpline.h>									// Custom trajectory class
-#include <Quintic.h>										// Custom trajectory class
-#include <string>										// std::string
-#include <vector>										// std::vector object
-
+/*
 class MultiPointTrajectory
 {
 	public:
@@ -34,7 +29,7 @@ class MultiPointTrajectory
 		
 };												// Semicolon required after class declaration
 
-/******************** Constructor ********************/
+/******************** Constructor ********************
 MultiPointTrajectory::MultiPointTrajectory(	std::vector<Eigen::VectorXf> &points,
 						std::vector<float> &times)
 						:
@@ -72,7 +67,7 @@ MultiPointTrajectory::MultiPointTrajectory(	std::vector<Eigen::VectorXf> &points
 	}
 }
 
-/******************** Get the desired position, velocity, and acceleration for given time ********************/
+/******************** Get the desired position, velocity, and acceleration for given time ********************
 void MultiPointTrajectory::get_state(	Eigen::VectorXf &pos,
 					Eigen::VectorXf &vel,
 					Eigen::VectorXf &acc,
@@ -101,7 +96,7 @@ void MultiPointTrajectory::get_state(	Eigen::VectorXf &pos,
 	}
 }
 
-/******************** Returns the type of trajectory ********************/
+/******************** Returns the type of trajectory ********************
 std::string MultiPointTrajectory::get_type()
 {
 	switch(this->type)
@@ -116,3 +111,4 @@ std::string MultiPointTrajectory::get_type()
 			return "ERROR: unknown type. How did that happen?";
 	}
 }
+*/
