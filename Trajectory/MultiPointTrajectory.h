@@ -4,7 +4,39 @@
 *	If n = 3, it automatically generates a cubic spline (minimum acceleration)
 *	
 */
-/*
+
+#ifndef MULTI_POINT_TRAJECTORY_H_
+#define MULTI_POINT_TRAJECTORY_H_
+
+#include <CubicSpline.h>
+#include <Quintic.h>
+
+class MultiPointTrajectory
+{
+	public:
+		// Constructor
+		MultiPointTrajectory(const std::vector<Eigen::VectorXf> &points,
+				const std::vector<float> &times);
+				
+		// Get functions
+		void get_state(Eigen::VectorXf &pos,				// Get the state for the given time
+				Eigen::VectorXf &vel,
+				Eigen::VectorXf &acc,
+				const float &time);
+	
+	private:
+		int m, n;							// m dimensions with n waypoints
+		
+		CubicSpline cubic;						// Trajectory for n > 2
+		Quintic quintic;						// Trajectory for n = 2
+		
+};										// Semicolon needed after a class declaration
+
+#endif
+
+
+
+/* OLD CODE
 class MultiPointTrajectory
 {
 	public:

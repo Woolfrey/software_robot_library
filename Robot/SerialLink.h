@@ -57,7 +57,9 @@ class SerialLink
 		Eigen::Affine3f finalTF;					// Transform from final joint to endpoint
 		Eigen::Affine3f endpointTF;					// New endpoint offset (default identity)
 		std::vector<Link> link;					// Array of link objects
-
+		void update_omega();
+		void update_com();						// Compute location for the C.O.M. for each link
+		void update_link_inertia();
 		// Variable kinematic properties
 		std::vector<Eigen::Affine3f> fkchain;				// Transforms for each link
 		std::vector<Eigen::Vector3f> a;				// Axis of actuation for each joint, in base frame

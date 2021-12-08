@@ -1,6 +1,7 @@
 #include <iostream>
-#include <SerialLink.h>
-#include <Quintic.h>
+#include <SerialDynControl.h>
+#include <MultiPointTrajectory.h>
+#include <CartesianTrajectory.h>
 
 /******************** Forward Declarations ********************/
 bool test_serial_link();
@@ -80,7 +81,7 @@ bool test_serial_link()
     //   <inertia ixx="0.00031105" ixy="1.4771E-06" ixz="-3.7074E-07" iyy="0.00021549" iyz="-8.4533E-06" izz="0.00035976"/>
     // </inertial>
 
-
+/*
 	std::vector<Eigen::Affine3f> trans;
 	std::vector<Eigen::Affine3f> rot;
 	std::vector<float> link_mass;
@@ -218,7 +219,7 @@ bool test_serial_link()
 
 	std::cout << "\nHere is the joint-space inertia:" << std::endl;
 	std::cout << robot.get_inertia() << std::endl;
-	
+*/
 	return 1;
 }
 

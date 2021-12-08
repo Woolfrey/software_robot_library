@@ -1,16 +1,61 @@
 /*
-*	A minimum jerk trajectory between two points in space.
+*	A minimum acceleration trajectory across multiple points.
 *
 *	Can interpolate quaternions.
 */
+
+#ifndef CUBIC_SPLINE_H
+#define CUBIC_SPLINE_H
+
+class CubicSpline
+{
+	public:
+		// Empty constructor
+		CubicSpline() {}
+		
+		// Constructor for real numbers
+		CubicSpline(const std::vector<Eigen::VectorXf> &points,
+			const std::vector<float> &times);
+			
+		// Constructor for quaternions
+		CubicSpline(const std::vector<Eigen::Quaternionf> &points,
+			const std::vector<float> &times);
+	
+	private:
+		bool isQuaternion;						// Self explanatory
+		
+		int m, n;							// m dimensions with n waypoints
+		
+};										// Semicolon needed after class declaration
+
+CubicSpline::CubicSpline(const std::vector<Eigen::VectorXf> &points,
+			const std::vector<float> &times)
+			:
+			isQuaternion(false)
+{
+	// Worker bees can leave.
+	// Even drones can fly away.
+	// The Queen is their slave.
+}
+
+CubicSpline::CubicSpline(const std::vector<Eigen::Quaternionf> &points,
+			const std::vector<float> &times)
+			:
+			isQuaternion(true)
+{
+
+}
+
+#endif
+
+/* OLD STUFF
+
 #ifndef CUBIC_SPLINE_H
 #define CUBIC_SPLINE_H
 
 #include <Eigen/Core>
 #include <vector>
 
-
-/*
 
 class CubicSpline
 {
@@ -37,8 +82,7 @@ class CubicSpline
 		std::vector<std::vector<float>> a, b, c, d;
 		
 };											// Needed after a class declaration
-
-/******************** Empty constructor ********************/
+/******************** Empty constructor ********************
 CubicSpline::CubicSpline()
 {
 	// Worker bees can leave.
@@ -90,5 +134,3 @@ void CubicSpline::get_state(	Eigen::VectorXf &pos,
 		// 3. b) For quaternion interpolation
 }
 */
-
-#endif

@@ -1,11 +1,212 @@
 /*
-*	A minimum acceleration trajectory across 3 or more points.
-*
-*
+*	Minimum jerk trajectory between two points.
 */
 
 #ifndef QUINTIC_H_
 #define QUINTIC_H_
+
+#include <Eigen/Geometry>
+
+class Quintic
+{
+	public:
+		Quintic() {}						// Empty constructor
+	
+		Quintic(const Eigen::VectorXf &startPoint,		// Constructor for trajectory across real numbers
+			const Eigen::VectorXf &endPoint,
+			const float &startTime,
+			const float &endTime);
+			
+		Quintic(const Eigen::Quaternionf &startPoint,		// Constructor for orientation trajectory
+			const Eigen::Quaternionf &endPoint,
+			const float &startTime,
+			const float &endTime);
+			
+		void get_state(Eigen::VectorXf &pos,			// Get the desired position for the given time
+				Eigen::VectorXf &vel,
+				Eigen::VectorXf &acc,
+				const float &time);
+		
+		void get_state(Eigen::Quaternionf &quat,		// Get the desired rotation for a given time
+				Eigen::Vector3f &vel,
+				Eigen::Vector3f &acc,
+				const float &time);
+	
+	private:
+		bool isQuaternion = false;				// Self explanatory
+		
+		float a, b, c;						// Polynomial coefficients
+		float s, sd, sdd;					// Interpolation scalars
+		float t1, t2;						// Start time and end time
+		
+		Eigen::VectorXf p1, p2;				// Start point and end point for real numbers
+		
+		Eigen::Quaternionf q1, q2;				// Used for rotation trajectories
+		Eigen::Vector3f angleAxis;				// Interpolate over angle-axis for rotations			
+		
+		void compute_coefficients();		
+		void compute_scalars(const float &time);		// Compute the interpolation scalars for the given time	
+
+};									// Semicolon needed after class declaration
+
+/******************** Create a trajectory over real numbers ********************/
+Quintic::Quintic(const Eigen::VectorXf &startPoint,			// Constructor for trajectory across real numbers
+		const Eigen::VectorXf &endPoint,
+		const float &startTime,
+		const float &endTime)
+		:
+		p1(startPoint),
+		p2(startPoint),
+		t1(startTime),
+		t2(endTime),
+		isQuaternion(false)
+{
+	if(startPoint.size() != endPoint.size())
+	{
+		// ERROR: Inputs are not the same length!
+	}
+	
+	compute_coefficients();					// Compute polynomial coefficients
+}
+
+/******************** Get the desired state for real numbers ********************/
+void Quintic::get_state(Eigen::VectorXf &pos,				// Get the desired position for the given time
+			Eigen::VectorXf &vel,
+			Eigen::VectorXf &acc,
+			const float &time)
+{
+	// Check inputs are sound
+	if(this->isQuaternion)
+	{
+		// ERROR: Did you mean to call the one for rotations?
+	}
+	
+	if(pos.size() != vel.size () || vel.size() != acc.size())
+	{
+		// ERROR: Input vectors are not of the same length!
+	}
+		
+	// Figure out where we are on the trajectory
+	if(time < this->t1)						// Not yet started
+	{
+		pos = this->p1;					// Remain at the start
+		vel.setZero();						// Don't move
+		acc.setZero();						// Don't accelerate
+	}
+	else if(time < this->t2)					// Somewhere in the middle
+	{
+		compute_scalars(time);					// Get the scalars for the current time
+	
+		pos = (1.0 - this->s)*this->p1 + this->s*this->p2;	// Position interpolation
+		vel = this->sd*(this->p2 - this->p1);			// Velocity
+		acc = this->sdd*(this->p2 - this->p1);		// Acceleration
+	}
+	else								// Finished
+	{
+		pos = this->p2;					// Remain at the end		
+		vel.setZero();						// Don't move
+		acc.setZero();						// Don't accelerate
+	}
+}
+
+/******************** Create a trajectory over a rotation  ********************/
+Quintic::Quintic(const Eigen::Quaternionf &startPoint,		// Constructor for orientation trajectory
+		const Eigen::Quaternionf &endPoint,
+		const float &startTime,
+		const float &endTime)
+		:
+		q1(startPoint),
+		q2(endPoint),
+		t1(startTime),
+		t2(startTime),
+		isQuaternion(true)
+{
+	compute_coefficients();					// Compute polynomial coefficients
+	
+	Eigen::Quaternionf dq = startPoint.inverse()*endPoint;	// We want to interpolate over the *difference* in rotation
+	
+	float angle = 2*acos(dq.w());					// Angle encoded in the difference
+
+	this->angleAxis = angle*dq.vec().normalized();		// This is used later for interpolation purposes
+	
+	if(angle > M_PI)						// If the angle is greater than 180 degrees...
+	{
+		angle = 2*M_PI - angle;				// ... Take the shorter path...
+		this->angleAxis *= -1;					// ... and flip the direction to match
+	}
+}
+
+
+
+/******************** Get the desired state for rotation ********************/
+void Quintic::get_state(Eigen::Quaternionf &quat,			// Get the desired rotation for a given time
+			Eigen::Vector3f &vel,
+			Eigen::Vector3f &acc,
+			const float &time)
+{
+	if(!this->isQuaternion)
+	{
+		// ERROR: Did you call the right function?
+	}
+	
+	// Figure out where we are on the trajectory
+	if(time < this->t1)						// Not yet started
+	{
+		quat = this->q1;					// Remain at the start
+		vel.setZero();						// Don't move
+		acc.setZero();						// Don't accelerate
+	}
+	else if(time < this->t2)
+	{
+		compute_scalars(time);					// Get the scalars for the current time
+		
+		Eigen::Vector3f temp = this->s*this->angleAxis;	// Assumes zero starting rotation
+		Eigen::Quaternionf dq(Eigen::AngleAxisf(temp.norm(), temp.normalized())); // Convert to angle-axis then to quaternion
+		
+		dq = this->q1*dq;				
+		vel = this->sd*this->angleAxis;			// I hope this correct...
+		acc = this->sdd*this->angleAxis;
+	}
+	else								// Finished
+	{
+		quat = this->q2;					// Remain at the end
+		vel.setZero();						// Don't move
+		acc.setZero();						// Don't accelerate
+	}
+
+}
+
+
+/******************** Compute the quintic polynomial coefficients ********************/
+void Quintic::compute_coefficients()
+{
+	if(this->t1 > this->t2)
+	{
+		// ERROR: Trajectory ends before it begins!
+		// Swapping times...
+		float temp = this->t1;
+		this->t1 = this->t2;
+		this->t2 = temp;
+	}
+	
+	float dt = this->t1 - this->t2;				// Time difference
+	
+	this->a =   6*pow(dt,-5);
+	this->b = -15*pow(dt,-4);
+	this->c =  10*pow(dt,-3);
+}
+
+/******************** Compute the scalars for the time interpolation ********************/
+void Quintic::compute_scalars(const float &time)
+{
+	float dt = time - this->t1;					// Get elapsed time since the beginning
+	
+	this->s =      this->a*pow(dt,5) +    this->b*pow(dt,4) +   this->c*pow(dt,3);
+	this->sd =   5*this->a*pow(dt,4) +  4*this->b*pow(dt,3) + 3*this->c*pow(dt,2);
+	this->sdd = 20*this->a*pow(dt,3) + 12*this->b*pow(dt,2) + 6*this->c;	
+}
+
+/*
 
 #include <Eigen/Core>
 
@@ -46,7 +247,7 @@ class Quintic
 	
 };											// Needed after class declaration
 
-/******************** Empty Constructor ********************/
+/******************** Empty Constructor ********************
 Quintic::Quintic() : 	isQuaternion(false),						// Default values
 			p1(Eigen::VectorXf::Zero(3)),
 			p2(Eigen::VectorXf::Ones(3)),
@@ -58,7 +259,7 @@ Quintic::Quintic() : 	isQuaternion(false),						// Default values
 	compute_coefficients();							// Compute the polynomial coefficients
 }
 
-/******************** Full Constructor ********************/
+/******************** Full Constructor ********************
 Quintic::Quintic(const Eigen::VectorXf &start_point,					// Full constructor
 		const Eigen::VectorXf &end_point,
 		const float &start_time,
@@ -104,7 +305,7 @@ Quintic::Quintic(const Eigen::VectorXf &start_point,					// Full constructor
 	}
 }
 
-/******************** Set the polynomial coefficients ********************/
+/******************** Set the polynomial coefficients ********************
 void Quintic::compute_coefficients()
 {
 	float dt = this->t2 - this->t1;
@@ -114,7 +315,7 @@ void Quintic::compute_coefficients()
 	this->c =  10*pow(dt,-3);
 }
 
-/******************** Get the desired state for a given time ********************/
+/******************** Get the desired state for a given time ********************
 void Quintic::get_state(Eigen::VectorXf &pos,						// Get the desired position, velocity, acceleration at the given time
 			Eigen::VectorXf &vel,
 			Eigen::VectorXf &acc,
@@ -205,4 +406,6 @@ void Quintic::get_state(Eigen::VectorXf &pos,						// Get the desired position, 
 		}
 	}
 }
+*/
 #endif
+

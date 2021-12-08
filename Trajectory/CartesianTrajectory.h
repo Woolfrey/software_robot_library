@@ -1,7 +1,47 @@
 /*
 *	A trajectory generator in Cartesian space.
 */
-									// std::vector
+
+#ifndef CARTESIAN_TRAJECTORY_H_
+#define CARTESIAN_TRAJECTORY_H_
+
+#include <CubicSpline.h>
+#include <Quintic.h>
+
+class CartesianTrajectory
+{
+	public:
+		// Constructor
+		CartesianTrajectory(const std::vector<Eigen::Affine3f> &poses,
+				const std::vector<float> &times);
+		
+		void get_state(Eigen::Affine3f &pose,				// Get the desired state for the given time
+				Eigen::VectorXf &vel,
+				Eigen::VectorXf &acc,
+				const float &time);
+		
+	private:
+		int n;								// Number of waypoints
+		
+		// Trajectories for n > 2
+		CubicSpline cubicPosition;
+		CubicSpline cubicOrientation;
+		
+		// Trajectories for n = 2
+		Quintic quinticPosition;
+		Quintic quinticOrientation;
+		
+};										// Semicolon needed after a class declaration
+
+CartesianTrajectory::CartesianTrajectory(const std::vector<Eigen::Affine3f> &poses,
+					const std::vector<float> &times)
+{
+	// Worker bees can leave.
+	// Even drones can fly away.
+	// The Queen is their slave.
+}
+
+#endif
 
 /*
 class CartesianTrajectory
