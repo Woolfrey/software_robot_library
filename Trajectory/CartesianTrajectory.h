@@ -1,13 +1,9 @@
 /*
 *	A trajectory generator in Cartesian space.
 */
+									// std::vector
 
-#include <CubicSpline.h>									// Custom trajectory class
-#include <Eigen/Geometry>									// Transforms
-#include <Quintic.h>										// Custom trajectory class
-#include <string>										// std::string
-#include <vector>										// std::vector
-
+/*
 class CartesianTrajectory
 {
 	public:
@@ -42,7 +38,7 @@ class CartesianTrajectory
 
 };												// Semicolon needed after a class declaration
 
-/******************** Empty constructor ********************/
+/******************** Empty constructor ********************
 CartesianTrajectory::CartesianTrajectory()
 {
 	// Worker bees can leave.
@@ -50,7 +46,7 @@ CartesianTrajectory::CartesianTrajectory()
 	// The Queen is their slave.
 }
 
-/******************** Proper constructor ********************/
+/******************** Proper constructor ********************
 CartesianTrajectory::CartesianTrajectory(const std::vector<Eigen::Affine3f> &waypoints,
 					const std::vector<float> &times)
 					:
@@ -115,7 +111,7 @@ CartesianTrajectory::CartesianTrajectory(const std::vector<Eigen::Affine3f> &way
 	angular_acc.resize(4); // simply ignore that last value of the angular vel, acc
 	
 }
-/******************** Get the type of trajectory that was generated ********************/
+/******************** Get the type of trajectory that was generated ********************
 std::string CartesianTrajectory::get_type()
 {
 	switch(this->type)
@@ -131,7 +127,7 @@ std::string CartesianTrajectory::get_type()
 	}
 }
 
-/******************** Get the desired pose, velocity, and acceleration for the given time ********************/
+/******************** Get the desired pose, velocity, and acceleration for the given time ********************
 void CartesianTrajectory::get_state(Eigen::Affine3f &pos, Eigen::VectorXf &vel, Eigen::VectorXf &acc, const float &time)
 {
 	if(vel.size() != 6 || acc.size() != 6)						// Check input dimensions are sound
@@ -185,3 +181,4 @@ void CartesianTrajectory::get_state(Eigen::Affine3f &pos, Eigen::VectorXf &vel, 
 	this->axis.normalize();								// Normalise to get the axis
 	pos = Eigen::Translation3f(this->position)*Eigen::AngleAxisf(this->angle, this->axis);
 }
+*/
