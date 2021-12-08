@@ -9,10 +9,15 @@
 #include <Eigen/Core>
 #include <vector>
 
+
+/*
+
 class CubicSpline
 {
 	public:
 		CubicSpline();								// Empty constructor
+		
+		
 		
 		CubicSpline(const std::vector<Eigen::VectorXf> &waypoints,		// Proper constructor
 			    const std::vector<float> &times,
@@ -41,10 +46,10 @@ CubicSpline::CubicSpline()
 	// The Queen is their slave.
 }
 
-/******************** Proper constructor ********************/
-CubicSpline::CubicSpline(	const std::vector<Eigen::VectorXf> &waypoints,
-				const std::vector<float> &times,
-				bool is_quaternion)
+/******************** Proper constructor ********************
+CubicSpline::CubicSpline(const std::vector<Eigen::VectorXf> &waypoints,
+			const std::vector<float> &times,
+			bool is_quaternion)
 				:
 				m(waypoints[0].size()),					// Dimensions of space
 				n(waypoints.size()),						// Number of waypoints
@@ -69,7 +74,7 @@ CubicSpline::CubicSpline(	const std::vector<Eigen::VectorXf> &waypoints,
 	
 }
 
-/******************** Get desired state at given time ********************/
+/******************** Get desired state at given time ********************
 void CubicSpline::get_state(	Eigen::VectorXf &pos,
 				Eigen::VectorXf &vel,
 				Eigen::VectorXf &acc,
@@ -84,5 +89,6 @@ void CubicSpline::get_state(	Eigen::VectorXf &pos,
 		// 3. a) For linear interoplation
 		// 3. b) For quaternion interpolation
 }
+*/
 
 #endif
