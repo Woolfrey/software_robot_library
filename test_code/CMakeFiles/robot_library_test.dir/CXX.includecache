@@ -6,10 +6,6 @@
 
 #IncludeRegexTransform: 
 
-../Control/JointController.h
-
-../Control/SerialCartesianController.h
-
 ../Robot/Link.h
 Eigen/Core
 ../Robot/Eigen/Core
@@ -24,35 +20,9 @@ Link.h
 vector
 -
 
-../Trajectory/CartesianTrajectory.h
-CubicSpline.h
--
+../Trajectory/Quintic.h
 Eigen/Geometry
 -
-Quintic.h
--
-string
--
-vector
--
-
-../Trajectory/CubicSpline.h
-Eigen/Core
--
-vector
--
-
-../Trajectory/MultiPointTrajectory.h
-CubicSpline.h
--
-Quintic.h
--
-string
--
-vector
--
-
-../Trajectory/Quintic.h
 Eigen/Core
 -
 
@@ -61,13 +31,7 @@ iostream
 -
 SerialLink.h
 -
-MultiPointTrajectory.h
--
-CartesianTrajectory.h
--
-SerialCartesianController.h
--
-JointController.h
+Quintic.h
 -
 
 /usr/include/eigen3/Eigen/Cholesky

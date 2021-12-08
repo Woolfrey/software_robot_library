@@ -1,9 +1,6 @@
 #include <iostream>
 #include <SerialLink.h>
-#include <MultiPointTrajectory.h>
-#include <CartesianTrajectory.h>
-#include <SerialCartesianController.h>
-#include <JointController.h>
+#include <Quintic.h>
 
 /******************** Forward Declarations ********************/
 bool test_serial_link();
