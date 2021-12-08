@@ -23,42 +23,43 @@ class SerialLink
 
 		// Functions
 
-		bool update_state(const Eigen::VectorXf &pos, const Eigen::VectorXf &vel);	// Update all the internal dynamic & kinematic properties
+		bool update_state(const Eigen::VectorXf &pos,				// Update all internal kinematics & dynamics
+				const Eigen::VectorXf &vel);
 
-		void get_joint_state(Eigen::VectorXf &pos, Eigen::VectorXf &vel);
+		void get_joint_state(Eigen::VectorXf &pos, Eigen::VectorXf &vel);	// Get the current internal joint state
 
-		Eigen::Affine3f get_endpoint() const {return this->fkchain[this->n];}	// Get the pose of the endpoint
+		Eigen::Affine3f get_endpoint() const {return this->fkchain[this->n];}// Get the pose of the endpoint
 
-		Eigen::Affine3f get_endpoint_error(const Eigen::Affine3f &desired);		// Get the error between endpoint pose and desired
+		Eigen::Affine3f get_endpoint_error(const Eigen::Affine3f &desired);	// Get the error between endpoint pose and desired
 
-		Eigen::MatrixXf get_jacobian();											// Get Jacobian at current state
+		Eigen::MatrixXf get_jacobian();					// Get Jacobian at current state
 
-		std::vector<Eigen::MatrixXf> get_mass_jacobian();						// Get the Jacobian matrix for the centre of mass for every link
+		std::vector<Eigen::MatrixXf> get_mass_jacobian();			// Get the Jacobian to the c.o.m for every link
 
 		// std::vector<Eigen::MatrixXf> get_mass_jacobian_dot();
 
-		Eigen::MatrixXf get_inertia();											// Get the inertia matrix of the manipulator in the joint space
+		Eigen::MatrixXf get_inertia();					// Get the inertia matrix of the manipulator
 
 		Eigen::VectorXf get_gravity_torque();
 
-		void set_endpoint_offset(const Eigen::Affine3f &transform);			// Define a new endpoint from the original
+		void set_endpoint_offset(const Eigen::Affine3f &transform);		// Define a new endpoint from the original
 
 		Eigen::VectorXf rmrc(const Eigen::VectorXf &xdot, const Eigen::VectorXf &qdot_d);
 
-		int get_number_of_joints() const{return this->n;}				// Returns the number of joints
+		int get_number_of_joints() const{return this->n;}			// Returns the number of joints
 
 	private:
 		// Basic kinematic properties
-		int n;									// Number of joints
-		Eigen::VectorXf q, qdot;				// Joint positions, velocities
-		Eigen::VectorXf baseTwist;				// Base twist
+		int n;								// Number of joints
+		Eigen::VectorXf q, qdot;					// Joint positions, velocities
+		Eigen::VectorXf baseTwist;					// Base twist
 		Eigen::Affine3f baseTF;					// Transform to first joint
-		Eigen::Affine3f finalTF;				// Transform from final joint to endpoint
-		Eigen::Affine3f endpointTF;				// New endpoint offset (default identity)
+		Eigen::Affine3f finalTF;					// Transform from final joint to endpoint
+		Eigen::Affine3f endpointTF;					// New endpoint offset (default identity)
 		std::vector<Link> link;					// Array of link objects
 
 		// Variable kinematic properties
-		std::vector<Eigen::Affine3f> fkchain;		// Transforms for each link
+		std::vector<Eigen::Affine3f> fkchain;				// Transforms for each link
 		std::vector<Eigen::Vector3f> a;				// Axis of actuation for each joint, in base frame
 		std::vector<Eigen::Vector3f> r;				// Translation from joint origin to endpoint
 		std::vector<Eigen::Vector3f> w;				// Cumulative angular velocity up the kinematic chain
@@ -67,7 +68,7 @@ class SerialLink
 		Eigen::MatrixXf C;						// Coriolis matrix (nxn)
 		Eigen::MatrixXf D;						// Damping matrix (nxn)
 		Eigen::MatrixXf M;						// Inertia matrix (nxn)
-		Eigen::VectorXf g;						// Gravitational torque (nx1) USUALLY AUTOMATICALLY COMPENSATED ON A REAL ROBOT
+		Eigen::VectorXf g;						// Gravitational torque (nx1)
 		std::vector<Eigen::Vector3f> com;				// Center of mass for each link, in base frame
 		std::vector<Eigen::MatrixX3f> I;				// Inertia matrices for each link in the origin frame
 		std::vector<Eigen::MatrixXf> Jm;				// Jacobian to the center of mass
@@ -77,7 +78,7 @@ class SerialLink
 		void update_forward_kinematics();				// Compute forward kinematic chain based on current state
 		void update_axis_and_distance();				// Compute kinematic properties of mechanism for current state
 		void update_omega();
-		void update_com();								// Compute location for the C.O.M. for each link
+		void update_com();						// Compute location for the C.O.M. for each link
 		void update_link_inertia();
 		Eigen::MatrixXf get_inverse_jacobian(const Eigen::MatrixXf &J); // Get the inverse, automatically applies DLS
 		Eigen::MatrixXf get_joint_weighting_matrix();
@@ -154,13 +155,13 @@ void SerialLink::get_joint_state(Eigen::VectorXf &pos, Eigen::VectorXf &vel)
 /******************** Compute forward kinematics chain at current joint position ********************/
 void SerialLink::update_forward_kinematics()
 {	
-	this->fkchain[0] = this->baseTF*this->link[0].get_pose(this->q[0]);						// Pre-multiply first link by base transform
+	this->fkchain[0] = this->baseTF*this->link[0].get_pose(this->q[0]); 			// Pre-multiply by base transform
 
 	for(int i = 1; i < this->n; i++)
 	{
-		this->fkchain[i] = this->fkchain[i-1]*this->link[i].get_pose(this->q[i]);			// Compute chain of joint/link transforms
+		this->fkchain[i] = this->fkchain[i-1]*this->link[i].get_pose(this->q[i]);	// Compute chain of joint/link transforms
 	}
-	this->fkchain[this->n] = this->fkchain[this->n-1] * this->link[this->n].get_pose(0) * this->endpointTF;	// Post-multiply the last one by any offset
+	this->fkchain[this->n] = this->fkchain[this->n-1] * this->link[this->n].get_pose(0) * this->endpointTF; // Offset the endpoints
 }
 
 
