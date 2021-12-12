@@ -23,9 +23,7 @@ vector
 ../Trajectory/CubicSpline.h
 Eigen/Geometry
 -
-vector
--
-Eigen/Core
+iostream
 -
 vector
 -
@@ -34,6 +32,8 @@ vector
 CubicSpline.h
 -
 Quintic.h
+-
+string
 -
 
 ../Trajectory/Quintic.h
