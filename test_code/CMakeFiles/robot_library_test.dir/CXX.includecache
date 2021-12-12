@@ -6,21 +6,13 @@
 
 #IncludeRegexTransform: 
 
-../Control/SerialDynControl.h
-SerialKinControl.h
--
-
-../Control/SerialKinControl.h
-SerialLinkKin.h
--
-
 ../Robot/Link.h
 Eigen/Core
 ../Robot/Eigen/Core
 Eigen/Geometry
 ../Robot/Eigen/Geometry
 
-../Robot/SerialLinkKin.h
+../Robot/SerialLink.h
 Eigen/Geometry
 -
 Link.h
@@ -28,13 +20,11 @@ Link.h
 vector
 -
 
-../Trajectory/CartesianTrajectory.h
-CubicSpline.h
--
-Quintic.h
--
-
 ../Trajectory/CubicSpline.h
+Eigen/Geometry
+-
+vector
+-
 Eigen/Core
 -
 vector
@@ -55,11 +45,9 @@ Eigen/Core
 /home/woolfrey/workspace/RobotLibrary/test_code/robot_library_test.cpp
 iostream
 -
-SerialDynControl.h
+SerialLink.h
 -
 MultiPointTrajectory.h
--
-CartesianTrajectory.h
 -
 
 /usr/include/eigen3/Eigen/Cholesky
