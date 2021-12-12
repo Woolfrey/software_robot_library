@@ -20,12 +20,14 @@ class TrapezoidalVelocity
 				const Eigen::Quaternionf &endPoint,
 				const float &velocity,
 				const float &acceleration);
-				
+		
+		// Get state for trajectory over real numbers
 		void get_state(Eigen::VectorXf &pos,
 				Eigen::VectorXf &vel,
 				Eigen::VectorXf &acc,
 				const float &time);
 		
+		// Get state for trajectory over orientation
 		void get_state(Eigen::Quaternionf &quat,
 				Eigen::Vector3f &vel,
 				Eigen::Vector3f &acc,
