@@ -7,6 +7,9 @@
 #ifndef CUBIC_SPLINE_H
 #define CUBIC_SPLINE_H
 
+#include <Eigen/Geometry>							// Eigen::Quaternionf and the like
+#include <vector>								// std::vector
+
 class CubicSpline
 {
 	public:
@@ -22,28 +25,94 @@ class CubicSpline
 			const std::vector<float> &times);
 	
 	private:
+		// Variables
 		bool isQuaternion;						// Self explanatory
-		
 		int m, n;							// m dimensions with n waypoints
+		std::vector<Eigen::VectorXf> a, b, c, d;			// Spline coefficients
+		std::vector<Eigen::VectorXf> point;				// Waypoints
+		std::vector<float> time;					// Time to reach each waypoint
+		
+		// Functions		
+		bool check_inputs(const std::vector<Eigen::VectorXf> &points,
+				const std::vector<float> &times);
 		
 };										// Semicolon needed after class declaration
 
+/******************** Constructor for real numbers ********************/
 CubicSpline::CubicSpline(const std::vector<Eigen::VectorXf> &points,
 			const std::vector<float> &times)
 			:
-			isQuaternion(false)
+			isQuaternion(false),
+			m(points[0].size()),					// Number of dimensions
+			n(points.size()),					// Number of waypoints
+			point(points),
+			time(times)
+			
 {
-	// Worker bees can leave.
-	// Even drones can fly away.
-	// The Queen is their slave.
+	check_inputs(points, times);						// Check that the inputs are sound
+	
+	// Initialize size of std::vector objects
+	for(int i = 0; i < this->m; i++)
+	{
+		this->a.push_back(Eigen::VectorXf::Zero(this->n-1));		// NOTE: There are n-1 splines!
+		this->b.push_back(Eigen::VectorXf::Zero(this->n-1));
+		this->c.push_back(Eigen::VectorXf::Zero(this->n-1));
+		this->d.push_back(Eigen::VectorXf::Zero(this->n-1));
+	}
+	
+	// Relationship between acceleration & position: A*sddot = B*s
+	Eigen::MatrixXf A(this->n, this->n);
+	Eigen::MatrixXf B(this->n, this->n);
+	
+	if(!this->isQuaternion)
+	{
+		A(0,0) = (this->time[1] - this->time[0])/2;
+		A(0,1) = (this->time[1] - this->time[0])/2 + (this->time[2] - this->time[1])/3;
+		A(0,2) = (this->time[2] - this->time[1])/6;
+	}
+	else
+	{
+	}
+	
 }
 
+/******************** Constructor for orientation ********************/
 CubicSpline::CubicSpline(const std::vector<Eigen::Quaternionf> &points,
 			const std::vector<float> &times)
 			:
 			isQuaternion(true)
 {
 
+}
+
+/********************* Check the input dimensions to the constructors are correct ********************/
+bool CubicSpline::check_inputs(const std::vector<Eigen::VectorXf> &points, const std::vector<float> &times)
+{
+	bool OK = true;
+	// Check the dimensions are sound
+	if(points.size() != times.size())
+	{
+		// ERROR: std::vector objects must be the same length!
+		
+		OK = false;
+	}
+	else if(points.size() < 3)
+	{
+		// ERROR: A minimum of 3 points is required for CubicSpline
+		
+		OK = false;
+	}
+	
+	for(int i = 0; i < times.size()-1; i++)
+	{
+		if(times[i+1] < times[i])
+		{
+			// ERROR: Times are not in ascending order!
+			OK = false;
+		}
+	}
+	
+	return OK;
 }
 
 #endif

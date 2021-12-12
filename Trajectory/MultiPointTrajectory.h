@@ -32,6 +32,15 @@ class MultiPointTrajectory
 		
 };										// Semicolon needed after a class declaration
 
+/******************** Constructor ********************/
+MultiPointTrajectory::MultiPointTrajectory(const std::vector<Eigen::VectorXf> &points,
+					const std::vector<float> &times)
+{
+	// Worker bees can leave.
+	// Even drones can fly away.
+	// The Queen is their slave.
+}
+
 #endif
 
 
