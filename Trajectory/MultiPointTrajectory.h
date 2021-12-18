@@ -16,6 +16,8 @@ class MultiPointTrajectory
 {
 	public:
 		// Constructor
+		MultiPointTrajectory() {}
+		
 		MultiPointTrajectory(const std::vector<Eigen::VectorXf> &points,
 				const std::vector<float> &times);
 				
