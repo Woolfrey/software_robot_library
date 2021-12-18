@@ -33,9 +33,9 @@ class Link
 		Link(const Eigen::Affine3f &transform,			// Static transform from origin to endpoint
 		     const bool &jointType,					// 1 = Revolute, 0 = Prismatic
 		     const Eigen::Vector3f &axisOfActuation,			// Unit vector in local origin frame
-			 const float &linkMass,
-			 const Eigen::Vector3f &linkCom,
-			 const Eigen::VectorXf &linkInertia,
+		     const float &linkMass,
+		     const Eigen::Vector3f &linkCom,
+		     const Eigen::VectorXf &linkInertia,
 		     const float position_limits[2],				// Min. and max. values on joint position
 		     const float velocity_limits[2]);				// Min. and max. values on joint velocity
 
