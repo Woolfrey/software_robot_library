@@ -1,6 +1,6 @@
 #include <iostream>
 #include <SerialLink.h>
-#include <MultiPointTrajectory.h>
+#include <SerialKinCtrl.h>
 
 /******************** Forward Declarations ********************/
 bool test_serial_link();
@@ -207,17 +207,20 @@ bool test_serial_link()
 
 	std::cout << "\nHere is the Jacobian:" << std::endl;
 	std::cout << robot.get_jacobian() << std::endl;
-
-	std::vector<Eigen::MatrixXf> Jm = robot.get_mass_jacobian();
+	
+//	std::vector<Eigen::MatrixXf> Jm = robot.get_mass_jacobian();
+	std::vector<Eigen::MatrixXf> Jm = robot.get_com_jacobian();
 	std::cout << "\nHere is the mass Jacobian:" << std::endl;
 	for(int i = 0; i < Jm.size(); ++i)
-		std::cout << "\nLink: " << i << "\n" << Jm[i]<< std::endl;
+	std::cout << "\nLink: " << i+1 << "\n" << Jm[i]<< std::endl;
 
 	std::cout << "\nHere is the gravity torque:" << std::endl;
-	std::cout << robot.get_gravity_torque() << std::endl;
+//	std::cout << robot.get_gravity_torque() << std::endl;
+	std::cout << robot.get_gravity_torque2() << std::endl;
 
 	std::cout << "\nHere is the joint-space inertia:" << std::endl;
-	std::cout << robot.get_inertia() << std::endl;
+//	std::cout << robot.get_inertia() << std::endl;
+	std::cout << robot.get_inertia2() << std::endl;
 
 	return 1;
 }
