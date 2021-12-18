@@ -31,6 +31,7 @@ class SerialLink
 		// Get Functions
 		Eigen::Affine3f get_endpoint() const {return this->fkchain[this->n];} // Get the pose of the endpoint
 		Eigen::MatrixXf get_jacobian() {return get_jacobian(this->fkchain[this->n].translation(), this->n);}
+		Eigen::MatrixXf get_partial_jacobian(const Eigen::MatrixXf &J, const int&jointNum);
 		Eigen::MatrixXf get_inertia();					// Get the inertia matrix of the manipulator
 		Eigen::MatrixXf get_inertia2() const {return this->M;}		// TO REPLACE get_inertia()
 		Eigen::VectorXf get_gravity_torque();					// As it says on the label	
@@ -294,6 +295,24 @@ Eigen::MatrixXf SerialLink::get_jacobian(const Eigen::Vector3f &point, const int
 		}
 	}
 	return J;
+}
+
+/******************** Get the partial derivative of the Jacobian w.r.t. to the ith joint  ********************/
+Eigen::MatrixXf SerialLink::get_partial_jacobian(const Eigen::MatrixXf &J, const int &jointNum)
+{
+	Eigen::MatrixXf dJdq(J.rows(),J.cols());					// Value to be returned
+	dJdq.setZero();
+	
+	if(jointNum > J.cols())
+	{
+		std::cout << "ERROR: SerialLink::get_partial_jacobian() : Cannot compute the partial derivative of a 6x"
+			<< J.cols() << " Jacobian with respect to the " << jointNum <<"th joint!" << std::endl;
+		return dJdq;
+	}
+	else
+	{
+		return dJdq;
+	}
 }
 
 /******************** Returns the Jacobian matrix for the centre of mass for every link ********************/
