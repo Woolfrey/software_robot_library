@@ -1,16 +1,3 @@
-/*
-
-	TO DO:
-		- Test in combination with SerialLink class to see if forward
-		  kinematics if working properly
-		- Add some sort of error or feedback in constructor (Line 102)
-	
-	NOTES, THOUGHTS:
-		- J: Do we need the offset property? It should be possible to
-		     assign the staticTF so that it aligns with the physical
-		     joint encoder.
-*/
-
 #ifndef LINK_H_								// If not yet defined...
 #define LINK_H_								// ... include this header file, otherwise ignore
 
@@ -40,15 +27,13 @@ class Link
 		     const float velocity_limits[2]);				// Min. and max. values on joint velocity
 
 		// Functions
-		
-		bool is_revolute() const {return this->isRevolute;}		// Returns 1 for Revolute joint,  0 for Prismatic joint
-
+		bool is_revolute() const {return this->isRevolute;}		// Returns 1 for Revolute joint, 0 for Prismatic joint
+		bool is_prismatic() const {return !this->isRevolute;}	// Returns 0 for Revolute joint, 1 for Prismatic joint
+		Eigen::Affine3f get_pose(const float &pos);			// Get the link-to-link transform for given joint position
+		Eigen::Matrix3f get_inertia() const {return this->inertia;}	// Return the moment of inertia
 		Eigen::Vector3f get_axis() const {return this->axis;}	// Return the axis of actuation
 		Eigen::Vector3f get_com() const {return this->com;}		// Return the location of the centre of mass
-		float get_mass() const {return this->mass;}				// Return the mass
-		Eigen::Matrix3f get_inertia() const {return this->inertia;}	// Return the link inertia
-		
-		Eigen::Affine3f get_pose(const float &pos);			// Get the link-to-link transform for given joint position
+		float get_mass() const {return this->mass;}				// Return the mass	
 		
 	private:
 		
@@ -58,7 +43,7 @@ class Link
 		// Dynamic properties
 		// N.B. these should be declared w.r.t. the *previous*frame for cogency
 		
-		float mass;									// (kg)
+		float mass;							// (kg)
 		Eigen::Vector3f com;						// Center of mass [3x1] (m)
 		Eigen::Matrix3f inertia;					// Inertia matrix [3x3] (kg*m^2)
 		
@@ -127,7 +112,7 @@ Link::Link(	const Eigen::Affine3f &transform,
 		const float velocity_limits[2])
 		:
 		staticTF(transform),
-		mass(linkMass),							// Default value
+		mass(linkMass),						// Default value
 		com(linkCom),
 		isRevolute(jointType),
 		axis(axisOfActuation),
@@ -137,7 +122,7 @@ Link::Link(	const Eigen::Affine3f &transform,
 		tLim{-10.0, 10.0}						// Default value
 {
 	this->axis.normalize();						// Ensure unit norm
-    this->inertia << linkInertia(0), linkInertia(1), linkInertia(2),
+   	this->inertia << linkInertia(0), linkInertia(1), linkInertia(2),
 					 linkInertia(1), linkInertia(3), linkInertia(4),
 					 linkInertia(2), linkInertia(4), linkInertia(5); // Default value
 
