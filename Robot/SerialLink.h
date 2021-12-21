@@ -235,19 +235,47 @@ Eigen::MatrixXf SerialLink::get_jacobian(const Eigen::Vector3f &point, const int
 /******************** Get the partial derivative of the Jacobian w.r.t. to the ith joint  ********************/
 Eigen::MatrixXf SerialLink::get_partial_jacobian(const Eigen::MatrixXf &J, const int &jointNum)
 {
-	Eigen::MatrixXf dJdq(J.rows(),J.cols());					// Value to be returned
-	dJdq.setZero();
-	
+	Eigen::MatrixXf dJ(6,J.cols());					// Value to be returned
+	dJ.setZero();
+/*
 	if(jointNum > J.cols())
 	{
-		std::cout << "ERROR: SerialLink::get_partial_jacobian() : Cannot compute the partial derivative of a 6x"
-			<< J.cols() << " Jacobian with respect to the " << jointNum <<"th joint!" << std::endl;
-		return dJdq;
+		std::cout << "ERROR: SerialLink::get_partial_jacobian() : Cannot compute the partial derivative with respect to joint "
+			<< jointNum << " because the Jacobian only has " << J.cols() << " columns!" << std::endl;
+		return dJ;
 	}
 	else
 	{
-		return dJdq;
+		for(int i = 0; i < J.cols(); i++)
+		{
+			if(this->link[i].is_revolute())
+			{
+				if(this->link[jointNum].is_revolute())
+				{
+					// a_j x (a_i x a_i)
+					dJ.block(0,i,3,1) = J.block(3,jointNum,3,1).cross(J.block(0,i,3,1));
+					if(jointNum < i)
+					{
+						// a_j x a_i
+						dJ.block(3,i,3,1) = J.block(3,jointNum,3,1).cross(J.block(3,i,3,1));
+					}
+				}
+				else if(this->link[jointNum].is_prismatic() && jointNum > i)
+				{
+					// a_j x a_i
+					dJ.block(0,i,3,1) = J.block(0,jointNum,3,1).cross(J.block(0,i,3,1));
+				}
+			}
+			else if(this->link[i].is_prismatic() && this->link[jointNum].is_revolute() && jointNum < i)
+			{
+				// a_j x a_i
+				dJ.block(0,i,3,1) = J.block(3,jointNum,3,1).cross(J.block(0,i,3,1));
+			}
+		}
+		return dJ;
 	}
+*/
+	return dJ;
 }
 
 /******************** Returns the Jacobian matrix for the centre of mass for every link ********************/
