@@ -193,7 +193,7 @@ bool test_serial_link()
 	for (int i = 0; i < trans.size(); ++i)
 	{
 		Eigen::Affine3f currentLinkTf = trans[i] * rot[i];
-		float temp[2] = {0,0};
+		float temp[2] = {-2,2};
 		Link currentLink(currentLinkTf, true, Eigen::Vector3f(0, 0, 1), link_mass[i], com[i], inertia[i], temp, temp);
 		links.push_back(currentLink);
 	}
