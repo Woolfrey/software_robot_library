@@ -28,7 +28,6 @@ class SerialLink
 		Eigen::MatrixXf get_partial_jacobian(const Eigen::MatrixXf &J, const int&jointNum);
 		Eigen::VectorXf get_gravity_torque();					// As it says on the label	
 		Eigen::VectorXf get_gravity_torque2() {return this->g;}		// TO REPLACE get_gravity_torque()
-	
 		int get_number_of_joints() const {return this->n;}			// Returns the number of joints
 		std::vector<Eigen::MatrixXf> get_com_jacobian() const {return this->Jc;} // TO REPLACE get_mass_jacobian()
 		std::vector<Eigen::MatrixXf> get_mass_jacobian();			// Get the Jacobian to the c.o.m for every link
@@ -77,7 +76,6 @@ class SerialLink
 		std::vector<Eigen::Vector3f> w;				// N.B. This might be obsolete in the future!
 		void update_axis_and_distance();				// Compute kinematic properties of mechanism for current stat
 		void update_omega();						// Compute angular velocity up the kinematic chain
-		
 		
 };										// Semicolon needed after a class declaration
 
@@ -235,9 +233,13 @@ Eigen::MatrixXf SerialLink::get_jacobian(const Eigen::Vector3f &point, const int
 /******************** Get the partial derivative of the Jacobian w.r.t. to the ith joint  ********************/
 Eigen::MatrixXf SerialLink::get_partial_jacobian(const Eigen::MatrixXf &J, const int &jointNum)
 {
+	// E. D. Pohl and H. Lipkin, "A new method of robotic rate control near singularities,"
+	// Proceedings. 1991 IEEE International Conference on Robotics and Automation,
+	// 1991, pp. 1708-1713 vol.2, doi: 10.1109/ROBOT.1991.131866.
+	
 	Eigen::MatrixXf dJ(6,J.cols());					// Value to be returned
 	dJ.setZero();
-/*
+
 	if(jointNum > J.cols())
 	{
 		std::cout << "ERROR: SerialLink::get_partial_jacobian() : Cannot compute the partial derivative with respect to joint "
@@ -253,28 +255,37 @@ Eigen::MatrixXf SerialLink::get_partial_jacobian(const Eigen::MatrixXf &J, const
 				if(this->link[jointNum].is_revolute())
 				{
 					// a_j x (a_i x a_i)
-					dJ.block(0,i,3,1) = J.block(3,jointNum,3,1).cross(J.block(0,i,3,1));
+					dJ(0,i) = J(4,jointNum)*J(2,i) - J(5,jointNum)*J(1,i);
+					dJ(1,i) = J(5,jointNum)*J(0,i) - J(3,jointNum)*J(2,i);
+					dJ(2,i) = J(3,jointNum)*J(1,i) - J(4,jointNum)*J(0,i);
+					
 					if(jointNum < i)
 					{
 						// a_j x a_i
-						dJ.block(3,i,3,1) = J.block(3,jointNum,3,1).cross(J.block(3,i,3,1));
+						dJ(3,i) = J(4,jointNum)*J(5,i) - J(5,jointNum)*J(4,i);
+						dJ(4,i) = J(5,jointNum)*J(3,i) - J(3,jointNum)*J(5,i);
+						dJ(5,i) = J(3,jointNum)*J(4,i) - J(4,jointNum)*J(3,i);
 					}
 				}
 				else if(this->link[jointNum].is_prismatic() && jointNum > i)
 				{
 					// a_j x a_i
-					dJ.block(0,i,3,1) = J.block(0,jointNum,3,1).cross(J.block(0,i,3,1));
+					dJ(0,i) = J(1,jointNum)*J(2,i) - J(2,jointNum)*J(1,i);
+					dJ(1,i) = J(2,jointNum)*J(0,i) - J(0,jointNum)*J(2,i);
+					dJ(2,i) = J(0,jointNum)*J(1,i) - J(1,jointNum)*J(0,i);
 				}
 			}
 			else if(this->link[i].is_prismatic() && this->link[jointNum].is_revolute() && jointNum < i)
 			{
 				// a_j x a_i
-				dJ.block(0,i,3,1) = J.block(3,jointNum,3,1).cross(J.block(0,i,3,1));
+				dJ(0,i) = J(4,jointNum)*J(2,i) - J(5,jointNum)*J(1,i);
+				dJ(1,i) = J(5,jointNum)*J(0,i) - J(3,jointNum)*J(2,i);
+				dJ(2,i) = J(3,jointNum)*J(1,i) - J(4,jointNum)*J(0,i);
 			}
 		}
 		return dJ;
 	}
-*/
+
 	return dJ;
 }
 
