@@ -7,12 +7,12 @@ class SerialKinCtrl
 		SerialKinCtrl() {}
 		
 		// Get Functions
-		Eigen::VectorXf get_pose_error(const Eigen::Affine3f &desired,
-						const Eigen::Affine3f &actual);
+		Eigen::VectorXf get_pose_error(const Eigen::Isometry3f &desired,
+						const Eigen::Isometry3f &actual);
 		
 		// Control Functions
 		void move_to_position(const Eigen::VectorXf &position);	// Move joints to a desired position
-		void move_to_pose(const Eigen::Affine3f &pose);		// Move endpoint to a desired position, orientation
+		void move_to_pose(const Eigen::Isometry3f &pose);		// Move endpoint to a desired position, orientation
 	
 	protected:								// SerialDynControl has access to these
 	
@@ -23,8 +23,8 @@ class SerialKinCtrl
 };										// Semicolon needed after class declaration
 
 /******************** Get the error between two poses for feedback control purposes ********************/
-Eigen::VectorXf SerialKinCtrl::get_pose_error(const Eigen::Affine3f &desired,
-						const Eigen::Affine3f &actual)
+Eigen::VectorXf SerialKinCtrl::get_pose_error(const Eigen::Isometry3f &desired,
+						const Eigen::Isometry3f &actual)
 {
 	Eigen::VectorXf error(6);						// Value to be returned
 	

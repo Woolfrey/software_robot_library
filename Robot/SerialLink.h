@@ -1,7 +1,7 @@
 #ifndef SERIAL_LINK_H_									// If not yet defined...
 #define SERIAL_LINK_H_									// ... include this header file, otherwise ignore
 
-#include <Eigen/Geometry>								// Transforms (Affine3f)
+#include <Eigen/Geometry>								// Transforms (Isometry3f)
 #include <Link.h>									// Custom link class
 #include <vector>									// std::vector
 
@@ -12,16 +12,16 @@ class SerialLink
 		SerialLink() {}							// Empty constructor
 		
 		SerialLink(const std::vector<Link> &links,				// Proper constructor
-			const Eigen::Affine3f &baseTransform,
-			const Eigen::Affine3f &finalTransform);
+			const Eigen::Isometry3f &baseTransform,
+			const Eigen::Isometry3f &finalTransform);
 			
 		// Set Functions
 		bool update_joint_state(const Eigen::VectorXf &pos, const Eigen::VectorXf &vel); // Update internal kinematics & dynamics
-		void set_endpoint_offset(const Eigen::Affine3f &transform);		// Define a new endpoint from the original
+		void set_endpoint_offset(const Eigen::Isometry3f &transform);		// Define a new endpoint from the original
 		void set_gravity_vector(const Eigen::Vector3f &gravity);		// Set a new gravitational vector
 		
 		// Get Functions
-		Eigen::Affine3f get_endpoint() const {return this->fkchain[this->n];} // Get the pose of the endpoint
+		Eigen::Isometry3f get_endpoint() const {return this->fkchain[this->n];} // Get the pose of the endpoint
 		Eigen::MatrixXf get_jacobian() {return get_jacobian(this->fkchain[this->n].translation(), this->n);}
 		Eigen::MatrixXf get_inertia();					// Get the inertia matrix of the manipulator
 		Eigen::MatrixXf get_inertia2() const {return this->M;}		// TO REPLACE get_inertia()
@@ -40,13 +40,13 @@ class SerialLink
 		Eigen::Vector3f gravityVector;				// Gravitational acceleration
 		Eigen::VectorXf q, qdot;					// Joint positions, velocities
 		Eigen::VectorXf baseTwist;					// Base twist
-		Eigen::Affine3f baseTF;					// Transform to first joint
-		Eigen::Affine3f finalTF;					// Transform from final joint to endpoint
-		Eigen::Affine3f endpointTF;					// New endpoint offset (default identity)
+		Eigen::Isometry3f baseTF;					// Transform to first joint
+		Eigen::Isometry3f finalTF;					// Transform from final joint to endpoint
+		Eigen::Isometry3f endpointTF;					// New endpoint offset (default identity)
 		std::vector<Link> link;					// Array of link objects
 
 		// Variable kinematic properties
-		std::vector<Eigen::Affine3f> fkchain;				// Transforms for each link
+		std::vector<Eigen::Isometry3f> fkchain;				// Transforms for each link
 		std::vector<Eigen::Vector3f> a;				// Axis of actuation for each joint, in base frame
 
 		// Dynamic properties
@@ -81,8 +81,8 @@ class SerialLink
 
 /******************** Constructor ********************/
 SerialLink::SerialLink(const std::vector<Link> &links,
-		const Eigen::Affine3f &baseTransform,
-		const Eigen::Affine3f &finalTransform)
+		const Eigen::Isometry3f &baseTransform,
+		const Eigen::Isometry3f &finalTransform)
 		:
 		n(links.size()-1),						// Number of joints
 		gravityVector(Eigen::Vector3f(0.0, 0.0, -9.81)),		// Default gravity on surface of Earth
@@ -91,7 +91,7 @@ SerialLink::SerialLink(const std::vector<Link> &links,
 		baseTwist(Eigen::VectorXf::Zero(6)),				// Linear and angular velocity of the base
 		baseTF(baseTransform),						// Pose of the base in global frame
 		finalTF(finalTransform),					// Pose of the endpoint from the final link frame
-		endpointTF(Eigen::Affine3f::Identity()),			// Additional endpoint offset
+		endpointTF(Eigen::Isometry3f::Identity()),			// Additional endpoint offset
 		link(links),							// Vector of Link objects
 		C(Eigen::MatrixXf::Zero(this->n, this->n)),			// Coriolis matrix
 		D(Eigen::MatrixXf::Identity(this->n, this->n)),		// Damping matrix
@@ -100,11 +100,11 @@ SerialLink::SerialLink(const std::vector<Link> &links,
 		
 {
 	// Initialize all std::vector objects
-	this->fkchain.push_back(Eigen::Affine3f::Identity());
+	this->fkchain.push_back(Eigen::Isometry3f::Identity());
 	
 	for(int i = 0; i < this->n; i++)
 	{
-		this->fkchain.push_back(Eigen::Affine3f::Identity());	// Link / joint transforms
+		this->fkchain.push_back(Eigen::Isometry3f::Identity());	// Link / joint transforms
 		this->a.push_back(Eigen::Vector3f::Zero());			// Axis of actuation
 		this->com.push_back(Eigen::Vector3f::Zero());			// Center of mass for each link
 		this->I.push_back(Eigen::MatrixXf::Zero(3, 3));		// Moment of inertia for each link
@@ -151,7 +151,7 @@ bool SerialLink::update_joint_state(const Eigen::VectorXf &pos, const Eigen::Vec
 }
 
 /******************** Adds an additional transform to the endpoint of the forward kinematics ********************/
-void SerialLink::set_endpoint_offset(const Eigen::Affine3f &transform)
+void SerialLink::set_endpoint_offset(const Eigen::Isometry3f &transform)
 {
 	this->endpointTF = transform;
 }

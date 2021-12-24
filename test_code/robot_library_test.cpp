@@ -81,16 +81,16 @@ bool test_serial_link()
     // </inertial>
 
 
-	std::vector<Eigen::Affine3f> trans;
-	std::vector<Eigen::Affine3f> rot;
+	std::vector<Eigen::Isometry3f> trans;
+	std::vector<Eigen::Isometry3f> rot;
 	std::vector<float> link_mass;
 	std::vector<Eigen::Vector3f> com;
 	std::vector<Eigen::VectorXf> inertia;
 
-	Eigen::Affine3f baseLinkTF(Eigen::Translation3f(0, 0, 0));
+	Eigen::Isometry3f baseLinkTF(Eigen::Translation3f(0, 0, 0));
 
-	Eigen::Affine3f linkTfTrans(Eigen::Translation3f(0, 0, 0.08));
-	Eigen::Affine3f linkTfRot(Eigen::AngleAxisf(0, Eigen::Vector3f::UnitX()) *
+	Eigen::Isometry3f linkTfTrans(Eigen::Translation3f(0, 0, 0.08));
+	Eigen::Isometry3f linkTfRot(Eigen::AngleAxisf(0, Eigen::Vector3f::UnitX()) *
 		              Eigen::AngleAxisf(0, Eigen::Vector3f::UnitY()) *
 		              Eigen::AngleAxisf(0, Eigen::Vector3f::UnitZ()));
 	trans.push_back(linkTfTrans);
@@ -192,13 +192,13 @@ bool test_serial_link()
 	std::vector<Link> links;
 	for (int i = 0; i < trans.size(); ++i)
 	{
-		Eigen::Affine3f currentLinkTf = trans[i] * rot[i];
+		Eigen::Isometry3f currentLinkTf = trans[i] * rot[i];
 		float temp[2] = {-2,2};
 		Link currentLink(currentLinkTf, true, Eigen::Vector3f(0, 0, 1), link_mass[i], com[i], inertia[i], temp, temp);
 		links.push_back(currentLink);
 	}
 
-	Eigen::Affine3f finalLinkTf = Eigen::Affine3f::Identity();
+	Eigen::Isometry3f finalLinkTf = Eigen::Isometry3f::Identity();
 
 	SerialLink robot(links, baseLinkTF, finalLinkTf);
 

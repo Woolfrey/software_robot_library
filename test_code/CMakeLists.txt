@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.9)					# Minimum cmake requirement
+cmake_minimum_required(VERSION 3.8)					# Minimum cmake requirement
 
 project(RobotLibrary)							# Can use ${PROJECT_NAME} as a reference
 

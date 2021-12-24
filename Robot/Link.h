@@ -10,14 +10,14 @@ class Link
 		Link();							// Empty constructor
 
 		// Constructor with basic kinematics
-		Link(const Eigen::Affine3f &transform,			// Static transform from origin to endpoint
+		Link(const Eigen::Isometry3f &transform,			// Static transform from origin to endpoint
 		     const bool &jointType,					// 1 = Revolute, 0 = Prismatic
 		     const Eigen::Vector3f &jointAxis,			// Unit vector in local origin frame
 		     const float position_limits[2],				// Min. and max. values on joint position
 		     const float velocity_limits[2]);				// Min. and max. values on joint velocity
 
 		// Constructor with kinematics and mass properties
-		Link(const Eigen::Affine3f &transform,			// Static transform from origin to endpoint
+		Link(const Eigen::Isometry3f &transform,			// Static transform from origin to endpoint
 		     const bool &jointType,					// 1 = Revolute, 0 = Prismatic
 		     const Eigen::Vector3f &jointAxis,			// Unit vector in local origin frame
 		     const float &linkMass,
@@ -29,7 +29,7 @@ class Link
 		// Functions
 		bool is_revolute() const {return this->isRevolute;}		// Returns 1 for Revolute joint, 0 for Prismatic joint
 		bool is_prismatic() const {return !this->isRevolute;}	// Returns 0 for Revolute joint, 1 for Prismatic joint
-		Eigen::Affine3f get_pose(const float &pos);			// Get the link-to-link transform for given joint position
+		Eigen::Isometry3f get_pose(const float &pos);			// Get the link-to-link transform for given joint position
 		Eigen::Matrix3f get_inertia() const {return this->inertia;}	// Return the moment of inertia
 		Eigen::Vector3f get_axis() const {return this->axis;}	// Return the axis of actuation
 		Eigen::Vector3f get_com() const {return this->com;}		// Return the location of the centre of mass
@@ -38,7 +38,7 @@ class Link
 	private:
 		
 		// Kinematic properties
-		Eigen::Affine3f staticTF;					// Transform from origin to end point
+		Eigen::Isometry3f staticTF;					// Transform from origin to end point
 		
 		// Dynamic properties
 		float mass = 1.0;						// (kg)
@@ -68,7 +68,7 @@ Link::Link()
 }
 
 /******************** Constructor with only kinematics ********************/
-Link::Link(const Eigen::Affine3f &transform,
+Link::Link(const Eigen::Isometry3f &transform,
 	const bool &jointType,
 	const Eigen::Vector3f &jointAxis,
 	const float position_limits[2],
@@ -85,7 +85,7 @@ Link::Link(const Eigen::Affine3f &transform,
 }
 
 /******************** Constructor with dynamic properties ********************/
-Link::Link(const Eigen::Affine3f &transform,
+Link::Link(const Eigen::Isometry3f &transform,
 	const bool &jointType,
 	const Eigen::Vector3f &jointAxis,
 	const float &linkMass,
@@ -115,9 +115,9 @@ Link::Link(const Eigen::Affine3f &transform,
 }
 
 /******************** Get the pose of the link for a given joint position ********************/
-Eigen::Affine3f Link::get_pose(const float &pos)
+Eigen::Isometry3f Link::get_pose(const float &pos)
 {
-	Eigen::Affine3f jointTF;							// Transform due to change in joint position
+	Eigen::Isometry3f jointTF;							// Transform due to change in joint position
 	
 	if(this->isRevolute)	jointTF = Eigen::AngleAxisf(pos, this->axis);		// Pure rotation about the axis
 	else			jointTF = Eigen::Translation3f(pos*this->axis);	// Translate along the axis

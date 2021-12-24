@@ -14,11 +14,11 @@ class CartesianTrajectory
 		// Constructor(s)
 		CartesianTrajectory() {}
 		
-		CartesianTrajectory(const std::vector<Eigen::Affine3f> &poses,
+		CartesianTrajectory(const std::vector<Eigen::Isometry3f> &poses,
 				const std::vector<float> &times);
 		
 		// Get Functions
-		void get_state(Eigen::Affine3f &pose,				// Get the desired state for the given time
+		void get_state(Eigen::Isometry3f &pose,			// Get the desired state for the given time
 				Eigen::VectorXf &vel,
 				Eigen::VectorXf &acc,
 				const float &time);
@@ -42,7 +42,7 @@ class CartesianTrajectory
 };										// Semicolon needed after a class declaration
 
 /******************** Constructor ********************/
-CartesianTrajectory::CartesianTrajectory(const std::vector<Eigen::Affine3f> &poses,
+CartesianTrajectory::CartesianTrajectory(const std::vector<Eigen::Isometry3f> &poses,
 					const std::vector<float> &times)
 					:
 					n(poses.size()),
@@ -90,7 +90,7 @@ CartesianTrajectory::CartesianTrajectory(const std::vector<Eigen::Affine3f> &pos
 }
 
 /******************** Get the desired state for the given time ********************/
-void CartesianTrajectory::get_state(Eigen::Affine3f &pose,
+void CartesianTrajectory::get_state(Eigen::Isometry3f &pose,
 				Eigen::VectorXf &vel,
 				Eigen::VectorXf &acc,
 				const float &time)

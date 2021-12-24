@@ -60,7 +60,7 @@ CubicSpline::CubicSpline(const std::vector<Eigen::VectorXf> &points,
 			p(points),
 			t(times)	
 {
-	// Checkthe inputs are sound
+	// Check the inputs are sound
 	if(points.size() != times.size())
 	{
 		std::cout << "ERROR CubicSpline::CubicSpline() : Input vectors must have the same length!" << std::endl;
@@ -114,20 +114,17 @@ CubicSpline::CubicSpline(const std::vector<Eigen::Quaternionf> &points,
 		}
 	}
 	
-	resize_vectors();
+	resize_vectors();							// Resize vectors a, b, c, and d
 	
 	// We need to interpolate over the DIFFERENCE in orientation
 	this->p.resize(3);							
-	Eigen::Quaternionf dq;
-	float angle;
-	Eigen::Vector3f axis;
 	for(int j = 0; j < this->n-1; j++)
 	{
-		dq = this->q[j].conjugate()*this->q[j+1];			// Difference in orientation
+		Eigen::Quaternionf dq = this->q[j].conjugate()*this->q[j+1];	// Difference in orientation
 		dq.normalize();						// Normalize for good measure
 		
-		angle = 2*acos(dq.w());					// Get the angle between the two orientations
-		axis = dq.vec().normalized();
+		float angle = 2*acos(dq.w());					// Get the angle between the two orientations
+		Eigen::Vector3f axis = dq.vec().normalized();
 		
 		if(angle > M_PI)						// If the angle is greater than 180 degrees...
 		{
