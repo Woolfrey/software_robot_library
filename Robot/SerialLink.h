@@ -16,23 +16,23 @@ class SerialLink
 			const Eigen::Isometry3f &finalTransform);
 			
 		// Set Functions
-		bool update_joint_state(const Eigen::VectorXf &pos, const Eigen::VectorXf &vel); // Update internal kinematics & dynamics
-		void set_endpoint_offset(const Eigen::Isometry3f &transform);		// Define a new endpoint from the original
-		void set_gravity_vector(const Eigen::Vector3f &gravity);		// Set a new gravitational vector
+		bool update_state(const Eigen::VectorXf &pos, const Eigen::VectorXf &vel);	// Update internal kinematics & dynamics
+		void set_endpoint_offset(const Eigen::Isometry3f &transform);			// Define a new endpoint from the original
+		void set_gravity_vector(const Eigen::Vector3f &gravity);				// Set a new gravitational vector
 		
 		// Get Functions
-		Eigen::Isometry3f get_endpoint() const {return this->fkchain[this->n];} // Get the pose of the endpoint
+		Eigen::Isometry3f get_endpoint() const {return this->fkchain[this->n];}		// Get the pose of the endpoint
 		Eigen::MatrixXf get_jacobian() {return get_jacobian(this->fkchain[this->n].translation(), this->n);}
-		Eigen::MatrixXf get_inertia();					// Get the inertia matrix of the manipulator
-		Eigen::MatrixXf get_inertia2() const {return this->M;}		// TO REPLACE get_inertia()
+		Eigen::MatrixXf get_jdot(const Eigen::MatrixXf &J);
+		Eigen::MatrixXf get_inertia();							// Get the inertia matrix of the manipulator
+		Eigen::MatrixXf get_inertia2() const {return this->M;}				// TO REPLACE get_inertia()
 		Eigen::MatrixXf get_partial_jacobian(const Eigen::MatrixXf &J, const int&jointNum);
-		Eigen::VectorXf get_gravity_torque();					// As it says on the label	
-		Eigen::VectorXf get_gravity_torque2() {return this->g;}		// TO REPLACE get_gravity_torque()
-		int get_number_of_joints() const {return this->n;}			// Returns the number of joints
-		std::vector<Eigen::MatrixXf> get_com_jacobian() const {return this->Jc;} // TO REPLACE get_mass_jacobian()
-		std::vector<Eigen::MatrixXf> get_mass_jacobian();			// Get the Jacobian to the c.o.m for every link
-		void get_joint_state(Eigen::VectorXf &pos, Eigen::VectorXf &vel);	// Get the current internal joint state
-
+		Eigen::VectorXf get_gravity_torque();							// As it says on the label	
+		Eigen::VectorXf get_gravity_torque2() {return this->g;}				// TO REPLACE get_gravity_torque()
+		int get_number_of_joints() const {return this->n;}					// Returns the number of joints
+		std::vector<Eigen::MatrixXf> get_com_jacobian() const {return this->Jc;}		// TO REPLACE get_mass_jacobian()
+		std::vector<Eigen::MatrixXf> get_mass_jacobian();					// Get the Jacobian to the c.o.m for every link
+		void get_joint_state(Eigen::VectorXf &pos, Eigen::VectorXf &vel);			// Get the current internal joint state
 
 	private:
 		// Variables
@@ -46,7 +46,7 @@ class SerialLink
 		std::vector<Link> link;					// Array of link objects
 
 		// Variable kinematic properties
-		std::vector<Eigen::Isometry3f> fkchain;				// Transforms for each link
+		std::vector<Eigen::Isometry3f> fkchain;			// Transforms for each link
 		std::vector<Eigen::Vector3f> a;				// Axis of actuation for each joint, in base frame
 
 		// Dynamic properties
@@ -116,11 +116,11 @@ SerialLink::SerialLink(const std::vector<Link> &links,
 		this->w.push_back(Eigen::Vector3f::Zero());			// Angular velocity
 	}
 
-	update_joint_state(this->q, this->qdot);				// Set the initial state
+	update_state(this->q, this->qdot);					// Set the initial state
 }
 
 /******************** Update all the internal kinematic & dynamic properties ********************/
-bool SerialLink::update_joint_state(const Eigen::VectorXf &pos, const Eigen::VectorXf &vel)
+bool SerialLink::update_state(const Eigen::VectorXf &pos, const Eigen::VectorXf &vel)
 {
 	if(pos.size() == vel.size() && pos.size() == this->n)		// Dimension of all arguments are correct
 	{
@@ -136,7 +136,7 @@ bool SerialLink::update_joint_state(const Eigen::VectorXf &pos, const Eigen::Vec
 		
 		// Older functions which can eventually be moved out
 		// of this class:	
-		update_axis_and_distance();					// NOTE: TO BE SCHEDULED FOR DELETION
+		update_axis_and_distance();
 		get_inertia();							// NOTE: Change this to update_inertia in the future!
 		update_omega();	
 		return true;
@@ -230,6 +230,57 @@ Eigen::MatrixXf SerialLink::get_jacobian(const Eigen::Vector3f &point, const int
 	return J;
 }
 
+/******************** Compute the time derivative of a given Jacobian ********************/
+Eigen::MatrixXf SerialLink::get_jdot(const Eigen::MatrixXf &J)
+{
+	Eigen::MatrixXf Jdot;								// Value to be returned
+	Jdot.setZero(6,J.cols());
+
+	for(int i = 0; i < J.cols(); i++)
+	{
+		for(int j = 0; j <= i; j++)
+		{
+			// Compute dJ(i)/dq(j)
+			if(this->link[j].is_revolute())				// J_j = [a_j x r_j; a_j]
+			{
+				// qdot_j * ( a_j x (a_i x r_i) )
+				Jdot(0,i) += this->qdot(j)*(J(4,j)*J(2,i) - J(5,j)*J(1,i));
+				Jdot(1,i) += this->qdot(j)*(J(5,j)*J(0,i) - J(3,j)*J(2,i));
+				Jdot(2,i) += this->qdot(j)*(J(3,j)*J(1,i) - J(4,j)*J(0,i));
+				
+				if(this->link[i].is_revolute())			// J_i = [a_i x r_i; a_i]
+				{
+					// qdot_j * ( a_j x a_i )
+					Jdot(3,i) += this->qdot(j)*(J(4,j)*J(5,i) - J(5,j)*J(4,i));
+					Jdot(4,i) += this->qdot(j)*(J(5,j)*J(3,i) - J(3,j)*J(5,i));
+					Jdot(5,i) += this->qdot(j)*(J(3,j)*J(4,i) - J(4,j)*J(3,i));
+				}	
+			}
+			
+			// Compute dJ(j)/dq(i)
+			if(i != j && this->link[j].is_revolute())			// J_j = [a_j x r_j; a_j]
+			{
+				if(this->link[i].is_revolute())			// J_i = [a_i x r_i; a_i]
+				{
+					// qdot_i * ( a_i x (a_j x r_j) )
+					Jdot(0,j) += this->qdot(i)*(J(4,i)*J(2,j) - J(5,i)*J(1,j));
+					Jdot(1,j) += this->qdot(i)*(J(5,i)*J(0,j) - J(3,i)*J(2,j));
+					Jdot(2,j) += this->qdot(i)*(J(3,i)*J(1,j) - J(4,i)*J(0,j));
+				}
+				else // this->link[i].is_prismatic()			// J_i = [a_i ; 0]
+				{
+					// qdot_i * ( a_i x (a_j x r_j) )
+					Jdot(0,j) += this->qdot(i)*(J(1,i)*J(2,j) - J(2,i)*J(1,j));
+					Jdot(1,j) += this->qdot(i)*(J(2,i)*J(0,j) - J(0,i)*J(2,j));
+					Jdot(2,j) += this->qdot(i)*(J(0,i)*J(1,j) - J(1,i)*J(0,j));
+				}
+			}
+		}
+	}
+
+	return Jdot;
+}
+
 /******************** Get the partial derivative of the Jacobian w.r.t. to the ith joint  ********************/
 Eigen::MatrixXf SerialLink::get_partial_jacobian(const Eigen::MatrixXf &J, const int &jointNum)
 {
@@ -250,9 +301,9 @@ Eigen::MatrixXf SerialLink::get_partial_jacobian(const Eigen::MatrixXf &J, const
 	{
 		for(int i = 0; i < J.cols(); i++)
 		{
-			if(this->link[i].is_revolute())
-			{
-				if(this->link[jointNum].is_revolute())
+			if(this->link[i].is_revolute())						// J_i = [a_i x r_i ; a_i]
+			{		
+				if(this->link[jointNum].is_revolute()) 				// J_i = [a_j x r_j; a_j]
 				{
 					// a_j x (a_i x a_i)
 					dJ(0,i) = J(4,jointNum)*J(2,i) - J(5,jointNum)*J(1,i);
@@ -267,7 +318,7 @@ Eigen::MatrixXf SerialLink::get_partial_jacobian(const Eigen::MatrixXf &J, const
 						dJ(5,i) = J(3,jointNum)*J(4,i) - J(4,jointNum)*J(3,i);
 					}
 				}
-				else if(this->link[jointNum].is_prismatic() && jointNum > i)
+				else if(this->link[jointNum].is_prismatic()&& jointNum > i)		// J_j = [a_j ; 0]
 				{
 					// a_j x a_i
 					dJ(0,i) = J(1,jointNum)*J(2,i) - J(2,jointNum)*J(1,i);
@@ -275,7 +326,9 @@ Eigen::MatrixXf SerialLink::get_partial_jacobian(const Eigen::MatrixXf &J, const
 					dJ(2,i) = J(0,jointNum)*J(1,i) - J(1,jointNum)*J(0,i);
 				}
 			}
-			else if(this->link[i].is_prismatic() && this->link[jointNum].is_revolute() && jointNum < i)
+			else if(this->link[i].is_prismatic()						// J_i = [a_i ; 0]
+				&& this->link[jointNum].is_revolute()					// J_j = [a_j x r_j; a_j]
+				&& jointNum < i)
 			{
 				// a_j x a_i
 				dJ(0,i) = J(4,jointNum)*J(2,i) - J(5,jointNum)*J(1,i);
@@ -283,10 +336,9 @@ Eigen::MatrixXf SerialLink::get_partial_jacobian(const Eigen::MatrixXf &J, const
 				dJ(2,i) = J(3,jointNum)*J(1,i) - J(4,jointNum)*J(0,i);
 			}
 		}
+
 		return dJ;
 	}
-
-	return dJ;
 }
 
 /******************** Returns the Jacobian matrix for the centre of mass for every link ********************/
