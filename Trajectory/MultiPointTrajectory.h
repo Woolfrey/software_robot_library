@@ -16,9 +16,13 @@ class MultiPointTrajectory
 {
 	public:
 		// Constructor
-		MultiPointTrajectory() {}
-		
-		MultiPointTrajectory(const std::vector<Eigen::VectorXf> &points,
+		MultiPointTrajectory() {}					// Empty constructor
+		MultiPointTrajectory(const Eigen::VectorXf &startPoint,	// Constructor with 2 points, 2 times
+					const Eigen::VectorXf &endPoint,
+					float &startTime,
+					float &endTime);
+				
+		MultiPointTrajectory(const std::vector<Eigen::VectorXf> &points, // Constructor with multiple points, times
 				const std::vector<float> &times);
 				
 		// Get functions
@@ -39,6 +43,32 @@ class MultiPointTrajectory
 };										// Semicolon needed after a class declaration
 
 /******************** Constructor ********************/
+MultiPointTrajectory::MultiPointTrajectory(const Eigen::VectorXf &startPoint,
+					const Eigen::VectorXf &endPoint,
+					float &startTime,
+					float &endTime)
+					:
+					m(startPoint.size()),
+					n(2)
+{
+	// Check that the inputs are sound
+	if(startPoint.size() != endPoint.size())
+	{
+		std::cout << "ERROR: MultiPointTrajectory::MultiPointTrajectory() : Input vectors are not the same length!"
+			<< " Start point has " << startPoint.size() << " elements and end point has "
+			<< endPoint.size() << " elements." << std::endl;
+	}
+	if(startTime > endTime)
+	{
+		std::cout << "ERROR: MultiPointTrajectory::MultiPointTrajectory() : Start time of "
+			<< startTime << " is greater than end time of " << endTime << "!"
+			<< " Swapping the times..." << std::endl;
+		float temp = startTime;
+		startTime = endTime;
+		endTime = temp;
+	}
+	this->quintic = Quintic(startPoint, endPoint, startTime, endTime);
+}
 MultiPointTrajectory::MultiPointTrajectory(const std::vector<Eigen::VectorXf> &points,
 					const std::vector<float> &times)
 					:
