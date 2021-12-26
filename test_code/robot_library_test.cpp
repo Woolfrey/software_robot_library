@@ -10,11 +10,11 @@ int main(int argc, char **argv)
 {
 	if(test_serial_link())
 	{
-		std::cout << "SerialLink appears to be functioning correctly." << std::endl;
+		std::cout << "\nSerialLink appears to be functioning correctly." << std::endl;
 	}
 	else
 	{
-		std::cout << "Something wrong with the SerialLink class." << std::endl;
+		std::cout << "\nSomething wrong with the SerialLink class." << std::endl;
 	}
 	return 0;									// No problems with main
 }
@@ -79,7 +79,6 @@ bool test_serial_link()
     //   <mass value="0.3292"/>
     //   <inertia ixx="0.00031105" ixy="1.4771E-06" ixz="-3.7074E-07" iyy="0.00021549" iyz="-8.4533E-06" izz="0.00035976"/>
     // </inertial>
-
 
 	std::vector<Eigen::Isometry3f> trans;
 	std::vector<Eigen::Isometry3f> rot;
@@ -197,20 +196,45 @@ bool test_serial_link()
 		Link currentLink(currentLinkTf, true, Eigen::Vector3f(0, 0, 1), link_mass[i], com[i], inertia[i], temp, temp);
 		links.push_back(currentLink);
 	}
-
 	Eigen::Isometry3f finalLinkTf = Eigen::Isometry3f::Identity();
-
 	SerialLink robot(links, baseLinkTF, finalLinkTf);
-
-	std::cout << "Here is the end-effector pose:" << std::endl;
-	std::cout << robot.get_endpoint().matrix() << std::endl;
-
-	std::cout << "\nHere is the Jacobian:" << std::endl;
-	std::cout << robot.get_jacobian() << std::endl;
 	
+	std::cout << "\n SerialLink object created successfully!" << std::endl;
+	int n = robot.get_number_of_joints();
+	std::cout <<"\n This robot has " << n << " joints." << std::endl;
+	
+	/********** Set the joint state **********/
+	Eigen::VectorXf q = Eigen::VectorXf::Random(n);
+	Eigen::VectorXf qdot = Eigen::VectorXf::Random(n);
+	robot.update_state(q,qdot);
+	
+	/********** Test the Kinematics **********/
+	Eigen::Isometry3f EE = robot.get_endpoint();
+	std::cout << "\nHere is the end-effector pose:" << std::endl;
+	std::cout << EE.matrix() << std::endl;
+
+	Eigen::MatrixXf J = robot.get_jacobian();
+	std::cout << "\nHere is the Jacobian:" << std::endl;
+	std::cout << J << std::endl;
+	
+	/********** Test the partial and time derivative of the Jacobian **********/
+	std::vector<Eigen::MatrixXf> dJdq;
+	dJdq.resize(n);
+	Eigen::MatrixXf Jdot_slow; Jdot_slow.setZero(6,n);
+	for(int i = 0; i < n; i++)
+	{
+		dJdq[i] = robot.get_partial_jacobian(J, i);
+		Jdot_slow += qdot[i]*dJdq[i];
+	}
+	
+	Eigen::MatrixXf Jdot_fast = robot.get_jdot(J);
+	std::cout << "\nHere is the difference between the slow and fast time derivatives:" << std::endl;
+	std::cout << (Jdot_fast - Jdot_slow) << std::endl;
+	
+	/********** Test the Dynamics **********/
 //	std::vector<Eigen::MatrixXf> Jm = robot.get_mass_jacobian();
 	std::vector<Eigen::MatrixXf> Jm = robot.get_com_jacobian();
-	std::cout << "\nHere is the mass Jacobian:" << std::endl;
+	std::cout << "\nHere are the c.o.m. Jacobians:" << std::endl;
 	for(int i = 0; i < Jm.size(); ++i)
 	std::cout << "\nLink: " << i+1 << "\n" << Jm[i]<< std::endl;
 
