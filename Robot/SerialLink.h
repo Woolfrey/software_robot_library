@@ -26,9 +26,10 @@ class SerialLink
 		Eigen::MatrixXf get_jdot(const Eigen::MatrixXf &J);
 		Eigen::MatrixXf get_inertia();							// Get the inertia matrix of the manipulator
 		Eigen::MatrixXf get_inertia2() const {return this->M;}				// TO REPLACE get_inertia()
-		Eigen::MatrixXf get_partial_jacobian(const Eigen::MatrixXf &J, const int&jointNum);
+		Eigen::MatrixXf get_partial_jacobian(const Eigen::MatrixXf &J, const int &jointNum);
 		Eigen::VectorXf get_gravity_torque();							// As it says on the label	
-		Eigen::VectorXf get_gravity_torque2() {return this->g;}				// TO REPLACE get_gravity_torque()
+		Eigen::VectorXf get_gravity_torque2() const {return this->g;}			// TO REPLACE get_gravity_torque()
+		Eigen::VectorXf get_joint_position() const {return this->q;}
 		int get_number_of_joints() const {return this->n;}					// Returns the number of joints
 		std::vector<Eigen::MatrixXf> get_com_jacobian() const {return this->Jc;}		// TO REPLACE get_mass_jacobian()
 		std::vector<Eigen::MatrixXf> get_mass_jacobian();					// Get the Jacobian to the c.o.m for every link
