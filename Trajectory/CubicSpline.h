@@ -97,7 +97,8 @@ CubicSpline::CubicSpline(const std::vector<Eigen::Quaternionf> &points,
 	// Check the inputs are sound
 	if(points.size() != times.size())
 	{
-		std::cout << "ERROR: CubicSpline::CubicSpline() : Input vectors must have the same length!" << std::endl;
+		std::cout << "ERROR: CubicSpline::CubicSpline() : Input vectors must have the same length!"
+			<< "You input " << points.size() << " points and " << times.size() << " times." << std::endl;
 	}
 	else if(points.size() < 3)
 	{
