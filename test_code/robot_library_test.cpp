@@ -204,9 +204,10 @@ bool test_serial_link()
 	std::cout <<"\n This robot has " << n << " joints." << std::endl;
 	
 	/********** Set the joint state **********/
-	Eigen::VectorXf q = Eigen::VectorXf::Random(n);
-	Eigen::VectorXf qdot = Eigen::VectorXf::Random(n);
-	robot.update_state(q,qdot);
+	srand((unsigned int) time(0));					// Random seed generator
+	Eigen::VectorXf q = Eigen::VectorXf::Random(n);			// Create random joint positions
+	Eigen::VectorXf qdot = Eigen::VectorXf::Random(n);			// Create random joint velocities
+	robot.update_state(q,qdot);						// Compute new joint state
 	
 	/********** Test the Kinematics **********/
 	Eigen::Isometry3f EE = robot.get_endpoint();
