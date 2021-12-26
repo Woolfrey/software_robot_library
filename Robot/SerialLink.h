@@ -16,9 +16,9 @@ class SerialLink
 			const Eigen::Isometry3f &finalTransform);
 			
 		// Set Functions
-		bool update_state(const Eigen::VectorXf &pos, const Eigen::VectorXf &vel);	// Update internal kinematics & dynamics
-		void set_endpoint_offset(const Eigen::Isometry3f &transform);			// Define a new endpoint from the original
-		void set_gravity_vector(const Eigen::Vector3f &gravity);				// Set a new gravitational vector
+		bool update_state(const Eigen::VectorXf &pos, const Eigen::VectorXf &vel);		// Update internal kinematics & dynamics
+		void set_endpoint_offset(const Eigen::Isometry3f &transform) {this->endpointTF = transform;} // Define a new endpoint
+		void set_gravity_vector(const Eigen::Vector3f &gravity) {this->gravityVector = gravity;} // Set a new gravitational vector
 		
 		// Get Functions
 		Eigen::Isometry3f get_endpoint() const {return this->fkchain[this->n];}		// Get the pose of the endpoint
@@ -150,18 +150,6 @@ bool SerialLink::update_state(const Eigen::VectorXf &pos, const Eigen::VectorXf 
 	}
 }
 
-/******************** Adds an additional transform to the endpoint of the forward kinematics ********************/
-void SerialLink::set_endpoint_offset(const Eigen::Isometry3f &transform)
-{
-	this->endpointTF = transform;
-}
-
-/******************** Set a new gravity vector ********************/
-void SerialLink::set_gravity_vector(const Eigen::Vector3f &gravity)
-{
-	this->gravityVector = gravity;
-}
-
 /******************** Get the current joint position, velocites ********************/
 void SerialLink::get_joint_state(Eigen::VectorXf &pos, Eigen::VectorXf &vel)
 {
@@ -173,11 +161,13 @@ void SerialLink::get_joint_state(Eigen::VectorXf &pos, Eigen::VectorXf &vel)
 void SerialLink::update_forward_kinematics()
 {	
 	this->fkchain[0] = this->baseTF*this->link[0].get_pose(this->q[0]); 			// Pre-multiply by base transform
+	
 	this->a[0] = this->fkchain[0].rotation()*this->link[0].get_axis();			// Update axis for 1st joint	
 	
 	for(int i = 1; i < this->n; i++)
 	{
 		this->fkchain[i] = this->fkchain[i-1]*this->link[i].get_pose(this->q[i]);	// Compute chain of joint/link transforms
+		
 		this->a[i] = this->fkchain[i].rotation()*this->link[i].get_axis();		// Rotate axis from local frame to global frame
 	}
 	this->fkchain[this->n] = this->fkchain[this->n-1]*this->link[this->n].get_pose(0)*this->endpointTF; // Offset the endpoints
