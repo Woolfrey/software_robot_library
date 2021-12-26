@@ -26,14 +26,14 @@ class SerialKinCtrl
 Eigen::VectorXf SerialKinCtrl::get_pose_error(const Eigen::Isometry3f &desired,
 						const Eigen::Isometry3f &actual)
 {
-	Eigen::VectorXf error(6);						// Value to be returned
+	Eigen::VectorXf error(6);							// Value to be returned
 	
-	error.head(3) = desired.translation() - actual.translation();	// Get the translation eror
+	error.head(3) = desired.translation() - actual.translation();		// Get the translation error
 	
-	Eigen::Quaternionf qe = Eigen::Quaternionf(desired.rotation())
-			       * Eigen::Quaternionf(actual.rotation()).conjugate(); // Rotation error = qd*conj(qa)
-			       
-	error.tail(3) = qe.vec();						// Only do feedback on vector part of quaternion
+	// Is there are smarter/faster way to do this???
+	Eigen::Isometry3f Re = desired*actual.inverse();				// Get the rotation error
+	
+	error.tail(3) = Eigen::Quaternionf(Re.rotation()).vec();			// Quaternion feedback
 	
 	return error;
 }
