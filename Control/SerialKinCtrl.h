@@ -5,30 +5,42 @@
 class SerialKinCtrl
 {
 	public:
-		SerialKinCtrl() {}
-		
 		SerialKinCtrl(SerialLink *serial);
 		
 		// Set Functions
 		bool set_joint_target(const Eigen::VectorXf &target);
 		bool set_joint_targets(const std::vector<Eigen::VectorXf> &targets, const std::vector<float> &times);
-		bool set_proportional_gain(const float &p);
+		bool set_proportional_gain(const float &gain);
 		
 		// Get Functions
 		Eigen::VectorXf get_joint_control(const float &time);		// Control to track joint trajectory
 		Eigen::VectorXf get_pose_error(const Eigen::Isometry3f &desired, const Eigen::Isometry3f &actual);
 	
-	private:									// SerialDynControl has access to these
+	private:
+
+		Eigen::VectorXf q_d, qdot_d, qddot_d;					// Desired joint position, velocity
 	
 		float kp = 1.0;							// Proportional gain
+		
+		int n;
 
 		SerialLink *robot;							// Use pointer to memory address
 
 		MultiPointTrajectory jointTrajectory;
-		
-		Eigen::VectorXf q_d, qdot_d, qddot_d;					// Desired joint position, velocity
 	
 };											// Semicolon needed after class declaration
+
+/******************** Create a controller for the given SerialLink object ********************/
+SerialKinCtrl::SerialKinCtrl(SerialLink *serial)
+	:
+	robot(serial),
+	n(serial->get_number_of_joints()),
+	q_d(Eigen::VectorXf(this->n)),
+	qdot_d(Eigen::VectorXf(this->n)),
+	qddot_d(Eigen::VectorXf(this->n))
+{
+
+}
 
 /******************** Set a desired joint configuration to move to ********************/
 bool SerialKinCtrl::set_joint_target(const Eigen::VectorXf &target)
@@ -79,16 +91,16 @@ bool SerialKinCtrl::set_joint_targets(const std::vector<Eigen::VectorXf> &target
 }
 
 /******************** Set proportional gains for the feedback control ********************/
-bool SerialKinCtrl::set_proportional_gain(const float &p)
+bool SerialKinCtrl::set_proportional_gain(const float &gain)
 {
-	if(p < 0)
+	if(gain < 0)
 	{
 		std::cout << "ERROR: SerialKinCtrl::set_proportional_gain : Proportional gain cannot be negative!" << std::endl;
 		return false;
 	}
 	else
 	{
-		this->kp = p;
+		this->kp = gain;
 		return true;
 	}
 }
@@ -97,7 +109,7 @@ bool SerialKinCtrl::set_proportional_gain(const float &p)
 Eigen::VectorXf SerialKinCtrl::get_joint_control(const float &time)
 {
 	this->jointTrajectory.get_state(this->q_d, this->qdot_d, this->qddot_d, time); 	// Get the desired state for the given time
-	return this->qdot_d + this->kp*(this->q_d - this->robot->get_joint_position());	// Feedforward + feedback
+	return this->qdot_d + this->kp*(this->q_d - this->robot->get_joint_positions());	// Feedforward + feedback
 }
 
 /******************** Get the error between two poses for feedback control purposes ********************/
