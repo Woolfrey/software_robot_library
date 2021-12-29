@@ -33,7 +33,9 @@ class Link
 		Eigen::Matrix3f get_inertia() const {return this->inertia;}	// Return the moment of inertia
 		Eigen::Vector3f get_axis() const {return this->axis;}	// Return the axis of actuation
 		Eigen::Vector3f get_com() const {return this->com;}		// Return the location of the centre of mass
-		float get_mass() const {return this->mass;}			// Return the mass	
+		float get_mass() const {return this->mass;}			// Return the mass
+		void get_position_limits(float &lower, float &upper);
+		void get_velocity_limits(float &lower, float &upper);
 		
 	private:
 		
@@ -123,6 +125,20 @@ Eigen::Isometry3f Link::get_pose(const float &pos)
 	else			jointTF = Eigen::Translation3f(pos*this->axis);	// Translate along the axis
 	
 	return this->staticTF*jointTF;
+}
+
+/******************** Get the position limits for the attached joint ********************/
+void Link::get_position_limits(float &lower, float &upper)
+{
+	lower = this->pLim[0];
+	upper = this->pLim[1];
+}
+
+/******************** Get the velocity limits for the attached joint ********************/
+void Link::get_velocity_limits(float &lower, float &upper)
+{
+	lower = this->vLim[0];
+	upper = this->vLim[1];
 }
 
 /******************** Check that the joint limits are sound ********************/
