@@ -8,7 +8,7 @@ class SerialKinCtrl
 		SerialKinCtrl(SerialLink *serial);
 		
 		// Set Functions
-		bool set_joint_target(const Eigen::VectorXf &target);
+		bool set_joint_target(Eigen::VectorXf &target);
 		bool set_joint_targets(const std::vector<Eigen::VectorXf> &targets, const std::vector<float> &times);
 		bool set_proportional_gain(const float &gain);
 		
@@ -22,9 +22,12 @@ class SerialKinCtrl
 	
 		float kp = 1.0;							// Proportional gain
 		
-		int n;
+		int n;									// Number of joints in the robot
 
-		SerialLink *robot;							// Use pointer to memory address
+		SerialLink *robot;							// Use pointer to memory address?
+		
+		std::vector<std::array<float,2>> pLim;				// Array of position limits
+		std::vector<std::array<float,2>> vLim;				// Array of velocity limits
 
 		MultiPointTrajectory jointTrajectory;
 	
@@ -39,13 +42,15 @@ SerialKinCtrl::SerialKinCtrl(SerialLink *serial)
 	qdot_d(Eigen::VectorXf(this->n)),
 	qddot_d(Eigen::VectorXf(this->n))
 {
-
+	// Not sure if this is the best way to do this?
+	this->pLim = this->robot->get_position_limits();				// Get the joint position limits
+	this->vLim = this->robot->get_velocity_limits();				// Get the joint velocity limits
 }
 
 /******************** Set a desired joint configuration to move to ********************/
-bool SerialKinCtrl::set_joint_target(const Eigen::VectorXf &target)
+bool SerialKinCtrl::set_joint_target(Eigen::VectorXf &target)
 {
-	int n = this->robot->get_number_of_joints();					// Number of joints
+	int n = this->robot->get_number_of_joints();						// Number of joints
 	if(target.size() != n)
 	{
 		std::cout << "ERROR: SerialKinCtrl::set_joint_target() : Input vector has "
@@ -56,27 +61,29 @@ bool SerialKinCtrl::set_joint_target(const Eigen::VectorXf &target)
 	}
 	else
 	{
-		float dt;
-		float dq;
-		float endTime = 1.0;
+		float dt;									// Change in time
+		float dq;									// Change in position
+		float startTime = 0.0;								// Have to declare this here or it won't compile???
+		float endTime = 1.0;								// Default trajectory time
 		
 		for(int i = 0; i < n; i++)
 		{
 			// Check that the target is within joint limits
-			// if(target[i] >= this->robot.link[i].qlim[1]) 	target[i] = 0.99*this->robot.link[i].pLim[1];
-			// else if(target <= this->robot.link[i].qlim[0])	target[i] = 0.99*this->robot.link[i].pLim[0];	
-			
-			// Compute the optimal time scaling for quintic polynomial
+			if(target[i] <= this->pLim[i][0])	target[i] = 0.99*this->pLim[i][0];
+			if(target[i] >= this->pLim[i][1])	target[i] = 0.99*this->pLim[i][1];
+	
+			// Compute the optimal time scaling for quintic polynomial. See:
 			// Angeles, J. (2002). Fundamentals of robotic mechanical systems (Vol. 2).
 			// New York: Springer-Verlag.
-			
-			// dq = this->target[i] - this->robot.q[i];				// Distance travelled
-			// if(dq > 0)		dt = (15*dq)/(8*this->robot.link[i].vLim[1]);	// Time with peak velocity at max. speed
-			// else if(dq < 0)	dt = (15*dq)/(8*this->robot.link[i].vLim[0]);	// Time with peak velocity at min. speed
-			// if(dq != 0 && dt > endTime) endTime = dt;				// Set new end time
+			dq = target[i] - this->robot->get_joint_position(i);			// Distance travelled
+			if(dq < 0) dt = (15*dq)/(8*this->vLim[i][0]);				// Time to reach end at min. speed
+			if(dq > 0) dt = (15*dq)/(8*this->vLim[i][1]);				// Time to reach end at max. speed
+			if(dq != 0 && dt > endTime) endTime = dt;				// Set new end time for trajectory
 		}
 		
-		// this->jointTrajectory  = MultiPointTrajectory(q, target, 0, endTime);	// Set a new trajectory object
+		// Set new trajectory object
+		this->jointTrajectory = MultiPointTrajectory(this->robot->get_joint_positions(), target, startTime, endTime);
+		
 		return true;
 	}
 }
