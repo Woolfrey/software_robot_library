@@ -30,57 +30,59 @@ class SerialLink
 		Eigen::MatrixXf get_partial_jacobian(const Eigen::MatrixXf &J, const int &jointNum); // Partial derivative w.r.t a single joint
 		Eigen::VectorXf get_gravity_torque() const {return this->g;}				// Get torque needed to oppose gravity
 		Eigen::VectorXf get_joint_positions() const {return this->q;}			// As it says on the label
+		float get_joint_position(const int &i) const {return this->q[i];}			// Query a single joint position
 		int get_number_of_joints() const {return this->n;}					// Returns the number of joints
-		std::vector<std::array<float,2>> get_position_limits();				// Work in progress
-//		std::vector<float> get_velocity_limits();						// Work in progress
+		std::vector<std::array<float,2>> get_position_limits();				// Get all joint limits as a single object
+		std::vector<std::array<float,2>> get_velocity_limits();				// Get all velocity limits as a single object
 		void get_joint_state(Eigen::VectorXf &pos, Eigen::VectorXf &vel);			// Get the current internal joint state
 			
 	private:
 		// Kinematic properties
-		int n;								// Number of joints
-		Eigen::Vector3f gravityVector;				// Gravitational acceleration
-		Eigen::VectorXf q, qdot;					// Joint positions, velocities
-		Eigen::VectorXf baseTwist;					// Base twist
-		Eigen::Isometry3f baseTF;					// Transform to first joint
-		Eigen::Isometry3f finalTF;					// Transform from final joint to endpoint
-		Eigen::Isometry3f endpointTF;					// New endpoint offset (default identity)
-		std::vector<Link> link;					// Array of link objects
-		std::vector<Eigen::Isometry3f> fkChain;			// Transforms for each link
-		std::vector<Eigen::Vector3f> axis;				// Axis of actuation for each joint, in base frame
+		int n;									// Number of joints
+		Eigen::Vector3f gravityVector;					// Gravitational acceleration
+		Eigen::VectorXf q, qdot;						// Joint positions, velocities
+		Eigen::VectorXf baseTwist;						// Base twist
+		Eigen::Isometry3f baseTF;						// Transform to first joint
+		Eigen::Isometry3f finalTF;						// Transform from final joint to endpoint
+		Eigen::Isometry3f endpointTF;						// New endpoint offset (default identity)
+		std::vector<Link> link;						// Array of link objects
+		std::vector<Eigen::Isometry3f> fkChain;				// Transforms for each link
+		std::vector<Eigen::Vector3f> axis;					// Axis of actuation for each joint, in base frame
 
 		// Dynamic properties
-		Eigen::MatrixXf C;						// Coriolis matrix (nxn)
-		Eigen::MatrixXf D;						// Damping matrix (nxn)
-		Eigen::MatrixXf M;						// Inertia matrix (nxn)
-		Eigen::VectorXf g;						// Gravitational torque (nx1)
+		Eigen::MatrixXf C;							// Coriolis matrix (nxn)
+		Eigen::MatrixXf D;							// Damping matrix (nxn)
+		Eigen::MatrixXf M;							// Inertia matrix (nxn)
+		Eigen::VectorXf g;							// Gravitational torque (nx1)
 
 		// Get Functions
 		Eigen::MatrixXf get_jacobian(const Eigen::Vector3f &point, const int &numJoints);
 		
 		// Update internal state
 		// Note: MUST update kinematics first
-		void update_forward_kinematics();				// Compute forward kinematic chain based on current state
-		void update_inverse_dynamics();				// Compute inverse dynamics properites based on current state
-};										// Semicolon needed after a class declaration
+		void update_forward_kinematics();					// Compute forward kinematic chain based on current state
+		void update_inverse_dynamics();					// Compute inverse dynamics properites based on current state
+		
+};											// Semicolon needed after a class declaration
 
 /******************** Constructor ********************/
 SerialLink::SerialLink(const std::vector<Link> &links,
 		const Eigen::Isometry3f &baseTransform,
 		const Eigen::Isometry3f &finalTransform)
 		:
-		n(links.size()-1),						// Number of joints
-		gravityVector(Eigen::Vector3f(0.0, 0.0, -9.81)),		// Default gravity on surface of Earth
-		q(Eigen::VectorXf::Zero(this->n)),				// Joint position vector
-		qdot(Eigen::VectorXf::Zero(this->n)),				// Joint velocity vector
-		baseTwist(Eigen::VectorXf::Zero(6)),				// Linear and angular velocity of the base
-		baseTF(baseTransform),						// Pose of the base in global frame
-		finalTF(finalTransform),					// Pose of the endpoint from the final link frame
-		endpointTF(Eigen::Isometry3f::Identity()),			// Additional endpoint offset
-		link(links),							// Vector of Link objects
-		C(Eigen::MatrixXf::Zero(this->n, this->n)),			// Coriolis matrix
-		D(Eigen::MatrixXf::Identity(this->n, this->n)),		// Damping matrix
-		M(Eigen::MatrixXf::Identity(this->n, this->n)),		// Inertia matrix
-		g(Eigen::VectorXf::Zero(this->n))				// Gravity torque vectors
+		n(links.size()-1),							// Number of joints
+		gravityVector(Eigen::Vector3f(0.0, 0.0, -9.81)),			// Default gravity on surface of Earth
+		q(Eigen::VectorXf::Zero(this->n)),					// Joint position vector
+		qdot(Eigen::VectorXf::Zero(this->n)),					// Joint velocity vector
+		baseTwist(Eigen::VectorXf::Zero(6)),					// Linear and angular velocity of the base
+		baseTF(baseTransform),							// Pose of the base in global frame
+		finalTF(finalTransform),						// Pose of the endpoint from the final link frame
+		endpointTF(Eigen::Isometry3f::Identity()),				// Additional endpoint offset
+		link(links),								// Vector of Link objects
+		C(Eigen::MatrixXf::Zero(this->n, this->n)),				// Coriolis matrix
+		D(Eigen::MatrixXf::Identity(this->n, this->n)),			// Damping matrix
+		M(Eigen::MatrixXf::Identity(this->n, this->n)),			// Inertia matrix
+		g(Eigen::VectorXf::Zero(this->n))					// Gravity torque vectors
 		
 {
 	// Initialize all std::vector objects
@@ -88,22 +90,22 @@ SerialLink::SerialLink(const std::vector<Link> &links,
 	
 	for(int i = 0; i < this->n; i++)
 	{
-		this->fkChain.push_back(Eigen::Isometry3f::Identity());	// Link / joint transforms
-		this->axis.push_back(Eigen::Vector3f::Zero());		// Axis of actuation
+		this->fkChain.push_back(Eigen::Isometry3f::Identity());		// Link / joint transforms
+		this->axis.push_back(Eigen::Vector3f::Zero());			// Axis of actuation
 	}
 
-	update_state(this->q, this->qdot);					// Set the initial state
+	update_state(this->q, this->qdot);						// Set the initial state
 }
 
 /******************** Update all the internal kinematic & dynamic properties ********************/
 bool SerialLink::update_state(const Eigen::VectorXf &pos, const Eigen::VectorXf &vel)
 {
-	if(pos.size() == vel.size() && pos.size() == this->n)		// Dimension of all arguments are correct
+	if(pos.size() == vel.size() && pos.size() == this->n)			// Dimension of all arguments are correct
 	{
-		this->q = pos;							// Assign new joint positions
-		this->qdot = vel;						// Assign new joint velocities		
-		update_forward_kinematics();					// Compute new transform chain
-		update_inverse_dynamics();					// Compute inertia, coriolis, gravity
+		this->q = pos;								// Assign new joint positions
+		this->qdot = vel;							// Assign new joint velocities		
+		update_forward_kinematics();						// Compute new transform chain
+		update_inverse_dynamics();						// Compute inertia, coriolis, gravity
 		return true;
 	}
 	else
@@ -122,27 +124,23 @@ void SerialLink::get_joint_state(Eigen::VectorXf &pos, Eigen::VectorXf &vel)
 	vel = this->qdot;
 }
 
-/******************** Get the joint position limits ********************/
+/******************** Get the joint position limits as a single object ********************/
 std::vector<std::array<float,2>> SerialLink::get_position_limits()
 {
-	std::vector<std::array<float,2>> limits;
-	
+	std::vector<std::array<float,2>> limits;						// Value to be returned
+	limits.resize(this->n);								// Resize array accordingly
+	for(int i = 0; i < this->n; i++) this->link[i].get_position_limits(limits[i][0], limits[i][1]);
 	return limits;
 }	
-/*
-std::vector<float> SerialLink::get_position_limits()
+
+/******************** Get the joint velocity limits as a single object ********************/
+std::vector<std::array<float,2>> SerialLink::get_velocity_limits()
 {
-	std::vector<float[2]> limits;
+	std::vector<std::array<float,2>> limits;
 	limits.resize(this->n);
-	float temp[2];
-	for(int i = 0; i < this->n; i++)
-	{
-		this->link[i].get_position_limits(temp[0], temp[1]);
-		limits[i] = temp;
-	}
+	for(int i = 0; i < this->n; i++) this->link[i].get_velocity_limits(limits[i][0], limits[i][1]);
 	return limits;
 }
-*/
 
 /******************** Compute forward kinematics chain at current joint position ********************/
 void SerialLink::update_forward_kinematics()
