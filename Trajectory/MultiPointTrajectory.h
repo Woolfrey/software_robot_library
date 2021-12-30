@@ -23,20 +23,17 @@ class MultiPointTrajectory
 					float &endTime);
 				
 		MultiPointTrajectory(const std::vector<Eigen::VectorXf> &points, // Constructor with multiple points, times
-				const std::vector<float> &times);
+					const std::vector<float> &times);
 				
 		// Get functions
-		
 		void get_state(Eigen::VectorXf &pos,				// Get the state for the given time
 				Eigen::VectorXf &vel,
 				Eigen::VectorXf &acc,
 				const float &time);
-				
-		std::string get_type();					// Get the type of trajectory
 	
 	private:
 		int m, n;							// m dimensions with n waypoints
-		
+
 		CubicSpline cubic;						// Trajectory for n > 2
 		Quintic quintic;						// Trajectory for n = 2
 		
@@ -63,9 +60,9 @@ MultiPointTrajectory::MultiPointTrajectory(const Eigen::VectorXf &startPoint,
 		std::cout << "ERROR: MultiPointTrajectory::MultiPointTrajectory() : Start time of "
 			<< startTime << " is greater than end time of " << endTime << "!"
 			<< " Swapping the times..." << std::endl;
-		float temp = startTime;
-		startTime = endTime;
-		endTime = temp;
+		float temp = startTime;					// Store the start time
+		startTime = endTime;						// Override the start time with the end time
+		endTime = temp;						// Override the end time with the start time
 	}
 	this->quintic = Quintic(startPoint, endPoint, startTime, endTime);
 }
@@ -99,13 +96,6 @@ void MultiPointTrajectory::get_state(Eigen::VectorXf &pos, Eigen::VectorXf &vel,
 	
 	if(this->n < 3) 	this->quintic.get_state(pos, vel, acc, time);
 	else			this->cubic.get_state(pos, vel, acc, time);
-}
-
-std::string MultiPointTrajectory::get_type()
-{
-	if(this->n < 2)	return "ERROR: Unknown type! How did this happen?";
-	else if(this->n == 2)	return "quintic polynomial";
-	else			return "cubic spline";
 }
 
 #endif
