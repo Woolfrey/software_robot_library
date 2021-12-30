@@ -22,14 +22,15 @@ class SerialLink
 		
 		// Get Functions
 		Eigen::Isometry3f get_endpoint() const {return this->fkChain[this->n];}		// Get the pose of the endpoint
+		Eigen::MatrixXf get_coriolis() const {return this->C;}				// Get the Coriolis matrix
+		Eigen::MatrixXf get_inertia() const {return this->M;}				// Get inerita matrix in joint space
 		Eigen::MatrixXf get_jacobian() {return get_jacobian(this->fkChain[this->n].translation(), this->n);}
 		Eigen::MatrixXf get_jdot(const Eigen::MatrixXf &J);					// Time derivative of a given Jacobian
-		Eigen::MatrixXf get_inertia() const {return this->M;}				// Get inerita matrix in joint space
 		Eigen::MatrixXf get_partial_jacobian(const Eigen::MatrixXf &J, const int &jointNum); // Partial derivative w.r.t a single joint
 		Eigen::VectorXf get_gravity_torque() const {return this->g;}				// Get torque needed to oppose gravity
 		Eigen::VectorXf get_joint_positions() const {return this->q;}			// As it says on the label
 		int get_number_of_joints() const {return this->n;}					// Returns the number of joints
-		std::vector<Eigen::MatrixXf> get_com_jacobian() const {return this->Jc;}		// Jacobian to center of mass
+//		std::vector<Eigen::MatrixXf> get_com_jacobian() const {return this->Jc;}		// Jacobian to center of mass
 //		std::vector<float> get_position_limits();						// Work in progress
 //		std::vector<float> get_velocity_limits();						// Work in progress
 		void get_joint_state(Eigen::VectorXf &pos, Eigen::VectorXf &vel);			// Get the current internal joint state
@@ -56,17 +57,17 @@ class SerialLink
 
 		// Variable kinematic properties
 		std::vector<Eigen::Isometry3f> fkChain;			// Transforms for each link
-		std::vector<Eigen::Vector3f> a;				// Axis of actuation for each joint, in base frame
+		std::vector<Eigen::Vector3f> axis;				// Axis of actuation for each joint, in base frame
 
 		// Dynamic properties
 		Eigen::MatrixXf C;						// Coriolis matrix (nxn)
 		Eigen::MatrixXf D;						// Damping matrix (nxn)
 		Eigen::MatrixXf M;						// Inertia matrix (nxn)
 		Eigen::VectorXf g;						// Gravitational torque (nx1)
-		std::vector<Eigen::Vector3f> com;				// Center of mass for each link, in base frame (nx3x1)
-		std::vector<Eigen::MatrixX3f> I;				// Inertia matrices for each link in the origin frame (nx3x3)
-		std::vector<Eigen::MatrixXf> Jc;				// Jacobian to the center of mass (nx6xn)
-		std::vector<Eigen::MatrixXf> Jcdot;				// Time derivative of Jacobian (nx6xn)
+//		std::vector<Eigen::Vector3f> com;				// Center of mass for each link, in base frame (nx3x1)
+//		std::vector<Eigen::MatrixX3f> I;				// Inertia matrices for each link in the origin frame (nx3x3)
+//		std::vector<Eigen::MatrixXf> Jc;				// Jacobian to the center of mass (nx6xn)
+//		std::vector<Eigen::MatrixXf> Jcdot;				// Time derivative of Jacobian (nx6xn)
 
 		// Get Functions
 		Eigen::MatrixXf get_jacobian(const Eigen::Vector3f &point, const int &numJoints);
@@ -75,11 +76,11 @@ class SerialLink
 		// NOTE: Order which they are called is important!
 		void update_forward_kinematics();				// Compute forward kinematic chain based on current state
 		void update_inverse_dynamics();				// Compute inverse dynamics properites based on current state
-		void update_com();						// Compute location for the c.o.m. for each link
-		void update_com_jacobian();					// Compute the Jacobian to each c.o.m.
-		void update_gravity_torque();					// Compute the effect of gravity on the joints
-		void update_link_inertia();					// Rotate link inertia from local frame to base frame
-		void update_inertia();						// Compute new inertia matrix in joint space
+//		void update_com();						// Compute location for the c.o.m. for each link
+//		void update_com_jacobian();					// Compute the Jacobian to each c.o.m.
+//		void update_gravity_torque();					// Compute the effect of gravity on the joints
+//		void update_link_inertia();					// Rotate link inertia from local frame to base frame
+//		void update_inertia();						// Compute new inertia matrix in joint space
 		
 };										// Semicolon needed after a class declaration
 
@@ -109,11 +110,11 @@ SerialLink::SerialLink(const std::vector<Link> &links,
 	for(int i = 0; i < this->n; i++)
 	{
 		this->fkChain.push_back(Eigen::Isometry3f::Identity());	// Link / joint transforms
-		this->a.push_back(Eigen::Vector3f::Zero());			// Axis of actuation
-		this->com.push_back(Eigen::Vector3f::Zero());			// Center of mass for each link
-		this->I.push_back(Eigen::MatrixXf::Zero(3, 3));		// Moment of inertia for each link
-		this->Jc.push_back(Eigen::MatrixXf::Zero(6, i+1));		// Jacobian to c.o.m. for each link
-		this->Jcdot.push_back(Eigen::MatrixXf::Zero(6,i+1));		// Time-derivative of said Jacobian
+		this->axis.push_back(Eigen::Vector3f::Zero());		// Axis of actuation
+//		this->com.push_back(Eigen::Vector3f::Zero());			// Center of mass for each link
+//		this->I.push_back(Eigen::MatrixXf::Zero(3, 3));		// Moment of inertia for each link
+//		this->Jc.push_back(Eigen::MatrixXf::Zero(6, i+1));		// Jacobian to c.o.m. for each link
+//		this->Jcdot.push_back(Eigen::MatrixXf::Zero(6,i+1));		// Time-derivative of said Jacobian
 		
 		/******************* Legacy variables **********************/
 		this->r.push_back(Eigen::Vector3f::Zero());			// Translation from joint to endpoint
@@ -134,22 +135,22 @@ bool SerialLink::update_state(const Eigen::VectorXf &pos, const Eigen::VectorXf 
 		
 		update_forward_kinematics();					// Compute new transform chain
 		update_inverse_dynamics();					// Trying something new!	
-		update_com();							// Transform the com for each link to the base frame
-		update_com_jacobian();						// Compute new Jacobian to each c.o.m.
-		update_gravity_torque();					// Compute new torques from gravitational acceleration
-		update_link_inertia();						// Rotate the inertia for each link to the base frame
-		update_inertia();						// Compute new joint space inertia matrix
+//		update_com();							// Transform the com for each link to the base frame
+//		update_com_jacobian();						// Compute new Jacobian to each c.o.m.
+//		update_gravity_torque();					// Compute new torques from gravitational acceleration
+//		update_link_inertia();						// Rotate the inertia for each link to the base frame
+//		update_inertia();						// Compute new joint space inertia matrix
 		
 		// Older functions which can eventually be moved out
 		// of this class:	
-		update_axis_and_distance();
-		get_inertia();							// NOTE: Change this to update_inertia in the future!
-		update_omega();	
+//		update_axis_and_distance();
+//		get_inertia();							// NOTE: Change this to update_inertia in the future!
+//		update_omega();	
 		return true;
 	}
 	else
 	{
-		std::cout << "ERROR: SerialLink::set_joint_state() : Length of input vectors are incorrect." << std::endl;
+		std::cout << "ERROR: SerialLink::set_joint_state() : Length of input vectors are not equal." << std::endl;
 		std::cout << "This object has " << this->n << " joints and you input a " << pos.size() << "x1" << " vector and a "
 			  << vel.size() << "x1" << " vector." << std::endl;
 		return false;
@@ -163,7 +164,8 @@ void SerialLink::get_joint_state(Eigen::VectorXf &pos, Eigen::VectorXf &vel)
 	vel = this->qdot;
 }
 
-/******************** Get the joint position limits ********************
+/******************** Get the joint position limits ********************/
+/*
 std::vector<float> SerialLink::get_position_limits()
 {
 	std::vector<float[2]> limits;
@@ -175,20 +177,21 @@ std::vector<float> SerialLink::get_position_limits()
 		limits[i] = temp;
 	}
 	return limits;
-}*/
+}
+*/
 
 /******************** Compute forward kinematics chain at current joint position ********************/
 void SerialLink::update_forward_kinematics()
 {	
 	this->fkChain[0] = this->baseTF*this->link[0].get_pose(this->q[0]); 			// Pre-multiply by base transform
 	
-	this->a[0] = this->fkChain[0].rotation()*this->link[0].get_axis();			// Update axis for 1st joint	
+	this->axis[0] = this->fkChain[0].rotation()*this->link[0].get_axis();		// Update axis for 1st joint	
 	
 	for(int i = 1; i < this->n; i++)
 	{
 		this->fkChain[i] = this->fkChain[i-1]*this->link[i].get_pose(this->q[i]);	// Compute chain of joint/link transforms
 		
-		this->a[i] = this->fkChain[i].rotation()*this->link[i].get_axis();		// Rotate axis from local frame to global frame
+		this->axis[i] = this->fkChain[i].rotation()*this->link[i].get_axis();	// Rotate axis from local frame to global frame
 	}
 	this->fkChain[this->n] = this->fkChain[this->n-1]*this->link[this->n].get_pose(0)*this->endpointTF; // Offset the endpoints
 }
@@ -196,72 +199,75 @@ void SerialLink::update_forward_kinematics()
 /******************** Compute inverse dynamics for current joint state ********************/
 void SerialLink::update_inverse_dynamics()
 {
-/*	Eigen::MatrixXf Jc, Jcdot, Jv, Jw;
-	Eigen::Vector3f omega;
-	Eigen::Vector3f com;
-	Eigen::Matrix3f R;
-	Eigen::Matrix3f I;
+	// Variables used in this scope
+	Eigen::Matrix3f R, I, Idot;								// Rotation matrix and moment of inertia
+	Eigen::MatrixXf Jc, Jcdot, Jv, Jw;							// Jacobian to c.o.m.
+	Eigen::Vector3f com, omega;								// c.o.m. and angular velocity vector
+	float m;										// Link mass
 	
+	// Set initial values
+	this->M.setZero();
+	this->C.setZero();
+	this->g.setZero();
+	omega = this->baseTwist.tail(3);							// Initial angular velocity
+	
+	// Compute dynamics
 	for(int i = 0; i < this->n; i++)
 	{
-		com = this->fkChain[i]*this->link[i+1].get_com();				// Transform c.o.m. to global frame
-		Jc = get_jacobian(com, i+1);							// Get the Jacobian to the c.o.m.
-		Jcdot = get_jdot(Jc);								// Get the time derivative
-				
-		R = this->fkChain.rotation().matrix();					// Rotation matrix					
-		I = R*this->link[i].get_inertia()*R.transpose();				// Rotate inertia to the global frame
-		omega += this->qdot[i]*this->a[i];						// Cumulative angular velocity
-		Idot = skew(omega)*I;								// Time derivative of inertia
+		com = this->fkChain[i]*this->link[i].get_com();				// Transform c.o.m. of ith link to global frame
+		
+		I = this->fkChain[i].rotation()						// Rotation inertia to global frame
+		   *this->link[i].get_inertia()
+		   *this->fkChain[i].rotation().transpose();
+		  
+		Jc = get_jacobian(com, i+1);							// Get the Jacobian to the ith c.o.m.
+		Jv = Jc.block(0,0,3,i+1);							// Makes calcs a little easier
+		Jw = Jc.block(3,0,3,i+1);							// Makes calcs a little easier
+		
+		m = this->link[i].get_mass();							// Get the mass of the ith link
+		
+		this->g.head(i+1) += m*Jv.transpose()*this->gravityVector;			// tau += Jc'*f
+		
+		this->M.block(0,0,i+1,i+1) += m*Jv.transpose()*Jv + Jw.transpose()*I*Jw;	// M = Jc'*I*Jc
 
-		this->M += m*Jv'*Jv + Jw'*I*Jw;
-		this->C += m*Jv'*Jvdot + Jw'*(I*Jwdot + Idot*Jw);
-		this->g += Jv'*this->gravityVector;	
-	}
-*/	
-}
-
-/******************** Compute location for the c.o.m. for each link ********************/
-void SerialLink::update_com()
-{
-	for(int i = 0; i < this->n; i++)
-	{
-		this->com[i] = this->fkChain[i] * this->link[i+1].get_com();
-	}
-}
-
-/******************** Rotate moment of inertia for each link to global frame ********************/
-void SerialLink::update_link_inertia()
-{
-	Eigen::AngleAxisf R;
-	R = this->baseTF.rotation() * this->link[0].get_pose(this->q(0)).rotation(); 	// THIS IS OBSOLETE?
-	R = this->fkChain[0].rotation();
-
-	I[0] = R*this->link[1].get_inertia()*R.toRotationMatrix().transpose();
-
-	for(int i = 0; i < this->n; ++i)
-	{
-		R = this->fkChain[i].rotation();
-		I[i] = R*this->link[i+1].get_inertia()*R.toRotationMatrix().transpose();
-	}
+		Jcdot = get_jdot(Jc);								// Get time derivative of Jacobian
+		
+		if(this->link[i].is_revolute()) omega += this->qdot[i]*this->axis[i]; 		// Compute angular velocity up the chain
+		
+		// Idot =  skew(omega)*I
+		Idot << omega(1)*I(2,0)-omega(2)*I(1,0), omega(1)*I(2,1)-omega(2)*I(1,1), omega(1)*I(2,2)-omega(2)*I(1,2),
+			omega(2)*I(0,0)-omega(0)*I(2,0), omega(2)*I(0,1)-omega(0)*I(2,1), omega(2)*I(0,2)-omega(0)*I(2,2),
+			omega(0)*I(1,0)-omega(1)*I(0,0), omega(0)*I(1,1)-omega(1)*I(0,1), omega(0)*I(1,2)-omega(1)*I(0,2);
+		
+		this->C.block(0,0,i+1,i+1) += m*Jv.transpose()*Jcdot.block(0,0,3,i+1)	// C = Jc'*(I*Jcdot + Idot*Jc);
+					     + Jw.transpose()*(I*Jcdot.block(3,0,3,i+1) + Idot*Jw);
+	}	
 }
 
 /******************** Compute a Jacobian matrix to any given point ********************/
 Eigen::MatrixXf SerialLink::get_jacobian(const Eigen::Vector3f &point, const int &numJoints)
 {
-	Eigen::MatrixXf J;								// Value to be returned
+	Eigen::MatrixXf J;									// Value to be returned
 	J.setZero(6,numJoints);
 	
-	for(int i = 0; i < numJoints; i++)
+	if(numJoints < 0)
 	{
-		if(this->link[i].is_revolute())					// Revolute joint
+		std::cout << "ERROR: Can't compute the Jacobian for " << numJoints << " joints!" << std::endl;
+	}
+	else
+	{
+		for(int i = 0; i < numJoints; i++)
 		{
-			J.block(0,i,3,1) = this->a[i].cross(point - this->fkChain[i].translation()); // a_i x r_i
-			J.block(3,i,3,1) = this->a[i];				// a_i
-		}
-		else									// Prismatic joint
-		{
-			J.block(0,i,3,1) = this->a[i];				// a_i
-//			J.block(3,i,3,1) = zeros					// 0
+			if(this->link[i].is_revolute())					// Revolute joint
+			{
+				J.block(0,i,3,1) = this->axis[i].cross(point - this->fkChain[i].translation()); // a_i x r_i
+				J.block(3,i,3,1) = this->axis[i];				// a_i
+			}
+			else									// Prismatic joint
+			{
+				J.block(0,i,3,1) = this->axis[i];				// a_i
+	//			J.block(3,i,3,1) = zeros					// 0
+			}
 		}
 	}
 	return J;
@@ -378,13 +384,40 @@ Eigen::MatrixXf SerialLink::get_partial_jacobian(const Eigen::MatrixXf &J, const
 	}
 }
 
-/******************** Returns the Jacobian matrix for the centre of mass for every link ********************/
+/******************** Compute location for the c.o.m. for each link ********************
+void SerialLink::update_com()
+{
+	for(int i = 0; i < this->n; i++)
+	{
+		this->com[i] = this->fkChain[i] * this->link[i+1].get_com();
+	}
+}
+
+/******************** Rotate moment of inertia for each link to global frame ********************
+void SerialLink::update_link_inertia()
+{
+	Eigen::AngleAxisf R;
+	R = this->baseTF.rotation() * this->link[0].get_pose(this->q(0)).rotation(); 	// THIS IS OBSOLETE?
+	R = this->fkChain[0].rotation();
+
+	I[0] = R*this->link[1].get_inertia()*R.toRotationMatrix().transpose();
+
+	for(int i = 0; i < this->n; ++i)
+	{
+		R = this->fkChain[i].rotation();
+		I[i] = R*this->link[i+1].get_inertia()*R.toRotationMatrix().transpose();
+	}
+}
+
+
+
+/******************** Returns the Jacobian matrix for the centre of mass for every link ********************
 void SerialLink::update_com_jacobian()
 {
 	for(int i = 0; i < this->n; i++) this->Jc[i] = get_jacobian(this->com[i], i+1);	// Super easy now!
 }
 
-/******************** Compute the effect of gravity on the joints ********************/
+/******************** Compute the effect of gravity on the joints ********************
 void SerialLink::update_gravity_torque()
 {
 	this->g.setZero(this->n);								// Set all the elements to zero
@@ -397,7 +430,7 @@ void SerialLink::update_gravity_torque()
 }
 	
 
-/******************** Compute inertia matrix in joint space ********************/
+/******************** Compute inertia matrix in joint space ********************
 void SerialLink::update_inertia()
 {
 	this->M.setZero(this->n, this->n);							// Zero all the elements
@@ -413,18 +446,18 @@ void SerialLink::update_inertia()
 *					LEGACY CODE 						*
 *********************************************************************************************/
 
-/******************** Compute kinematic properties of mechanism based on current joint position ********************/
+/******************** Compute kinematic properties of mechanism based on current joint position ********************
 // Note: std::vector<Eigen::Vector3f> a is now updated inside the function update_forward_kinematics()
 void SerialLink::update_axis_and_distance()
 {
 	for(int i = 0; i < this->n; i++)
 	{
-		this->a[i] = this->fkChain[i].rotation()*this->link[i].get_axis();			// Rotate axis from local frame to global frame
+		this->axis[i] = this->fkChain[i].rotation()*this->link[i].get_axis();			// Rotate axis from local frame to global frame
 		this->r[i] = this->fkChain[this->n].translation() - this->fkChain[i].translation();	// Distance from joint to end-effector
 	}		
 }
 
-/******************** Compute cumulative angular velocity up the kinematic chain ********************/
+/******************** Compute cumulative angular velocity up the kinematic chain ********************
 void SerialLink::update_omega()
 {
 	if(this->link[0].is_revolute())
@@ -441,7 +474,7 @@ void SerialLink::update_omega()
 	}
 }
 
-/******************** Returns the Jacobian matrix for the centre of mass for every link ********************/
+/******************** Returns the Jacobian matrix for the centre of mass for every link ********************
 std::vector<Eigen::MatrixXf> SerialLink::get_mass_jacobian()
 {
 	std::vector<Eigen::MatrixXf> Jm;
@@ -459,18 +492,18 @@ std::vector<Eigen::MatrixXf> SerialLink::get_mass_jacobian()
 
 			if (link[i].is_revolute())
 			{
-				Jm[i].block(0,j,3,1) = this->a[j].cross(d);
-				Jm[i].block(3,j,3,1) = this->a[j];
-				Jm[i].col(j) << this->a[j].cross(d), this->a[j];
+				Jm[i].block(0,j,3,1) = this->axis[j].cross(d);
+				Jm[i].block(3,j,3,1) = this->axis[j];
+				Jm[i].col(j) << this->axis[j].cross(d), this->axis[j];
 			}
 			else
-				Jm[i].block(0,j,3,1) = this->a[j];
+				Jm[i].block(0,j,3,1) = this->axis[j];
 		}
 	}
 	return Jm;
 }
 
-/******************** Returns the gravity torque ********************/
+/******************** Returns the gravity torque ********************
 Eigen::VectorXf SerialLink::get_gravity_torque2()
 {
 	Eigen::VectorXf tau(Eigen::VectorXf::Zero(this->n));
@@ -491,7 +524,7 @@ Eigen::VectorXf SerialLink::get_gravity_torque2()
 	return tau;
 }
 
-/******************** Returns the inertia matrix of the manipulator in the joint space ********************/
+/******************** Returns the inertia matrix of the manipulator in the joint space ********************
 Eigen::MatrixXf SerialLink::get_inertia2()
 {
 	Eigen::MatrixXf M = Eigen::MatrixXf::Zero(this->n, this->n);
@@ -525,12 +558,12 @@ Eigen::MatrixXf SerialLink::get_jacobian()
 	{
 		if(this->link[i].is_revolute())					// Revolute joint
 		{
-			J.block(0,i,3,1) = this->a[i].cross(this->r[i]);		// a_i x r_i
-			J.block(3,i,3,1) = this->a[i];				// a_i
+			J.block(0,i,3,1) = this->axis[i].cross(this->r[i]);		// a_i x r_i
+			J.block(3,i,3,1) = this->axis[i];				// a_i
 		}
 		else									// Prismatic joint
 		{
-			J.block(0,i,3,1) = this->a[i];				// a_i
+			J.block(0,i,3,1) = this->axis[i];				// a_i
 			// J.block(3,i,3,1) = zeros
 		}
 	}
