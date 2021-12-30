@@ -209,16 +209,15 @@ bool test_serial_link()
 	Eigen::VectorXf qdot = Eigen::VectorXf::Random(n);			// Create random joint velocities
 	robot.update_state(q,qdot);						// Compute new joint state
 	
-	/********** Test the Kinematics **********/
-	Eigen::Isometry3f EE = robot.get_endpoint();
+	/********** Check the Kinematics **********/
 	std::cout << "\nHere is the end-effector pose:" << std::endl;
-	std::cout << EE.matrix() << std::endl;
+	std::cout << robot.get_endpoint().matrix() << std::endl;
 
 	Eigen::MatrixXf J = robot.get_jacobian();
 	std::cout << "\nHere is the Jacobian:" << std::endl;
 	std::cout << J << std::endl;
 	
-	/********** Test the partial and time derivative of the Jacobian **********/
+	/********** Check the partial and time derivative of the Jacobian **********/
 	std::vector<Eigen::MatrixXf> dJdq;
 	dJdq.resize(n);
 	Eigen::MatrixXf Jdot_slow; Jdot_slow.setZero(6,n);
@@ -229,23 +228,34 @@ bool test_serial_link()
 	}
 	
 	Eigen::MatrixXf Jdot_fast = robot.get_jdot(J);
-	std::cout << "\nHere is the difference between the slow and fast time derivatives:" << std::endl;
+	std::cout << "\nHere is the difference in the time derivative of the Jacobian using the slow and fast method:" << std::endl;
 	std::cout << (Jdot_fast - Jdot_slow) << std::endl;
 	
-	/********** Test the Dynamics **********/
-//	std::vector<Eigen::MatrixXf> Jm = robot.get_mass_jacobian();
+	/********** Check the dynamics **********/
+	std::cout << "\nHere is the gravity torque vector:" << std::endl;
+	std::cout << robot.get_gravity_torque() << std::endl;
+	
+	std::cout << "\nHere is the inertia matrix:" << std::endl;
+	std::cout << robot.get_inertia() << std::endl;
+	
+	std::cout << "\nHere is the Coriolis matrix:" << std::endl;
+	std::cout << robot.get_coriolis() << std::endl;
+	
+/*	OLDER CODE:
+	std::vector<Eigen::MatrixXf> Jm = robot.get_mass_jacobian();
 	std::vector<Eigen::MatrixXf> Jm = robot.get_com_jacobian();
 	std::cout << "\nHere are the c.o.m. Jacobians:" << std::endl;
 	for(int i = 0; i < Jm.size(); ++i)
 	std::cout << "\nLink: " << i+1 << "\n" << Jm[i]<< std::endl;
 
 	std::cout << "\nHere is the gravity torque:" << std::endl;
-//	std::cout << robot.get_gravity_torque() << std::endl;
+	std::cout << robot.get_gravity_torque() << std::endl;
 	std::cout << robot.get_gravity_torque2() << std::endl;
 
 	std::cout << "\nHere is the joint-space inertia:" << std::endl;
-//	std::cout << robot.get_inertia() << std::endl;
+	std::cout << robot.get_inertia() << std::endl;
 	std::cout << robot.get_inertia2() << std::endl;
+*/
 
 	return 1;
 }
