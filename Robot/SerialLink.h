@@ -1,6 +1,7 @@
 #ifndef SERIAL_LINK_H_									// If not yet defined...
 #define SERIAL_LINK_H_									// ... include this header file, otherwise ignore
 
+#include <array>									// std::array
 #include <Eigen/Geometry>								// Transforms (Isometry3f)
 #include <Link.h>									// Custom link class
 #include <vector>									// std::vector
@@ -30,22 +31,12 @@ class SerialLink
 		Eigen::VectorXf get_gravity_torque() const {return this->g;}				// Get torque needed to oppose gravity
 		Eigen::VectorXf get_joint_positions() const {return this->q;}			// As it says on the label
 		int get_number_of_joints() const {return this->n;}					// Returns the number of joints
-//		std::vector<Eigen::MatrixXf> get_com_jacobian() const {return this->Jc;}		// Jacobian to center of mass
-//		std::vector<float> get_position_limits();						// Work in progress
+		std::vector<std::array<float,2>> get_position_limits();				// Work in progress
 //		std::vector<float> get_velocity_limits();						// Work in progress
 		void get_joint_state(Eigen::VectorXf &pos, Eigen::VectorXf &vel);			// Get the current internal joint state
-		
-		/********************** Legacy Code (move elsewhere in future? **************/
-		std::vector<Eigen::Vector3f> r;							// Translation from joint origin to endpoint
-		std::vector<Eigen::Vector3f> w;							// N.B. This might be obsolete in the future!
-		void update_axis_and_distance();							// Compute kinematic properties of mechanism
-		void update_omega();									// Angular velocity up the kinematic chain
-		Eigen::MatrixXf get_inertia2();							// Inertia matrix of the manipulator
-		Eigen::VectorXf get_gravity_torque2();						// As it says on the label
-		std::vector<Eigen::MatrixXf> get_mass_jacobian();					// Jacobian to the c.o.m for every link
-		/***************************************************************************/	
+			
 	private:
-		// Variables
+		// Kinematic properties
 		int n;								// Number of joints
 		Eigen::Vector3f gravityVector;				// Gravitational acceleration
 		Eigen::VectorXf q, qdot;					// Joint positions, velocities
@@ -54,8 +45,6 @@ class SerialLink
 		Eigen::Isometry3f finalTF;					// Transform from final joint to endpoint
 		Eigen::Isometry3f endpointTF;					// New endpoint offset (default identity)
 		std::vector<Link> link;					// Array of link objects
-
-		// Variable kinematic properties
 		std::vector<Eigen::Isometry3f> fkChain;			// Transforms for each link
 		std::vector<Eigen::Vector3f> axis;				// Axis of actuation for each joint, in base frame
 
@@ -64,24 +53,14 @@ class SerialLink
 		Eigen::MatrixXf D;						// Damping matrix (nxn)
 		Eigen::MatrixXf M;						// Inertia matrix (nxn)
 		Eigen::VectorXf g;						// Gravitational torque (nx1)
-//		std::vector<Eigen::Vector3f> com;				// Center of mass for each link, in base frame (nx3x1)
-//		std::vector<Eigen::MatrixX3f> I;				// Inertia matrices for each link in the origin frame (nx3x3)
-//		std::vector<Eigen::MatrixXf> Jc;				// Jacobian to the center of mass (nx6xn)
-//		std::vector<Eigen::MatrixXf> Jcdot;				// Time derivative of Jacobian (nx6xn)
 
 		// Get Functions
 		Eigen::MatrixXf get_jacobian(const Eigen::Vector3f &point, const int &numJoints);
 		
-		// Update Internal State
-		// NOTE: Order which they are called is important!
+		// Update internal state
+		// Note: MUST update kinematics first
 		void update_forward_kinematics();				// Compute forward kinematic chain based on current state
 		void update_inverse_dynamics();				// Compute inverse dynamics properites based on current state
-//		void update_com();						// Compute location for the c.o.m. for each link
-//		void update_com_jacobian();					// Compute the Jacobian to each c.o.m.
-//		void update_gravity_torque();					// Compute the effect of gravity on the joints
-//		void update_link_inertia();					// Rotate link inertia from local frame to base frame
-//		void update_inertia();						// Compute new inertia matrix in joint space
-		
 };										// Semicolon needed after a class declaration
 
 /******************** Constructor ********************/
@@ -111,15 +90,6 @@ SerialLink::SerialLink(const std::vector<Link> &links,
 	{
 		this->fkChain.push_back(Eigen::Isometry3f::Identity());	// Link / joint transforms
 		this->axis.push_back(Eigen::Vector3f::Zero());		// Axis of actuation
-//		this->com.push_back(Eigen::Vector3f::Zero());			// Center of mass for each link
-//		this->I.push_back(Eigen::MatrixXf::Zero(3, 3));		// Moment of inertia for each link
-//		this->Jc.push_back(Eigen::MatrixXf::Zero(6, i+1));		// Jacobian to c.o.m. for each link
-//		this->Jcdot.push_back(Eigen::MatrixXf::Zero(6,i+1));		// Time-derivative of said Jacobian
-		
-		/******************* Legacy variables **********************/
-		this->r.push_back(Eigen::Vector3f::Zero());			// Translation from joint to endpoint
-		this->w.push_back(Eigen::Vector3f::Zero());			// Angular velocity
-		/***********************************************************/
 	}
 
 	update_state(this->q, this->qdot);					// Set the initial state
@@ -131,21 +101,9 @@ bool SerialLink::update_state(const Eigen::VectorXf &pos, const Eigen::VectorXf 
 	if(pos.size() == vel.size() && pos.size() == this->n)		// Dimension of all arguments are correct
 	{
 		this->q = pos;							// Assign new joint positions
-		this->qdot = vel;						// Assign new joint velocities
-		
+		this->qdot = vel;						// Assign new joint velocities		
 		update_forward_kinematics();					// Compute new transform chain
-		update_inverse_dynamics();					// Trying something new!	
-//		update_com();							// Transform the com for each link to the base frame
-//		update_com_jacobian();						// Compute new Jacobian to each c.o.m.
-//		update_gravity_torque();					// Compute new torques from gravitational acceleration
-//		update_link_inertia();						// Rotate the inertia for each link to the base frame
-//		update_inertia();						// Compute new joint space inertia matrix
-		
-		// Older functions which can eventually be moved out
-		// of this class:	
-//		update_axis_and_distance();
-//		get_inertia();							// NOTE: Change this to update_inertia in the future!
-//		update_omega();	
+		update_inverse_dynamics();					// Compute inertia, coriolis, gravity
 		return true;
 	}
 	else
@@ -165,6 +123,12 @@ void SerialLink::get_joint_state(Eigen::VectorXf &pos, Eigen::VectorXf &vel)
 }
 
 /******************** Get the joint position limits ********************/
+std::vector<std::array<float,2>> SerialLink::get_position_limits()
+{
+	std::vector<std::array<float,2>> limits;
+	
+	return limits;
+}	
 /*
 std::vector<float> SerialLink::get_position_limits()
 {
