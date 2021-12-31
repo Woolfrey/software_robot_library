@@ -1,11 +1,11 @@
-#include <CartesianTrajectory.h>
-#include <MultiPointTrajectory.h>
-#include <SerialLink.h>
+#include <CartesianTrajectory.h>							// Custom trajectory class
+#include <MultiPointTrajectory.h>							// Custom trajectory class
+#include <SerialLink.h>								// Serial link robot class
 
 class SerialKinCtrl
 {
 	public:
-		SerialKinCtrl(SerialLink *serial);
+		SerialKinCtrl(SerialLink *serial);					// Constructor
 		
 		// Set Functions
 		bool set_joint_target(Eigen::VectorXf &target);
@@ -29,22 +29,24 @@ class SerialKinCtrl
 		std::vector<std::array<float,2>> pLim;				// Array of position limits
 		std::vector<std::array<float,2>> vLim;				// Array of velocity limits
 
-		MultiPointTrajectory jointTrajectory;
+		MultiPointTrajectory jointTrajectory;					// Joint trajectory object
 	
 };											// Semicolon needed after class declaration
 
 /******************** Create a controller for the given SerialLink object ********************/
 SerialKinCtrl::SerialKinCtrl(SerialLink *serial)
 	:
-	robot(serial),
-	n(serial->get_number_of_joints()),
-	q_d(Eigen::VectorXf(this->n)),
-	qdot_d(Eigen::VectorXf(this->n)),
-	qddot_d(Eigen::VectorXf(this->n))
+	robot(serial),									// Assign the serial link object
+	n(serial->get_number_of_joints()),						// Number of joints
+	q_d(Eigen::VectorXf(this->n)),						// Resize desired joint position vector
+	qdot_d(Eigen::VectorXf(this->n)),						// Resize desired joint velocity vector
+	qddot_d(Eigen::VectorXf(this->n)),						// Resize desired joint acceleration vector
+	pLim(serial->get_position_limits()),						// Not sure if this is the best way to
+	vLim(serial->get_velocity_limits())						// work with the joint limits...
 {
-	// Not sure if this is the best way to do this?
-	this->pLim = this->robot->get_position_limits();				// Get the joint position limits
-	this->vLim = this->robot->get_velocity_limits();				// Get the joint velocity limits
+	// Worker bees can leave.
+	// Even drones can fly away.
+	// The Queen is their slave.
 }
 
 /******************** Set a desired joint configuration to move to ********************/
@@ -88,11 +90,13 @@ bool SerialKinCtrl::set_joint_target(Eigen::VectorXf &target)
 	}
 }
 
+/******************** Set several waypoints for the joints to move through ********************/
 bool SerialKinCtrl::set_joint_targets(const std::vector<Eigen::VectorXf> &targets, const std::vector<float> &times)
 {
-	std::cout << "Worker bees can leave." << std::endl;
+	std::cout << "\nWorker bees can leave." << std::endl;
 	std::cout << "Even drones can fly away." << std::endl;
-	std::cout << "The Queen is their slave." << std::endl;
+	std::cout << "The Queen is their slave.\n" << std::endl;
+	std::cout << "\n (I need to program in optimal time scaling for this still) \n" << std::endl;
 	
 	return true;
 }
@@ -123,14 +127,14 @@ Eigen::VectorXf SerialKinCtrl::get_joint_control(const float &time)
 Eigen::VectorXf SerialKinCtrl::get_pose_error(const Eigen::Isometry3f &desired,
 						const Eigen::Isometry3f &actual)
 {
-	Eigen::VectorXf error(6);							// Value to be returned
+	Eigen::VectorXf error(6);								// Value to be returned
 	
-	error.head(3) = desired.translation() - actual.translation();		// Get the translation error
+	error.head(3) = desired.translation() - actual.translation();			// Get the translation error
 	
 	// Is there are smarter/faster way to do this???
-	Eigen::Isometry3f Re = desired*actual.inverse();				// Get the rotation error
+	Eigen::Isometry3f Re = desired*actual.inverse();					// Get the rotation error
 	
-	error.tail(3) = Eigen::Quaternionf(Re.rotation()).vec();			// Quaternion feedback
+	error.tail(3) = Eigen::Quaternionf(Re.rotation()).vec();				// Quaternion feedback
 	
 	return error;
 }
