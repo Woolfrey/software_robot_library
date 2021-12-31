@@ -241,6 +241,16 @@ bool test_serial_link()
 	std::cout << "\nHere is the Coriolis matrix:\n" << std::endl;
 	std::cout << robot.get_coriolis() << std::endl;
 	
+	/********** Test Control Functions **********/
+	SerialKinCtrl controller(robot);						// Create controller for the robot
+	Eigen::MatrixXf invJ = controller.get_inverse(J,robot.get_inertia());	// Get the weighted pseudoinverse
+	std::cout << "\nHere is the weighted pseudoinverse Jacobian:\n" << std::endl;
+	std::cout << invJ << std::endl;
+	std::cout << "\nHere is the Jacobian by the weighted pseudoinverse:\n" << std::endl;
+	std::cout << J*invJ << std::endl;
+	std::cout << "\n(It's not exactly the identity but it's pretty damn close!)\n" << std::endl;
+	
+	
 /*	OLDER CODE:
 	std::vector<Eigen::MatrixXf> Jm = robot.get_mass_jacobian();
 	std::vector<Eigen::MatrixXf> Jm = robot.get_com_jacobian();
