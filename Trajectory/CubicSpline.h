@@ -18,18 +18,18 @@ class CubicSpline
 		CubicSpline() {}						// Empty constructor
 		
 		CubicSpline(const std::vector<Eigen::VectorXf> &points,	// Constructor for position
-			const std::vector<float> &times);
+				const std::vector<float> &times);
 			
 		CubicSpline(const std::vector<Eigen::Quaternionf> &points,	// Constructor for orientation
-			const std::vector<float> &times);
+				const std::vector<float> &times);
 			
 		// Functions
-		void get_state(Eigen::VectorXf &pos,
+		void get_state(Eigen::VectorXf &pos,				// Get the desired state for translation
 				Eigen::VectorXf &vel,
 				Eigen::VectorXf &acc,
 				const float &time);
 			
-		void get_state(Eigen::Quaternionf &quat,
+		void get_state(Eigen::Quaternionf &quat,			// Get desired state for orientation
 				Eigen::Vector3f &vel,
 				Eigen::Vector3f &acc,
 				const float &time);
@@ -88,10 +88,10 @@ CubicSpline::CubicSpline(const std::vector<Eigen::VectorXf> &points,
 CubicSpline::CubicSpline(const std::vector<Eigen::Quaternionf> &points,
 			const std::vector<float> &times)
 			:
-			isQuaternion(true),
-			m(3),							// Quaternion has 4 elements
-			n(points.size()),
-			q(points),
+			isQuaternion(true),					// A safety check
+			m(3),							// Interpolates across angle*axis, which as 3 elements
+			n(points.size()),					// n points, n-1 splines
+			q(points),						// Waypoints
 			t(times)
 {
 	// Check the inputs are sound
@@ -118,26 +118,29 @@ CubicSpline::CubicSpline(const std::vector<Eigen::Quaternionf> &points,
 	resize_vectors();							// Resize vectors a, b, c, and d
 	
 	// We need to interpolate over the DIFFERENCE in orientation
-	this->p.resize(3);							
+	// Note to self: p has dimensions [n][m] which is confusing,
+	// but that's the way it is stored with std::vector
+	this->p.resize(this->n);						// We will store the angle*axis in here
+	Eigen::AngleAxisf angleAxis;						// Angle-axis encoded in the rotation
+	float angle; Eigen::Vector3f axis;					// To separate out angle and axis
+	
 	for(int j = 0; j < this->n-1; j++)
 	{
-		Eigen::Quaternionf dq = this->q[j].conjugate()*this->q[j+1];	// Difference in orientation
-		dq.normalize();						// Normalize for good measure
+		// Note: q(t0)*dq(tf) = q(tf) ---> dq(tf) = conj(q(t0))*q(tf),
+		// and we interpolate across dq(tf).
+		// Hence later we will compute dq(t) ---> q(t) = q(t0)*dq(t)
+		angleAxis = Eigen::AngleAxisf(this->q[j].conjugate()*this->q[j+1]); // Get the difference in orientation then convert
 		
-		float angle = 2*acos(dq.w());					// Get the angle between the two orientations
-		Eigen::Vector3f axis = dq.vec().normalized();
+		angle = angleAxis.angle();
+		if(angle > M_PI) angle = 2*M_PI - angle;			// If rotation > 180 degrees, take the shorter path
 		
-		if(angle > M_PI)						// If the angle is greater than 180 degrees...
-		{
-			angle = 2*M_PI - angle;				// ... take the shorter path...
-			axis *= -1;
-		}
+		axis = angleAxis.axis().normalized();				// Get the axis of rotation, ensure unit norm
 		
-		for(int i = 0; i < 3; i++) this->p[i][j] = angle*axis[i];	// Use angle*axis for orientation interpolation
+		this->p[j] = Eigen::VectorXf(3);				// Set the jth point as a 3x1 vector
+		for(int i = 0; i < 3; i++) p[j][i] = angle*axis[i];		// Interpolate across angle*axis
 	}
 	
-	compute_coefficients();
-
+	compute_coefficients();						// Compute the coefficients a, b, c, and d
 }
 
 /******************** Get the state for the given time ********************/
@@ -159,8 +162,8 @@ void CubicSpline::get_state(Eigen::VectorXf &pos, Eigen::VectorXf &vel, Eigen::V
 	}
 	else if(j == this->n)					// At the end
 	{
-		pos = this->p[this->n-1];
-		vel.setZero();
+		pos = this->p[this->n-1];			// Remain at the end
+		vel.setZero();					// Don't move
 		acc.setZero();
 	}
 	else
@@ -192,20 +195,23 @@ void CubicSpline::get_state(Eigen::Quaternionf &quat, Eigen::Vector3f &vel, Eige
 		vel.setZero();					// Don't move
 		acc.setZero();
 	}
-	else
+	else							// Somewhere inbetween
 	{
-		float dt = time - this->t[j];
+		float dt = time - this->t[j];			// Elapsed time since start of spline j
 		
-		Eigen::Vector3f temp;				// This will be the DIFFERENCE in orientation
+		Eigen::Vector3f temp;				// This will be the DIFFERENCE in orientation, dq(t)
 		
 		for(int i = 0; i < 3; i++)
 		{
+			// temp is actually the angle*axis, so we can pull out
+			// the angular velocity and acceleration directly.
+			
 			temp[i] =   this->a[i][j]*pow(dt,3) +   this->b[i][j]*pow(dt,2) + this->c[i][j]*dt + this->d[i][j];
 			vel[i]  = 3*this->a[i][j]*pow(dt,2) + 2*this->b[i][j]*dt        + this->c[i][j];
 			acc[i]  = 6*this->a[i][j]*dt        + 2*this->b[i][j];
 		}
 		
-		// Multiply start point by difference to get the desired quaternion
+		// q(t) = q(t0)*dq(t)
 		quat = this->q[j]*Eigen::Quaternionf(Eigen::AngleAxisf(temp.norm(), temp.normalized()));
 	}
 }
@@ -213,6 +219,9 @@ void CubicSpline::get_state(Eigen::Quaternionf &quat, Eigen::Vector3f &vel, Eige
 /********************* Initialize the sixe of std::vector objects ********************/
 void CubicSpline::resize_vectors()
 {
+	// Note to self:
+	// p has dimensions [n][m] because we are storing n waypoints of m dimensions in a std::vector
+	// a, b, c, d have dimensions [m][n] so that the m dimensions are punctuated across n waypoints
 	for(int i = 0; i < this->m; i++)
 	{
 		this->a.push_back(Eigen::VectorXf::Zero(this->n-1));		// NOTE: There are n-1 splines!
@@ -226,10 +235,8 @@ void CubicSpline::resize_vectors()
 void CubicSpline::compute_coefficients()
 {
 	// Relationship between acceleration & position: A*sddot = B*s
-	Eigen::MatrixXf A(this->n, this->n);
-	Eigen::MatrixXf B(this->n, this->n);
-	A.setZero();
-	B.setZero();
+	Eigen::MatrixXf A(this->n, this->n); A.setZero();
+	Eigen::MatrixXf B(this->n, this->n); B.setZero();
 	
 	// Set constraints for the start and end of trajectory
 	if(!this->isQuaternion)
@@ -288,7 +295,11 @@ void CubicSpline::compute_coefficients()
 	{		
 		for(int j = 0; j < this->n; j++)					// There are only n-1 splines
 		{
-			s[j] = this->p[i][j];						// Fill in the position for each waypoint
+			// Note to self:
+			// p has dimensions [n][m] because we are storing n vectors
+			// which each of m dimensions. So what we're asking for here
+			// is the jth waypoint of the ith dimension.
+			s[j] = this->p[j][i];						// Fill in the position for each waypoint
 		}
 		sdd = C*s;								// Solve the acceleration at each waypoint
 		
@@ -296,6 +307,9 @@ void CubicSpline::compute_coefficients()
 		for(int j = 0; j < this->n-1; j++)
 		{
 			dt = this->t[j+1] - this->t[j];				// Difference in time
+			
+			// Note to self: coefficients a, b, c, d are stored as
+			// m dimensions across n waypoints (opposite to vector p)
 			this->a[i][j] = (sdd[j+1] - sdd[j])/(6*dt);
 			this->b[i][j] = sdd[j]/2;
 
@@ -318,7 +332,6 @@ void CubicSpline::compute_coefficients()
 /******************** Figure out where we are on the trajectory ********************/
 int CubicSpline::get_spline_number(const float &time)
 {
-
 	int j = this->n;
 	for(int i = -1; i < this->n-1; i++)
 	{
