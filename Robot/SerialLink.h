@@ -26,8 +26,8 @@ class SerialLink
 		Eigen::MatrixXf get_coriolis() const {return this->C;}				// Get the Coriolis matrix
 		Eigen::MatrixXf get_inertia() const {return this->M;}				// Get inerita matrix in joint space
 		Eigen::MatrixXf get_jacobian() {return get_jacobian(this->fkChain[this->n].translation(), this->n);}
-		Eigen::MatrixXf get_jdot(const Eigen::MatrixXf &J);					// Time derivative of a given Jacobian
-		Eigen::MatrixXf get_partial_jacobian(const Eigen::MatrixXf &J, const int &jointNum); // Partial derivative w.r.t a single joint
+		Eigen::MatrixXf get_partial_derivative(const Eigen::MatrixXf &J, const int &jointNum); // Partial derivative w.r.t a single joint
+		Eigen::MatrixXf get_time_derivative(const Eigen::MatrixXf &J);			// Time derivative of a given Jacobian
 		Eigen::VectorXf get_gravity_torque() const {return this->g;}				// Get torque needed to oppose gravity
 		Eigen::VectorXf get_joint_positions() const {return this->q;}			// As it says on the label
 		float get_joint_position(const int &i) const {return this->q[i];}			// Query a single joint position
@@ -171,7 +171,7 @@ void SerialLink::update_inverse_dynamics()
 	this->M.setZero();
 	this->C.setZero();
 	this->g.setZero();
-	omega = this->baseTwist.tail(3);							// Initial angular velocity
+	omega.setZero();									// Initial angular velocity
 	
 	// Compute dynamics
 	for(int i = 0; i < this->n; i++)
@@ -188,13 +188,13 @@ void SerialLink::update_inverse_dynamics()
 		
 		m = this->link[i].get_mass();							// Get the mass of the ith link
 		
-		this->g.head(i+1) += m*Jv.transpose()*this->gravityVector;			// tau += Jc'*f
+		this->g.head(i+1) += m*Jv.transpose()*this->gravityVector;			// tau += Jc'*(m*a)
 		
 		this->M.block(0,0,i+1,i+1) += m*Jv.transpose()*Jv + Jw.transpose()*I*Jw;	// M = Jc'*I*Jc
 
-		Jcdot = get_jdot(Jc);								// Get time derivative of Jacobian
+		Jcdot = get_time_derivative(Jc);						// Get time derivative of Jacobian
 		
-		if(this->link[i].is_revolute()) omega += this->qdot[i]*this->axis[i]; 		// Compute angular velocity up the chain
+		if(this->link[i].is_revolute()) omega += this->qdot[i]*this->axis[i]; 	// Compute angular velocity up the chain
 		
 		// Idot =  skew(omega)*I
 		Idot << omega(1)*I(2,0)-omega(2)*I(1,0), omega(1)*I(2,1)-omega(2)*I(1,1), omega(1)*I(2,2)-omega(2)*I(1,2),
@@ -236,9 +236,9 @@ Eigen::MatrixXf SerialLink::get_jacobian(const Eigen::Vector3f &point, const int
 }
 
 /******************** Compute the time derivative of a given Jacobian ********************/
-Eigen::MatrixXf SerialLink::get_jdot(const Eigen::MatrixXf &J)
+Eigen::MatrixXf SerialLink::get_time_derivative(const Eigen::MatrixXf &J)
 {
-	Eigen::MatrixXf Jdot;								// Value to be returned
+	Eigen::MatrixXf Jdot;									// Value to be returned
 	Jdot.setZero(6,J.cols());
 
 	for(int i = 0; i < J.cols(); i++)
@@ -246,14 +246,14 @@ Eigen::MatrixXf SerialLink::get_jdot(const Eigen::MatrixXf &J)
 		for(int j = 0; j <= i; j++)
 		{
 			// Compute dJ(i)/dq(j)
-			if(this->link[j].is_revolute())				// J_j = [a_j x r_j; a_j]
+			if(this->link[j].is_revolute())					// J_j = [a_j x r_j; a_j]
 			{
 				// qdot_j * ( a_j x (a_i x r_i) )
 				Jdot(0,i) += this->qdot(j)*(J(4,j)*J(2,i) - J(5,j)*J(1,i));
 				Jdot(1,i) += this->qdot(j)*(J(5,j)*J(0,i) - J(3,j)*J(2,i));
 				Jdot(2,i) += this->qdot(j)*(J(3,j)*J(1,i) - J(4,j)*J(0,i));
 				
-				if(this->link[i].is_revolute())			// J_i = [a_i x r_i; a_i]
+				if(this->link[i].is_revolute())				// J_i = [a_i x r_i; a_i]
 				{
 					// qdot_j * ( a_j x a_i )
 					Jdot(3,i) += this->qdot(j)*(J(4,j)*J(5,i) - J(5,j)*J(4,i));
@@ -263,16 +263,16 @@ Eigen::MatrixXf SerialLink::get_jdot(const Eigen::MatrixXf &J)
 			}
 			
 			// Compute dJ(j)/dq(i)
-			if(i != j && this->link[j].is_revolute())			// J_j = [a_j x r_j; a_j]
+			if(i != j && this->link[j].is_revolute())				// J_j = [a_j x r_j; a_j]
 			{
-				if(this->link[i].is_revolute())			// J_i = [a_i x r_i; a_i]
+				if(this->link[i].is_revolute())				// J_i = [a_i x r_i; a_i]
 				{
 					// qdot_i * ( a_i x (a_j x r_j) )
 					Jdot(0,j) += this->qdot(i)*(J(4,i)*J(2,j) - J(5,i)*J(1,j));
 					Jdot(1,j) += this->qdot(i)*(J(5,i)*J(0,j) - J(3,i)*J(2,j));
 					Jdot(2,j) += this->qdot(i)*(J(3,i)*J(1,j) - J(4,i)*J(0,j));
 				}
-				else // this->link[i].is_prismatic()			// J_i = [a_i ; 0]
+				else // this->link[i].is_prismatic()				// J_i = [a_i ; 0]
 				{
 					// qdot_i * ( a_i x (a_j x r_j) )
 					Jdot(0,j) += this->qdot(i)*(J(1,i)*J(2,j) - J(2,i)*J(1,j));
@@ -287,7 +287,7 @@ Eigen::MatrixXf SerialLink::get_jdot(const Eigen::MatrixXf &J)
 }
 
 /******************** Get the partial derivative of the Jacobian w.r.t. to the ith joint  ********************/
-Eigen::MatrixXf SerialLink::get_partial_jacobian(const Eigen::MatrixXf &J, const int &jointNum)
+Eigen::MatrixXf SerialLink::get_partial_derivative(const Eigen::MatrixXf &J, const int &jointNum)
 {
 	// E. D. Pohl and H. Lipkin, "A new method of robotic rate control near singularities,"
 	// Proceedings. 1991 IEEE International Conference on Robotics and Automation,
