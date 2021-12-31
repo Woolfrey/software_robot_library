@@ -10,11 +10,11 @@ int main(int argc, char **argv)
 {
 	if(test_serial_link())
 	{
-		std::cout << "\nSerialLink appears to be functioning correctly." << std::endl;
+		std::cout << "\nSerialLink appears to be functioning correctly.\n" << std::endl;
 	}
 	else
 	{
-		std::cout << "\nSomething wrong with the SerialLink class." << std::endl;
+		std::cout << "\nSomething wrong with the SerialLink class.\n" << std::endl;
 	}
 	return 0;									// No problems with main
 }
@@ -210,11 +210,11 @@ bool test_serial_link()
 	robot.update_state(q,qdot);						// Compute new joint state
 	
 	/********** Check the Kinematics **********/
-	std::cout << "\nHere is the end-effector pose:" << std::endl;
+	std::cout << "\nHere is the end-effector pose:\n" << std::endl;
 	std::cout << robot.get_endpoint().matrix() << std::endl;
 
 	Eigen::MatrixXf J = robot.get_jacobian();
-	std::cout << "\nHere is the Jacobian:" << std::endl;
+	std::cout << "\nHere is the Jacobian:\n" << std::endl;
 	std::cout << J << std::endl;
 	
 	/********** Check the partial and time derivative of the Jacobian **********/
@@ -223,22 +223,22 @@ bool test_serial_link()
 	Eigen::MatrixXf Jdot_slow; Jdot_slow.setZero(6,n);
 	for(int i = 0; i < n; i++)
 	{
-		dJdq[i] = robot.get_partial_jacobian(J, i);
+		dJdq[i] = robot.get_partial_derivative(J, i);
 		Jdot_slow += qdot[i]*dJdq[i];
 	}
 	
-	Eigen::MatrixXf Jdot_fast = robot.get_jdot(J);
-	std::cout << "\nHere is the difference in the time derivative of the Jacobian using the slow and fast method:" << std::endl;
+	Eigen::MatrixXf Jdot_fast = robot.get_time_derivative(J);
+	std::cout << "\nHere is the difference in the time derivative of the Jacobian using the slow and fast method:\n" << std::endl;
 	std::cout << (Jdot_fast - Jdot_slow) << std::endl;
 	
 	/********** Check the dynamics **********/
-	std::cout << "\nHere is the gravity torque vector:" << std::endl;
+	std::cout << "\nHere is the gravity torque vector:\n" << std::endl;
 	std::cout << robot.get_gravity_torque() << std::endl;
 	
-	std::cout << "\nHere is the inertia matrix:" << std::endl;
+	std::cout << "\nHere is the inertia matrix:\n" << std::endl;
 	std::cout << robot.get_inertia() << std::endl;
 	
-	std::cout << "\nHere is the Coriolis matrix:" << std::endl;
+	std::cout << "\nHere is the Coriolis matrix:\n" << std::endl;
 	std::cout << robot.get_coriolis() << std::endl;
 	
 /*	OLDER CODE:
