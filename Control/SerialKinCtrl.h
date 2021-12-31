@@ -5,7 +5,7 @@
 class SerialKinCtrl
 {
 	public:
-		SerialKinCtrl(SerialLink *serial);					// Constructor
+		SerialKinCtrl(const SerialLink &serial);				// Constructor
 		
 		// Set Functions
 		bool set_joint_target(Eigen::VectorXf &target);
@@ -15,6 +15,10 @@ class SerialKinCtrl
 		// Get Functions
 		Eigen::VectorXf get_joint_control(const float &time);		// Control to track joint trajectory
 		Eigen::VectorXf get_pose_error(const Eigen::Isometry3f &desired, const Eigen::Isometry3f &actual);
+
+		// Get functions
+		Eigen::MatrixXf get_inverse(const Eigen::MatrixXf &A);		// Get the inverse of the given matrix
+		Eigen::MatrixXf get_inverse(const Eigen::MatrixXf &A, const Eigen::MatrixXf &W);
 	
 	private:
 
@@ -24,7 +28,7 @@ class SerialKinCtrl
 		
 		int n;									// Number of joints in the robot
 
-		SerialLink *robot;							// Use pointer to memory address?
+		SerialLink robot;							// Use pointer to memory address?
 		
 		std::vector<std::array<float,2>> pLim;				// Array of position limits
 		std::vector<std::array<float,2>> vLim;				// Array of velocity limits
@@ -34,26 +38,22 @@ class SerialKinCtrl
 };											// Semicolon needed after class declaration
 
 /******************** Create a controller for the given SerialLink object ********************/
-SerialKinCtrl::SerialKinCtrl(SerialLink *serial)
+SerialKinCtrl::SerialKinCtrl(const SerialLink &serial)
 	:
 	robot(serial),									// Assign the serial link object
-	n(serial->get_number_of_joints()),						// Number of joints
-	q_d(Eigen::VectorXf(this->n)),						// Resize desired joint position vector
-	qdot_d(Eigen::VectorXf(this->n)),						// Resize desired joint velocity vector
-	qddot_d(Eigen::VectorXf(this->n)),						// Resize desired joint acceleration vector
-	pLim(serial->get_position_limits()),						// Not sure if this is the best way to
-	vLim(serial->get_velocity_limits())						// work with the joint limits...
+	n(robot.get_number_of_joints()),						// Number of joints
+	pLim(robot.get_position_limits()),						// Not sure if this is the best way to
+	vLim(robot.get_velocity_limits())						// work with the joint limits...
 {
-	// Worker bees can leave.
-	// Even drones can fly away.
-	// The Queen is their slave.
+	this->q_d.resize(this->n);
+	this->qdot_d.resize(this->n);
+	this->qddot_d.resize(this->n);
 }
 
 /******************** Set a desired joint configuration to move to ********************/
 bool SerialKinCtrl::set_joint_target(Eigen::VectorXf &target)
 {
-	int n = this->robot->get_number_of_joints();						// Number of joints
-	if(target.size() != n)
+	if(target.size() != this->n)
 	{
 		std::cout << "ERROR: SerialKinCtrl::set_joint_target() : Input vector has "
 			<< target.size() << " elements, but the robot has " << n << " joints!"
@@ -77,14 +77,14 @@ bool SerialKinCtrl::set_joint_target(Eigen::VectorXf &target)
 			// Compute the optimal time scaling for quintic polynomial. See:
 			// Angeles, J. (2002). Fundamentals of robotic mechanical systems (Vol. 2).
 			// New York: Springer-Verlag.
-			dq = target[i] - this->robot->get_joint_position(i);			// Distance travelled
+			dq = target[i] - this->robot.get_joint_position(i);			// Distance travelled
 			if(dq < 0) dt = (15*dq)/(8*this->vLim[i][0]);				// Time to reach end at min. speed
 			if(dq > 0) dt = (15*dq)/(8*this->vLim[i][1]);				// Time to reach end at max. speed
 			if(dq != 0 && dt > endTime) endTime = dt;				// Set new end time for trajectory
 		}
 		
 		// Set new trajectory object
-		this->jointTrajectory = MultiPointTrajectory(this->robot->get_joint_positions(), target, startTime, endTime);
+		this->jointTrajectory = MultiPointTrajectory(this->robot.get_joint_positions(), target, startTime, endTime);
 		
 		return true;
 	}
@@ -120,7 +120,7 @@ bool SerialKinCtrl::set_proportional_gain(const float &gain)
 Eigen::VectorXf SerialKinCtrl::get_joint_control(const float &time)
 {
 	this->jointTrajectory.get_state(this->q_d, this->qdot_d, this->qddot_d, time); 	// Get the desired state for the given time
-	return this->qdot_d + this->kp*(this->q_d - this->robot->get_joint_positions());	// Feedforward + feedback
+	return this->qdot_d + this->kp*(this->q_d - this->robot.get_joint_positions());	// Feedforward + feedback
 }
 
 /******************** Get the error between two poses for feedback control purposes ********************/
@@ -137,4 +137,50 @@ Eigen::VectorXf SerialKinCtrl::get_pose_error(const Eigen::Isometry3f &desired,
 	error.tail(3) = Eigen::Quaternionf(Re.rotation()).vec();				// Quaternion feedback
 	
 	return error;
+}
+
+/******************** Get the inverse of a matrix, add damping as necessary ********************/
+Eigen::MatrixXf SerialKinCtrl::get_inverse(const Eigen::MatrixXf &A)
+{
+	Eigen::JacobiSVD<Eigen::MatrixXf> SVD(A, Eigen::ComputeFullU | Eigen::ComputeFullV); // Get the SVD decomposition
+	Eigen::MatrixXf V = SVD.matrixV();							// V-matrix
+	Eigen::VectorXf s = SVD.singularValues();						// Get the singular values
+	Eigen::MatrixXf invA(A.cols(), A.rows()); invA.setZero();				// Value we want to return
+	
+	for(int i = 0; i < A.cols(); i++)
+	{
+		for(int j = 0; j < A.rows(); j++)
+		{
+			if(s(j) > 1e-10)	invA(i,j) += V(i,j)/s(j);			// Left half of the inverse
+//			else			invA(i,j) += V(i,j)*0				// Ignore singular directions
+		}
+	}
+	
+	return invA*SVD.matrixU().transpose();
+}
+
+/******************** Get the weighted inverse of a matrix ********************/
+Eigen::MatrixXf SerialKinCtrl::get_inverse(const Eigen::MatrixXf &A, const Eigen::MatrixXf &W)
+{
+	// Matrix isn't square, return zero
+	if(W.cols() != W.rows())
+	{
+		std::cout << "ERROR: SerialKinCtrl::get_inverse() : Cannot compute the weighted inverse!"
+			<< " Weighting matrix is " << W.rows() << "x" << W.cols() << ", but it must be square." << std::endl;
+			
+		return Eigen::MatrixXf::Zero(A.cols(), A.rows());
+	}
+	// Columns don't match rows, return zero
+	else if(A.cols() != W.rows())
+	{
+		std::cout << "ERROR: SerialKinCtrl::get_inverse() :: Cannot compute the weighted inverse!"
+			<< " Input matrix has " << A.cols() << " columns and weighting matrix has " << W.rows()
+			<< " rows, but they must be the same." << std::endl;
+		return Eigen::MatrixXf::Zero(A.cols(), A.rows());
+	}
+	else
+	{	Eigen::MatrixXf invW = get_inverse(W);					// Get the inverse of the weighting matrix
+		Eigen::MatrixXf invWAt = invW*A.transpose();					// This makes calcs a little faster
+		return invWAt*get_inverse(A*invWAt);						// Return the inverse
+	}
 }
