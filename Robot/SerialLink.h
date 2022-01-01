@@ -22,7 +22,7 @@ class SerialLink
 		void set_gravity_vector(const Eigen::Vector3f &gravity) {this->gravityVector = gravity;} // Set a new gravitational vector
 		
 		// Get Functions
-		Eigen::Isometry3f get_endpoint() const {return this->fkChain[this->n];}		// Get the pose of the endpoint
+		Eigen::Isometry3f get_endpoint_pose() const {return this->fkChain[this->n];}		// Get the pose of the endpoint
 		Eigen::MatrixXf get_coriolis() const {return this->C;}				// Get the Coriolis matrix
 		Eigen::MatrixXf get_inertia() const {return this->M;}				// Get inerita matrix in joint space
 		Eigen::MatrixXf get_jacobian() {return get_jacobian(this->fkChain[this->n].translation(), this->n);}
@@ -31,6 +31,7 @@ class SerialLink
 		Eigen::VectorXf get_gravity_torque() const {return this->g;}				// Get torque needed to oppose gravity
 		Eigen::VectorXf get_joint_positions() const {return this->q;}			// As it says on the label
 		float get_joint_position(const int &i) const {return this->q[i];}			// Query a single joint position
+		float get_joint_velocity(const int &i) const {return this->qdot[i];}			// Query a single joint velocity
 		int get_number_of_joints() const {return this->n;}					// Returns the number of joints
 		std::vector<std::array<float,2>> get_position_limits();				// Get all joint limits as a single object
 		std::vector<std::array<float,2>> get_velocity_limits();				// Get all velocity limits as a single object
