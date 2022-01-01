@@ -40,7 +40,7 @@ class SerialLink
 	private:
 		// Kinematic properties
 		int n;									// Number of joints
-		Eigen::Vector3f gravityVector;					// Gravitational acceleration
+		Eigen::Vector3f gravityVector = {0.0, 0.0, -9.81};			// Gravitational acceleration
 		Eigen::VectorXf q, qdot;						// Joint positions, velocities
 		Eigen::VectorXf baseTwist;						// Base twist
 		Eigen::Isometry3f baseTF;						// Transform to first joint
@@ -72,7 +72,6 @@ SerialLink::SerialLink(const std::vector<Link> &links,
 		const Eigen::Isometry3f &finalTransform)
 		:
 		n(links.size()-1),							// Number of joints
-		gravityVector(Eigen::Vector3f(0.0, 0.0, -9.81)),			// Default gravity on surface of Earth
 		q(Eigen::VectorXf::Zero(this->n)),					// Joint position vector
 		qdot(Eigen::VectorXf::Zero(this->n)),					// Joint velocity vector
 		baseTwist(Eigen::VectorXf::Zero(6)),					// Linear and angular velocity of the base
@@ -147,13 +146,11 @@ std::vector<std::array<float,2>> SerialLink::get_velocity_limits()
 void SerialLink::update_forward_kinematics()
 {	
 	this->fkChain[0] = this->baseTF*this->link[0].get_pose(this->q[0]); 			// Pre-multiply by base transform
-	
 	this->axis[0] = this->fkChain[0].rotation()*this->link[0].get_axis();		// Update axis for 1st joint	
 	
 	for(int i = 1; i < this->n; i++)
 	{
 		this->fkChain[i] = this->fkChain[i-1]*this->link[i].get_pose(this->q[i]);	// Compute chain of joint/link transforms
-		
 		this->axis[i] = this->fkChain[i].rotation()*this->link[i].get_axis();	// Rotate axis from local frame to global frame
 	}
 	this->fkChain[this->n] = this->fkChain[this->n-1]*this->link[this->n].get_pose(0)*this->endpointTF; // Offset the endpoints
@@ -189,7 +186,7 @@ void SerialLink::update_inverse_dynamics()
 		
 		m = this->link[i].get_mass();							// Get the mass of the ith link
 		
-		this->g.head(i+1) += m*Jv.transpose()*this->gravityVector;			// tau += Jc'*(m*a)
+		this->g.head(i+1) -= m*Jv.transpose()*this->gravityVector;			// tau = Jc'*(m*a) NOTE: Need to NEGATE gravity
 		
 		this->M.block(0,0,i+1,i+1) += m*Jv.transpose()*Jv + Jw.transpose()*I*Jw;	// M = Jc'*I*Jc
 
