@@ -14,6 +14,11 @@ class CartesianTrajectory
 		// Constructor(s)
 		CartesianTrajectory() {}
 		
+		CartesianTrajectory(const Eigen::Isometry3f &startPose,
+				const Eigen::Isometry3f &endPose,
+				const float &startTime,
+				const float &endTime);
+		
 		CartesianTrajectory(const std::vector<Eigen::Isometry3f> &poses,
 				const std::vector<float> &times);
 		
@@ -40,6 +45,28 @@ class CartesianTrajectory
 		Eigen::Quaternionf quat;
 		
 };										// Semicolon needed after a class declaration
+
+/******************** Constructor ********************/
+CartesianTrajectory::CartesianTrajectory(const Eigen::Isometry3f &startPose,
+					const Eigen::Isometry3f &endPose,
+					const float &startTime,
+					const float &endTime)
+					:
+					n(2),
+					pos(Eigen::VectorXf(3)),		// The base trajectory classes need VectorXf for translation
+					linearVel(Eigen::VectorXf(3)),
+					linearAcc(Eigen::VectorXf(3))
+{
+	this->quinticPosition = Quintic(startPose.translation(),
+					endPose.translation(),
+					startTime,
+					endTime);
+
+	this->quinticOrientation = Quintic(Eigen::Quaternionf(startPose.rotation()),
+					Eigen::Quaternionf(endPose.rotation()),
+					startTime,
+					endTime);
+}
 
 /******************** Constructor ********************/
 CartesianTrajectory::CartesianTrajectory(const std::vector<Eigen::Isometry3f> &poses,
