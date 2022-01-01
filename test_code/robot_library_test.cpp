@@ -211,21 +211,15 @@ bool test_serial_link()
 	
 	/********** Check the Kinematics **********/
 	std::cout << "\nHere is the end-effector pose:\n" << std::endl;
-	std::cout << robot.get_endpoint().matrix() << std::endl;
+	std::cout << robot.get_endpoint_pose().matrix() << std::endl;
 
 	Eigen::MatrixXf J = robot.get_jacobian();
 	std::cout << "\nHere is the Jacobian:\n" << std::endl;
 	std::cout << J << std::endl;
 	
 	/********** Check the partial and time derivative of the Jacobian **********/
-	std::vector<Eigen::MatrixXf> dJdq;
-	dJdq.resize(n);
 	Eigen::MatrixXf Jdot_slow; Jdot_slow.setZero(6,n);
-	for(int i = 0; i < n; i++)
-	{
-		dJdq[i] = robot.get_partial_derivative(J, i);
-		Jdot_slow += qdot[i]*dJdq[i];
-	}
+	for(int i = 0; i < n; i++) Jdot_slow += qdot[i]*robot.get_partial_derivative(J,i);
 	
 	Eigen::MatrixXf Jdot_fast = robot.get_time_derivative(J);
 	std::cout << "\nHere is the difference in the time derivative of the Jacobian using the slow and fast method:\n" << std::endl;
