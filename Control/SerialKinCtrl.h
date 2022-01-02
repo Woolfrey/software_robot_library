@@ -34,6 +34,7 @@ class SerialKinCtrl
 		
 		// Functions
 		Eigen::MatrixXf get_joint_limit_weighting();
+		void scale_velocity_vector(Eigen::VectorXf &vec, const Eigen::VectorXf &ref);
 	
 };											// Semicolon needed after class declaration
 
@@ -181,18 +182,19 @@ Eigen::VectorXf SerialKinCtrl::get_cartesian_control(const float &time)
 	
 	// Compute the mapping from Cartesian to joint space
 	Eigen::MatrixXf J = this->robot.get_jacobian();				// Get the Jacobian
-	Eigen::MatrixXf W = get_joint_limit_weighting(); 				// NOTE: THIS IS CURRENTLY THE INVERSE!
+	Eigen::MatrixXf W = get_joint_limit_weighting(); // NOTE: THIS IS CURRENTLY THE INVERSE!
 	Eigen::MatrixXf invWJt = W*J.transpose();					// Makes things a little faster
 	Eigen::MatrixXf invJ = invWJt*get_inverse(J*invWJt);				// Weighted pseudoinverse
 
 	// Compute the joint velocities to achieve the endpoint motion
 	Eigen::VectorXf qdot_R = invJ*(xdot_d + this->K*get_pose_error(x_d, this->robot.get_endpoint_pose())); // Range space vector
-//	qdot_R = scale_velocity_vector(qdot_R, qdot_R);				// Ensure feasibility of the range space vector
+	scale_velocity_vector(qdot_R, qdot_R);					// Ensure feasiblity of the range space vector
 	
 // 	Eigen::MatrixXf N = Eigen::MatrixXf::Identity(this->n, this->n) - invJ*J;	// Null space projection matrix
 //	Eigen::VectorXf qdot_N = N*something;						// Null space vector
 
 // 	Eigen::VectorXf qdot = qdot_R + qdot_N;					// Combine the range and null space vectors
+//	scale_velocity_vector(qdot_N, qdot);						// Scale null space vector so joint velocities are in limits
 //	qdot_N = scale_velocity_vector(qdot_N, qdot);			
 //	qdot = qdot_R + qdot_N;
 
@@ -216,7 +218,7 @@ Eigen::MatrixXf SerialKinCtrl::get_inverse(const Eigen::MatrixXf &A)
 		}
 	}
 	
-	return invA*SVD.matrixU().transpose();
+	return invA*SVD.matrixU().transpose();					// Right half of the inverse and return
 }
 
 /******************** Get the weighted inverse of a matrix ********************/
@@ -294,8 +296,35 @@ Eigen::MatrixXf SerialKinCtrl::get_joint_limit_weighting()
 				std::cout << "qMin: " << this->pLim[i][0] << " q: " << q << " qMax: " << this->pLim[i][1] << std::endl;
 				penalty = 1.0;
 			}
-			W(i,i) = 1/penalty;	// NOTE: IN FUTURE, DON'T RETURN THE INVERSE!
+			W(i,i) = 1/penalty; // NOTE: IN FUTURE, DON'T RETURN THE INVERSE!
 		}
 	}
 	return W;
+}
+
+/******************** Scale a velocity vector to avoid joint limits ********************/
+void SerialKinCtrl::scale_velocity_vector(Eigen::VectorXf &vec, const Eigen::VectorXf &ref)
+{
+	if(vec.size() != ref.size())
+	{
+		std::cout << "ERROR: SerialKinCtrl::scale_velocity_vector() : Input vectors are not the same length!"
+			<< " The first has " << vec.size() << " elements and the second has "
+			<< ref.size() << " elements." << std::endl;
+	}
+	else
+	{
+		float s = 1.0;
+		for(int i = 0; i < ref.size(); i++)
+		{
+			if(ref[i] < this->vLim[i][0] && this->vLim[i][0]/ref[i] < s)		// Below lower limit AND largest observed so far...
+			{
+				s = 0.99*this->vLim[i][0]/ref[i];				// ... Reduce the speed proportionately
+			}
+			else if(ref[i] > this->vLim[i][1] && this->vLim[i][1]/ref[i] < s)	// Above upper limit AND largest observed so far...
+			{
+				s = 0.99*this->vLim[i][1]/ref[i];				// ... Reduce the speed proportionately
+			}
+		}
+		vec *= s;									// Scale to ensure feasibility
+	}
 }
