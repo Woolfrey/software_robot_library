@@ -22,18 +22,22 @@ class SerialKinCtrl
 		Eigen::VectorXf get_joint_control(const float &time);		// Control to track joint trajectory
 		Eigen::VectorXf get_pose_error(const Eigen::Isometry3f &desired, const Eigen::Isometry3f &actual);
 	
-	private:
+	protected: // SerialDynCtrl can access these
+	
 		CartesianTrajectory cartesianTrajectory;				// As it says
-		Eigen::MatrixXf K;							// Cartesian stiffness
-		float kp = 1.0;							// Proportional gain
 		int n;									// Number of joints in the robot
 		SerialLink robot;							// Use pointer to memory address?
 		std::vector<std::array<float,2>> pLim;				// Array of position limits
 		std::vector<std::array<float,2>> vLim;				// Array of velocity limits
-		MultiPointTrajectory jointTrajectory;					// Joint trajectory object
-		
+		MultiPointTrajectory jointTrajectory;					// Joint trajectory object		
+	
+	private:
+	
+		Eigen::MatrixXf K;							// Cartesian stiffness
+		float kp = 1.0;							// Proportional gain
+
 		// Functions
-		Eigen::MatrixXf get_joint_limit_weighting();
+		Eigen::MatrixXf get_joint_limit_weighting();				// For redundant manipulators
 		void scale_velocity_vector(Eigen::VectorXf &vec, const Eigen::VectorXf &ref);
 	
 };											// Semicolon needed after class declaration
