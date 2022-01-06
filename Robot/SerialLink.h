@@ -160,9 +160,9 @@ void SerialLink::update_forward_kinematics()
 void SerialLink::update_inverse_dynamics()
 {
 	// Variables used in this scope
-	Eigen::Matrix3f R, I, Idot;								// Rotation matrix and moment of inertia
+	Eigen::Matrix3f R, I, Idot, sdot_temp;								// Rotation matrix and moment of inertia
 	Eigen::MatrixXf Jc, Jcdot, Jv, Jw;							// Jacobian to c.o.m.
-	Eigen::Vector3f com, omega;								// c.o.m. and angular velocity vector
+	Eigen::Vector3f com, omega, sdot;								// c.o.m. and angular velocity vector
 	float m;										// Link mass
 	
 	// Set initial values
@@ -174,34 +174,37 @@ void SerialLink::update_inverse_dynamics()
 	// Compute dynamics
 	for(int i = 0; i < this->n; i++)
 	{
-		com = this->fkChain[i]*this->link[i].get_com();				// Transform c.o.m. of ith link to global frame
+		// Note to self:
+		// link[i+1] is used because link[0] is the static base link
+		com = this->fkChain[i]*this->link[i+1].get_com();				// Transform c.o.m. of ith link to global frame
 		
 		I = this->fkChain[i].rotation()						// Rotation inertia to global frame
-		   *this->link[i].get_inertia()
+		   *this->link[i+1].get_inertia()
 		   *this->fkChain[i].rotation().transpose();
 		  
 		Jc = get_jacobian(com, i+1);							// Get the Jacobian to the ith c.o.m.
 		Jv = Jc.block(0,0,3,i+1);							// Makes calcs a little easier
 		Jw = Jc.block(3,0,3,i+1);							// Makes calcs a little easier
-		
-		m = this->link[i].get_mass();							// Get the mass of the ith link
+		m = this->link[i+1].get_mass();							// Get the mass of the ith link
 		
 		this->g.head(i+1) -= m*Jv.transpose()*this->gravityVector;			// tau = Jc'*(m*a) NOTE: Need to NEGATE gravity
 		
 		this->M.block(0,0,i+1,i+1) += m*Jv.transpose()*Jv + Jw.transpose()*I*Jw;	// M = Jc'*I*Jc
 
 		Jcdot = get_time_derivative(Jc);						// Get time derivative of Jacobian
-		
-		if(this->link[i].is_revolute()) omega += this->qdot[i]*this->axis[i]; 	// Compute angular velocity up the chain
+		if(this->link[i+1].is_revolute()) omega += this->qdot[i]*this->axis[i]; 	// Compute angular velocity up the chain
 		
 		// Idot =  skew(omega)*I
-		Idot << omega(1)*I(2,0)-omega(2)*I(1,0), omega(1)*I(2,1)-omega(2)*I(1,1), omega(1)*I(2,2)-omega(2)*I(1,2),
-			omega(2)*I(0,0)-omega(0)*I(2,0), omega(2)*I(0,1)-omega(0)*I(2,1), omega(2)*I(0,2)-omega(0)*I(2,2),
-			omega(0)*I(1,0)-omega(1)*I(0,0), omega(0)*I(1,1)-omega(1)*I(0,1), omega(0)*I(1,2)-omega(1)*I(0,2);
+		if (i == 0)
+			Idot.setZero();
+		else
+			Idot << omega(1)*I(2,0)-omega(2)*I(1,0), omega(1)*I(2,1)-omega(2)*I(1,1), omega(1)*I(2,2)-omega(2)*I(1,2),
+					omega(2)*I(0,0)-omega(0)*I(2,0), omega(2)*I(0,1)-omega(0)*I(2,1), omega(2)*I(0,2)-omega(0)*I(2,2),
+					omega(0)*I(1,0)-omega(1)*I(0,0), omega(0)*I(1,1)-omega(1)*I(0,1), omega(0)*I(1,2)-omega(1)*I(0,2);
 		
 		this->C.block(0,0,i+1,i+1) += m*Jv.transpose()*Jcdot.block(0,0,3,i+1)	// C = Jc'*(I*Jcdot + Idot*Jc);
 					     + Jw.transpose()*(I*Jcdot.block(3,0,3,i+1) + Idot*Jw);
-	}	
+	}
 }
 
 /******************** Compute a Jacobian matrix to any given point ********************/
@@ -244,14 +247,14 @@ Eigen::MatrixXf SerialLink::get_time_derivative(const Eigen::MatrixXf &J)
 		for(int j = 0; j <= i; j++)
 		{
 			// Compute dJ(i)/dq(j)
-			if(this->link[j].is_revolute())					// J_j = [a_j x r_j; a_j]
+			if(this->link[j+1].is_revolute())					// J_j = [a_j x r_j; a_j]
 			{
 				// qdot_j * ( a_j x (a_i x r_i) )
 				Jdot(0,i) += this->qdot(j)*(J(4,j)*J(2,i) - J(5,j)*J(1,i));
 				Jdot(1,i) += this->qdot(j)*(J(5,j)*J(0,i) - J(3,j)*J(2,i));
 				Jdot(2,i) += this->qdot(j)*(J(3,j)*J(1,i) - J(4,j)*J(0,i));
 				
-				if(this->link[i].is_revolute())				// J_i = [a_i x r_i; a_i]
+				if(this->link[i+1].is_revolute())				// J_i = [a_i x r_i; a_i]
 				{
 					// qdot_j * ( a_j x a_i )
 					Jdot(3,i) += this->qdot(j)*(J(4,j)*J(5,i) - J(5,j)*J(4,i));
@@ -261,14 +264,17 @@ Eigen::MatrixXf SerialLink::get_time_derivative(const Eigen::MatrixXf &J)
 			}
 			
 			// Compute dJ(j)/dq(i)
-			if(i != j && this->link[j].is_revolute())				// J_j = [a_j x r_j; a_j]
+			if(i != j && this->link[j+1].is_revolute())				// J_j = [a_j x r_j; a_j]
 			{
-				if(this->link[i].is_revolute())				// J_i = [a_i x r_i; a_i]
+				if(this->link[i+1].is_revolute())				// J_i = [a_i x r_i; a_i]
 				{
 					// qdot_i * ( a_i x (a_j x r_j) )
-					Jdot(0,j) += this->qdot(i)*(J(4,i)*J(2,j) - J(5,i)*J(1,j));
-					Jdot(1,j) += this->qdot(i)*(J(5,i)*J(0,j) - J(3,i)*J(2,j));
-					Jdot(2,j) += this->qdot(i)*(J(3,i)*J(1,j) - J(4,i)*J(0,j));
+					// Jdot(0,j) += this->qdot(i)*(J(4,i)*J(2,j) - J(5,i)*J(1,j));
+					// Jdot(1,j) += this->qdot(i)*(J(5,i)*J(0,j) - J(3,i)*J(2,j));
+					// Jdot(2,j) += this->qdot(i)*(J(3,i)*J(1,j) - J(4,i)*J(0,j));
+					Jdot(0,j) += this->qdot(i)*(J(4,j)*J(2,i) - J(5,j)*J(1,i));
+					Jdot(1,j) += this->qdot(i)*(J(5,j)*J(0,i) - J(3,j)*J(2,i));
+					Jdot(2,j) += this->qdot(i)*(J(3,j)*J(1,i) - J(4,j)*J(0,i));
 				}
 				else // this->link[i].is_prismatic()				// J_i = [a_i ; 0]
 				{

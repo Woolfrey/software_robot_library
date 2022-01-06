@@ -234,6 +234,9 @@ bool test_serial_link()
 	
 	std::cout << "\nHere is the Coriolis matrix:\n" << std::endl;
 	std::cout << robot.get_coriolis() << std::endl;
+
+	std::cout << "\nHere is the Coriolis vector:\n" << std::endl;
+	std::cout << robot.get_coriolis()*qdot << std::endl;
 	
 	/********** Test Control Functions **********/
 	SerialKinCtrl controller(robot);						// Create controller for the robot
