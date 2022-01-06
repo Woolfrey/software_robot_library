@@ -8,22 +8,21 @@ class SerialKinCtrl
 		SerialKinCtrl(const SerialLink &serial);				// Constructor
 		
 		// Set Functions
-		bool set_joint_target(Eigen::VectorXf &target);
+		bool set_joint_target(Eigen::VectorXf &target);			// Set target for joint trajectory
 		bool set_joint_targets(const std::vector<Eigen::VectorXf> &targets, const std::vector<float> &times);
-		bool set_proportional_gain(const float &gain);
-		bool set_stiffness(const Eigen::MatrixXf &gain);
-		bool set_target_pose(Eigen::Isometry3f &target, float &time);
+		bool set_feedback_gain(const float &gain);				// Set proportional gain for joint control
+		bool set_target_pose(Eigen::Isometry3f &target, float &time);	// Set target pose for Cartesian trajectory
 		bool set_target_poses(const std::vector<Eigen::Isometry3f> &targets, const std::vector<float> &times);
 		
 		// Get Functions
 		Eigen::VectorXf get_cartesian_control(const float &time);		// Control to track Cartesian trajectory
 		Eigen::MatrixXf get_inverse(const Eigen::MatrixXf &A);		// Get the inverse of the given matrix
 		Eigen::MatrixXf get_inverse(const Eigen::MatrixXf &A, const Eigen::MatrixXf &W); // Get the weighted inverse of a given matrix
-		Eigen::VectorXf get_joint_control(const float &time);		// Control to track joint trajectory
+virtual	Eigen::VectorXf get_joint_control(const float &time);		// Control to track joint trajectory
 		Eigen::VectorXf get_pose_error(const Eigen::Isometry3f &desired, const Eigen::Isometry3f &actual);
 	
 	protected: // SerialDynCtrl can access these
-	
+
 		CartesianTrajectory cartesianTrajectory;				// As it says
 		int n;									// Number of joints in the robot
 		SerialLink robot;							// Use pointer to memory address?
@@ -32,13 +31,11 @@ class SerialKinCtrl
 		MultiPointTrajectory jointTrajectory;					// Joint trajectory object		
 	
 	private:
-	
-		Eigen::MatrixXf K;							// Cartesian stiffness
-		float kp = 1.0;							// Proportional gain
+		float k = 1.0;								// Proportional gain on position error
 
 		// Functions
 		Eigen::MatrixXf get_joint_limit_weighting();				// For redundant manipulators
-		void scale_velocity_vector(Eigen::VectorXf &vec, const Eigen::VectorXf &ref);
+		void scale_velocity_vector(Eigen::VectorXf &vec, const Eigen::VectorXf ref);
 	
 };											// Semicolon needed after class declaration
 
@@ -47,11 +44,12 @@ SerialKinCtrl::SerialKinCtrl(const SerialLink &serial)
 	:
 	robot(serial),									// Assign the serial link object
 	n(robot.get_number_of_joints()),						// Number of joints
-	pLim(robot.get_position_limits()),						// Not sure if this is the best way to
-	vLim(robot.get_velocity_limits())						// work with the joint limits...
+	pLim(robot.get_position_limits()),						// Not sure if this is the best way to...
+	vLim(robot.get_velocity_limits())						// ... work with the joint limits
 {
-	// Resize matrices
-	this->K.resize(6,6); this->K.setIdentity();
+	// Worker bees can leave.
+	// Even drones can fly away.
+	// The Queen is their slave
 }
 
 /******************** Set a desired joint configuration to move to ********************/
@@ -75,8 +73,8 @@ bool SerialKinCtrl::set_joint_target(Eigen::VectorXf &target)
 		for(int i = 0; i < n; i++)
 		{
 			// Check that the target is within joint limits
-			if(target[i] <= this->pLim[i][0]) target[i] = 0.99*this->pLim[i][0];
-			if(target[i] >= this->pLim[i][1]) target[i] = 0.99*this->pLim[i][1];
+			if(target[i] <= this->pLim[i][0]) target[i] = this->pLim[i][0] + 0.01; // Just a bit above the lower limit
+			if(target[i] >= this->pLim[i][1]) target[i] = this->pLim[i][1] - 0.01; // Just a bit below the upper limit
 	
 			// Compute the optimal time scaling for quintic polynomial. See:
 			// Angeles, J. (2002). Fundamentals of robotic mechanical systems (Vol. 2).
@@ -105,32 +103,17 @@ bool SerialKinCtrl::set_joint_targets(const std::vector<Eigen::VectorXf> &target
 }
 
 /******************** Set proportional gains for the feedback control ********************/
-bool SerialKinCtrl::set_proportional_gain(const float &gain)
+bool SerialKinCtrl::set_feedback_gain(const float &gain)
 {
 	if(gain < 0)
 	{
-		std::cout << "ERROR: SerialKinCtrl::set_proportional_gain : Proportional gain cannot be negative!" << std::endl;
+		std::cout << "ERROR: SerialKinCtrl::set_proportional_gain : Proportional gain cannot be negative!"
+			<< " Input value was " << gain << "." << std::endl;
 		return false;
 	}
 	else
 	{
-		this->kp = gain;
-		return true;
-	}
-}
-
-/******************** Set the Cartesian stiffness matrix ********************/
-bool SerialKinCtrl::set_stiffness(const Eigen::MatrixXf &gain)
-{
-	if(gain.rows() !=6 || gain.cols() != 6)
-	{
-		std::cout << "ERROR: SerialKinCtrl::set_stiffness() : Expected a 6x6 matrix for the Cartesian stiffness."
-			<< " The input had " << gain.rows() << " rows and " << gain.cols() << " columns.";
-		return false;
-	}
-	else
-	{
-		this->K = gain;
+		this->k = gain;
 		return true;
 	}
 }
@@ -141,7 +124,7 @@ bool SerialKinCtrl::set_target_pose(Eigen::Isometry3f &target, float &time)
 	Eigen::Isometry3f current = this->robot.get_endpoint_pose();			// Current end-effector pose
 	
 	// Cap the linear velocity if it's too fast	
-	float maxSpeed = 1.0; // m/s
+	float maxSpeed = 1.0; 								// m/s
 	float distance = (target.translation() - current.translation()).norm();
 	if(distance/time > maxSpeed)
 	{
@@ -151,9 +134,9 @@ bool SerialKinCtrl::set_target_pose(Eigen::Isometry3f &target, float &time)
 	}
 	
 	// Cap the angular velocity if its too fast
-	maxSpeed = 10.5; // rad/s (100 RPM)
+	maxSpeed = 10.5;								// rad/s (100 RPM)
 	Eigen::AngleAxisf dR(current.rotation().inverse()*target.rotation());	// Difference in orientation
-	distance = dR.angle();
+	distance = dR.angle();								// Extract the angle component
 	if(distance / time > maxSpeed)
 	{
 		std::cout << "WARNING! SerialKinCtrl::set_target_pose() :: Angular velocity exceeds 100 RPM!"
@@ -191,7 +174,7 @@ Eigen::VectorXf SerialKinCtrl::get_cartesian_control(const float &time)
 	Eigen::MatrixXf invJ = invWJt*get_inverse(J*invWJt);				// Weighted pseudoinverse
 
 	// Compute the joint velocities to achieve the endpoint motion
-	Eigen::VectorXf qdot_R = invJ*(xdot_d + this->K*get_pose_error(x_d, this->robot.get_endpoint_pose())); // Range space vector
+	Eigen::VectorXf qdot_R = invJ*(xdot_d + this->k*get_pose_error(x_d, this->robot.get_endpoint_pose())); // Range space vector
 	scale_velocity_vector(qdot_R, qdot_R);					// Ensure feasiblity of the range space vector
 	
 // 	Eigen::MatrixXf N = Eigen::MatrixXf::Identity(this->n, this->n) - invJ*J;	// Null space projection matrix
@@ -251,13 +234,14 @@ Eigen::MatrixXf SerialKinCtrl::get_inverse(const Eigen::MatrixXf &A, const Eigen
 	}
 }
 
-/******************** Compute the control to track the internal joint trajectory ********************/
+/******************** Compute the velocity needed to track the internal trajectory ********************/
 Eigen::VectorXf SerialKinCtrl::get_joint_control(const float &time)
 {
-	Eigen::VectorXf q_d(this->n), qdot_d(this->n), qddot_d(this->n);
+	Eigen::VectorXf q_d(this->n), qdot_d(this->n), qddot_d(this->n);		// Desired joint position, velocity, acceleration
 	
-	this->jointTrajectory.get_state(q_d, qdot_d, qddot_d, time); 		// Get the desired state for the given time
-	return qdot_d + this->kp*(q_d - this->robot.get_joint_positions());		// Feedforward + feedback
+	this->jointTrajectory.get_state(q_d, qdot_d, qddot_d, time); 		// Get the desired state from the trajectory
+	
+	return qdot_d	+ this->k*(q_d - this->robot.get_joint_positions());		// Feedforward + feedback
 }
 
 /******************** Get the error between two poses for feedback control purposes ********************/
@@ -307,7 +291,7 @@ Eigen::MatrixXf SerialKinCtrl::get_joint_limit_weighting()
 }
 
 /******************** Scale a velocity vector to avoid joint limits ********************/
-void SerialKinCtrl::scale_velocity_vector(Eigen::VectorXf &vec, const Eigen::VectorXf &ref)
+void SerialKinCtrl::scale_velocity_vector(Eigen::VectorXf &vec, const Eigen::VectorXf ref)
 {
 	if(vec.size() != ref.size())
 	{
@@ -317,7 +301,7 @@ void SerialKinCtrl::scale_velocity_vector(Eigen::VectorXf &vec, const Eigen::Vec
 	}
 	else
 	{
-		float s = 1.0;
+		float s = 1.0;									// Scalar for the velocity vector
 		for(int i = 0; i < ref.size(); i++)
 		{
 			if(ref[i] < this->vLim[i][0] && this->vLim[i][0]/ref[i] < s)		// Below lower limit AND largest observed so far...
