@@ -192,8 +192,8 @@ bool test_serial_link()
 	for (int i = 0; i < trans.size(); ++i)
 	{
 		Eigen::Isometry3f currentLinkTf = trans[i] * rot[i];
-		float temp[2] = {-2,2};
-		Link currentLink(currentLinkTf, true, Eigen::Vector3f(0, 0, 1), link_mass[i], com[i], inertia[i], temp, temp);
+		float positionLimits[2] = {-M_PI, M_PI};
+		Link currentLink(currentLinkTf, true, Eigen::Vector3f(0, 0, 1), link_mass[i], com[i], inertia[i], positionLimits, 10.0);
 		links.push_back(currentLink);
 	}
 	Eigen::Isometry3f finalLinkTf = Eigen::Isometry3f::Identity();
