@@ -27,7 +27,7 @@ virtual	Eigen::VectorXf get_joint_control(const float &time);		// Control to tra
 		int n;									// Number of joints in the robot
 		SerialLink robot;							// Use pointer to memory address?
 		std::vector<std::array<float,2>> pLim;				// Array of position limits
-		std::vector<std::array<float,2>> vLim;				// Array of velocity limits
+		std::vector<float> vLim;						// Array of velocity limits
 		MultiPointTrajectory jointTrajectory;					// Joint trajectory object		
 	
 	private:
@@ -35,17 +35,16 @@ virtual	Eigen::VectorXf get_joint_control(const float &time);		// Control to tra
 
 		// Functions
 		Eigen::MatrixXf get_joint_limit_weighting();				// For redundant manipulators
-		void scale_velocity_vector(Eigen::VectorXf &vec, const Eigen::VectorXf ref);
+		bool scale_velocity_vector(Eigen::VectorXf &vec, const Eigen::VectorXf ref);
 	
 };											// Semicolon needed after class declaration
 
 /******************** Create a controller for the given SerialLink object ********************/
 SerialKinCtrl::SerialKinCtrl(const SerialLink &serial)
-	:
-	robot(serial),									// Assign the serial link object
-	n(robot.get_number_of_joints()),						// Number of joints
-	pLim(robot.get_position_limits()),						// Not sure if this is the best way to...
-	vLim(robot.get_velocity_limits())						// ... work with the joint limits
+		: robot(serial)							// Assign the serial link object
+		, n(robot.get_number_of_joints())					// Number of joints
+		, pLim(robot.get_position_limits())					// Not sure if this is the best way to...
+		, vLim(robot.get_velocity_limits())					// ... work with the joint limits
 {
 	// Worker bees can leave.
 	// Even drones can fly away.
@@ -79,9 +78,8 @@ bool SerialKinCtrl::set_joint_target(Eigen::VectorXf &target)
 			// Compute the optimal time scaling for quintic polynomial. See:
 			// Angeles, J. (2002). Fundamentals of robotic mechanical systems (Vol. 2).
 			// New York: Springer-Verlag.
-			dq = target[i] - this->robot.get_joint_position(i);		// Distance travelled
-			if(dq < 0) dt = (15*dq)/(8*this->vLim[i][0]);			// Time to reach end at min. speed
-			if(dq > 0) dt = (15*dq)/(8*this->vLim[i][1]);			// Time to reach end at max. speed
+			dq = abs(target[i] - this->robot.get_joint_position(i));	// Distance travelled
+			dt = (15*dq)/(8*this->vLim[i]);				// Time to travel distance at peak velocity
 			if(dq != 0 && dt > endTime) endTime = dt;			// Set new end time for trajectory
 		}
 		
@@ -107,8 +105,8 @@ bool SerialKinCtrl::set_feedback_gain(const float &gain)
 {
 	if(gain < 0)
 	{
-		std::cout << "ERROR: SerialKinCtrl::set_proportional_gain : Proportional gain cannot be negative!"
-			<< " Input value was " << gain << "." << std::endl;
+		std::cerr << "[ERROR][SERIALKINCTRL] set_feedback_gain() : Value cannot be negative." << std::endl;
+		std::cerr << " Input value: " << gain << std::endl;
 		return false;
 	}
 	else
@@ -121,32 +119,44 @@ bool SerialKinCtrl::set_feedback_gain(const float &gain)
 /******************** Set a pose for the end-effector to move to ********************/
 bool SerialKinCtrl::set_target_pose(Eigen::Isometry3f &target, float &time)
 {
-	Eigen::Isometry3f current = this->robot.get_endpoint_pose();			// Current end-effector pose
-	
-	// Cap the linear velocity if it's too fast	
-	float maxSpeed = 1.0; 								// m/s
-	float distance = (target.translation() - current.translation()).norm();
-	if(distance/time > maxSpeed)
+	if(time <= 0)
 	{
-		std::cout << "WARNING! SerialKinCtrl::set_target_pose() : Linear velocity exceeds" << maxSpeed << " m/s!"
-			<< " Increasing the trajectory time..." << std::endl;
-		time = distance/maxSpeed;	
+		std::cerr << "[ERROR][SERIALKINCTRL] set_target_pose() : Time must be greater than zero." << std::endl;
+		std::cerr << "Input time: " << time << std::endl;
+		return false;
 	}
-	
-	// Cap the angular velocity if its too fast
-	maxSpeed = 10.5;								// rad/s (100 RPM)
-	Eigen::AngleAxisf dR(current.rotation().inverse()*target.rotation());	// Difference in orientation
-	distance = dR.angle();								// Extract the angle component
-	if(distance / time > maxSpeed)
+	else
 	{
-		std::cout << "WARNING! SerialKinCtrl::set_target_pose() :: Angular velocity exceeds 100 RPM!"
-			<< " Increasing the trajectory time..." << std::endl;
-		time = distance/maxSpeed;
+		// Variables used in this scope
+		Eigen::Isometry3f current = this->robot.get_endpoint_pose();			// Current end-effector pose
+		Eigen::AngleAxisf dR(current.rotation().inverse()*target.rotation());	// Difference in orientation
+		float distance = (target.translation() - current.translation()).norm();	// Difference in position
+		float maxSpeed;
+		
+		// Ensure linear velocity isn't too high
+		maxSpeed = 1.0;							// m/s
+		if(distance / time > maxSpeed)
+		{
+			std::cerr << "[WARNING][SERIALKINCTRL] set_target_pose() : Linear velocity exceeds "
+				<< maxSpeed << " m/s! Increasing the trajectory time..." << std::endl;
+			time = distance/maxSpeed;
+		}
+		
+		// Ensure angular velocity isn't too high
+		maxSpeed = 10.5;							// rad/s (100 RPM)
+		distance = dR.angle();
+		if(distance > M_PI) distance = 2*M_PI - distance;			// Shortest path (should be corrected in trajectory object)
+		if(distance / time > maxSpeed)
+		{
+			std::cerr << "[WARNING][SERIALKINCTRL] set_target_pose() : Angular velocity exceeds "
+				<< maxSpeed*9.54 << " RPM! Increasing the trajectory time..." << std::endl;
+			time = distance/maxSpeed;
+		}
+		
+		this->cartesianTrajectory = CartesianTrajectory(current, target, 0.0, time); // Set new trajectory
+
+		return true;
 	}
-	
-	this->cartesianTrajectory = CartesianTrajectory(current, target, 0.0, time);	// Set new Cartesian trajectory.
-	
-	return true;	
 }
 
 /******************** Set multiple waypoints for the end-effector to move to ********************/
@@ -291,28 +301,27 @@ Eigen::MatrixXf SerialKinCtrl::get_joint_limit_weighting()
 }
 
 /******************** Scale a velocity vector to avoid joint limits ********************/
-void SerialKinCtrl::scale_velocity_vector(Eigen::VectorXf &vec, const Eigen::VectorXf ref)
+bool SerialKinCtrl::scale_velocity_vector(Eigen::VectorXf &vec, const Eigen::VectorXf ref)
 {
 	if(vec.size() != ref.size())
 	{
-		std::cout << "ERROR: SerialKinCtrl::scale_velocity_vector() : Input vectors are not the same length!"
-			<< " The first has " << vec.size() << " elements and the second has "
-			<< ref.size() << " elements." << std::endl;
+		std::cerr << "[ERROR][SERIALKINCTRL] scale_velocity_vector() : Input vectors are not the same length." << std::endl;
+		std::cerr << " vec: " << vec.size() << " ref: " << ref.size() << std::endl;
+		return false;
 	}
 	else
 	{
-		float s = 1.0;									// Scalar for the velocity vector
+		float s = 1.0;								// Scalar for the velocity vector
+		float vMin, vMax;
 		for(int i = 0; i < ref.size(); i++)
 		{
-			if(ref[i] < this->vLim[i][0] && this->vLim[i][0]/ref[i] < s)		// Below lower limit AND largest observed so far...
-			{
-				s = 0.99*this->vLim[i][0]/ref[i];				// ... Reduce the speed proportionately
-			}
-			else if(ref[i] > this->vLim[i][1] && this->vLim[i][1]/ref[i] < s)	// Above upper limit AND largest observed so far...
-			{
-				s = 0.99*this->vLim[i][1]/ref[i];				// ... Reduce the speed proportionately
-			}
+			vMin = this->vLim[i] *= -1;
+			vMax = this->vLim[i];
+			
+			if(ref[i] < vMin && vMin/ref[i] < s)		s = 0.99*vMin/ref[i]; // Lower than min and largest observed so far...
+			else if(ref[i] > vMax && vMax/ref[i] < s)	s = 0.99*vMax/ref[i]; // Higher than max and larget observed so far...
 		}
-		vec *= s;									// Scale to ensure feasibility
+		vec *= s;								// Scale to ensure feasibility
+		return true;
 	}
 }
