@@ -42,7 +42,6 @@ class SerialLink
 		int n;									// Number of joints
 		Eigen::Vector3f gravityVector = {0.0, 0.0, -9.81};			// Gravitational acceleration
 		Eigen::VectorXf q, qdot;						// Joint positions, velocities
-		Eigen::VectorXf baseTwist;						// Base twist
 		Eigen::Isometry3f baseTF;						// Transform to first joint
 		Eigen::Isometry3f finalTF;						// Transform from final joint to endpoint
 		Eigen::Isometry3f endpointTF;						// New endpoint offset (default identity)
@@ -70,19 +69,17 @@ class SerialLink
 SerialLink::SerialLink(const std::vector<Link> &links,
 		const Eigen::Isometry3f &baseTransform,
 		const Eigen::Isometry3f &finalTransform)
-		:
-		n(links.size()-1),							// Number of joints
-		q(Eigen::VectorXf::Zero(this->n)),					// Joint position vector
-		qdot(Eigen::VectorXf::Zero(this->n)),					// Joint velocity vector
-		baseTwist(Eigen::VectorXf::Zero(6)),					// Linear and angular velocity of the base
-		baseTF(baseTransform),							// Pose of the base in global frame
-		finalTF(finalTransform),						// Pose of the endpoint from the final link frame
-		endpointTF(Eigen::Isometry3f::Identity()),				// Additional endpoint offset
-		link(links),								// Vector of Link objects
-		C(Eigen::MatrixXf::Zero(this->n, this->n)),				// Coriolis matrix
-		D(Eigen::MatrixXf::Identity(this->n, this->n)),			// Damping matrix
-		M(Eigen::MatrixXf::Identity(this->n, this->n)),			// Inertia matrix
-		g(Eigen::VectorXf::Zero(this->n))					// Gravity torque vectors
+		: n(links.size()-1)							// Number of joints
+		, q(Eigen::VectorXf::Zero(this->n))					// Joint position vector
+		, qdot(Eigen::VectorXf::Zero(this->n))				// Joint velocity vector
+		, baseTF(baseTransform)						// Pose of the base in global frame
+		, finalTF(finalTransform)						// Pose of the endpoint from the final link frame
+		, endpointTF(Eigen::Isometry3f::Identity())				// Additional endpoint offset
+		, link(links)								// Vector of Link objects
+		, C(Eigen::MatrixXf::Zero(this->n, this->n))				// Coriolis matrix
+		, D(Eigen::MatrixXf::Identity(this->n, this->n))			// Damping matrix
+		, M(Eigen::MatrixXf::Identity(this->n, this->n))			// Inertia matrix
+		, g(Eigen::VectorXf::Zero(this->n))					// Gravity torque vectors
 		
 {
 	// Initialize all std::vector objects
@@ -110,9 +107,8 @@ bool SerialLink::update_state(const Eigen::VectorXf &pos, const Eigen::VectorXf 
 	}
 	else
 	{
-		std::cout << "ERROR: SerialLink::set_joint_state() : Length of input vectors are not equal." << std::endl;
-		std::cout << "This object has " << this->n << " joints and you input a " << pos.size() << "x1" << " vector and a "
-			  << vel.size() << "x1" << " vector." << std::endl;
+		std::cerr << "[ERROR][SERIALLINK] set_joint_state() : Length of input vectors is not correct." << std::endl;
+		std::cerr << "Number of joints: " << this->n << " input pos: " << pos.size() << " input vel: " <<  vel.size() << std::endl;
 		return false;
 	}
 }
@@ -129,7 +125,10 @@ std::vector<std::array<float,2>> SerialLink::get_position_limits()
 {
 	std::vector<std::array<float,2>> limits;						// Value to be returned
 	limits.resize(this->n);								// Resize array accordingly
-	for(int i = 0; i < this->n; i++) this->link[i].get_position_limits(limits[i][0], limits[i][1]);
+	for(int i = 0; i < this->n; i++)
+	{
+		this->link[i].get_position_limits(limits[i][0], limits[i][1]);
+	}
 	return limits;
 }	
 
@@ -160,9 +159,9 @@ void SerialLink::update_forward_kinematics()
 void SerialLink::update_inverse_dynamics()
 {
 	// Variables used in this scope
-	Eigen::Matrix3f R, I, Idot, sdot_temp;								// Rotation matrix and moment of inertia
+	Eigen::Matrix3f R, I, Idot, sdot_temp;						// Rotation matrix and moment of inertia
 	Eigen::MatrixXf Jc, Jcdot, Jv, Jw;							// Jacobian to c.o.m.
-	Eigen::Vector3f com, omega, sdot;								// c.o.m. and angular velocity vector
+	Eigen::Vector3f com, omega, sdot;							// c.o.m. and angular velocity vector
 	float m;										// Link mass
 	
 	// Set initial values
