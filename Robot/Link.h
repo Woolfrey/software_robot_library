@@ -147,17 +147,16 @@ void Link::check_joint_limits()
 	// Upper and lower position limits are the same
 	if(this->pLim[0] == this->pLim[1])
 	{
-		std::cout << "ERROR: Link::Link() : Lower position limit " << this->pLim[0]
-			<< " for the attached joint is the same as the upper position limit " 
-			<< this->pLim[1] << "! That can't be right!" << std::endl;
+		std::cerr << "[ERROR][LINK] Constructor : Lower position limit " << this->pLim[0]
+			<< " is the same as the upper position limit " << this->pLim[1] << "." << std::endl;
 	}
 	// Lower limit is greater than upper limit
 	else if(this->pLim[0] > this->pLim[1])
 	{
-		std::cout << "ERROR: Link::Link() : Lower position limit " << this->pLim[0]
-			<< " for the attached joint is greater than the upper position limit " << this->pLim[1]
-			<< "! Swapping their values to avoid computational errors..." << std::endl;
-		
+		std::cerr << "[WARNING][LINK] Constructor : Lower position limit " << this->pLim[0]
+			<< "  is greater than the upper position limit " << this->pLim[1] << "."
+			<< " Swapping their values to avoid computational errors..." << std::endl;
+
 		float temp = this->pLim[1];
 		this->pLim[1] = this->pLim[0];
 		this->pLim[0] = temp;
@@ -166,16 +165,16 @@ void Link::check_joint_limits()
 	// Upper and lower velocity limits are the same
 	if(this->vLim[0] == this->vLim[1])
 	{
-		std::cout << "ERROR: Link::Link() : Lower velocity limit " << this->vLim[0]
-			<< " for the attached joint is the same as the upper velocity limit " 
-			<< this->vLim[1] << "! That can't be right!" << std::endl;
+		std::cerr << "[ERROR][LINK] Constructor : Lower velocity limit " << this->vLim[0]
+			<< " is greater than the upper velocity limit " << this->vLim[1] << "." << std::endl;
 	}	
 	// Lower velocity limit is greater than upper velocity limit
 	else if(this->vLim[0] > this->vLim[1])
 	{
-		std::cout << "ERROR: Link::Link() : Lower velocity limit " << this->vLim[0]
-			<< " for the attached joint greater than the upper velocity limit " << this->vLim[1]
-			<< "! Swapping their values to avoid computational errors..." << std::endl;
+		std::cerr << "[WARNING][LINK] Constructor : Lower velocity limit " << this->vLim[0]
+			<< " is greater than the upper velocity limit " << this->vLim[1] << "."
+			<< " Swapping their values to avoid computational errors..." << std::endl;
+
 		float temp = this->vLim[1];
 		this->vLim[1] = this->vLim[0];
 		this->vLim[0] = temp;
