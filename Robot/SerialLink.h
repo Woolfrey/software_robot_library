@@ -17,11 +17,12 @@ class SerialLink
 			const Eigen::Isometry3f &finalTransform);
 			
 		// Set Functions
-		bool update_state(const Eigen::VectorXf &pos, const Eigen::VectorXf &vel);		// Update internal kinematics & dynamics
 		void set_endpoint_offset(const Eigen::Isometry3f &transform) {this->endpointTF = transform;} // Define a new endpoint
-		void set_gravity_vector(const Eigen::Vector3f &gravity) {this->gravityVector = gravity;} // Set a new gravitational vector
+		void set_gravity_vector(const Eigen::Vector3f &gravity) {this->gravityVector = gravity;}	// Set a new gravitational vector
+		bool update_state(const Eigen::VectorXf &pos, const Eigen::VectorXf &vel);			// Update internal kinematics & dynamics
 		
 		// Get Functions
+		bool get_joint_state(Eigen::VectorXf &pos, Eigen::VectorXf &vel);			// Get the current internal joint state
 		Eigen::Isometry3f get_endpoint_pose() const {return this->fkChain[this->n];}		// Get the pose of the endpoint
 		Eigen::MatrixXf get_coriolis() const {return this->C;}				// Get the Coriolis matrix
 		Eigen::MatrixXf get_inertia() const {return this->M;}				// Get inerita matrix in joint space
@@ -34,8 +35,7 @@ class SerialLink
 		float get_joint_velocity(const int &i) const {return this->qdot[i];}			// Query a single joint velocity
 		int get_number_of_joints() const {return this->n;}					// Returns the number of joints
 		std::vector<std::array<float,2>> get_position_limits();				// Get all joint limits as a single object
-		std::vector<std::array<float,2>> get_velocity_limits();				// Get all velocity limits as a single object
-		void get_joint_state(Eigen::VectorXf &pos, Eigen::VectorXf &vel);			// Get the current internal joint state
+		std::vector<float> get_velocity_limits();						// Get all velocity limits as a single object
 			
 	private:
 		// Kinematic properties
@@ -114,10 +114,25 @@ bool SerialLink::update_state(const Eigen::VectorXf &pos, const Eigen::VectorXf 
 }
 
 /******************** Get the current joint position, velocites ********************/
-void SerialLink::get_joint_state(Eigen::VectorXf &pos, Eigen::VectorXf &vel)
+bool SerialLink::get_joint_state(Eigen::VectorXf &pos, Eigen::VectorXf &vel)
 {
-	pos = this->q;
-	vel = this->qdot;
+	if(pos.size() != vel.size() || pos.size() != this->n)
+	{
+		std::cerr << "[ERROR][SERIALLINK] get_joint_state() : Input vectors are not the correct length." << std::endl;
+		std::cerr << " No. of joints: " << this->n << " pos: " << pos.size() << " vel: " << vel.size() << std::endl;
+		
+		pos.setZero();
+		vel.setZero();
+		
+		return false;
+	}
+	else
+	{
+		pos = this->q;
+		vel = this->qdot;
+		
+		return true;
+	}
 }
 
 /******************** Get the joint position limits as a single object ********************/
@@ -130,15 +145,16 @@ std::vector<std::array<float,2>> SerialLink::get_position_limits()
 		this->link[i].get_position_limits(limits[i][0], limits[i][1]);
 	}
 	return limits;
-}	
+}
 
 /******************** Get the joint velocity limits as a single object ********************/
-std::vector<std::array<float,2>> SerialLink::get_velocity_limits()
+std::vector<float> SerialLink::get_velocity_limits()
 {
-	std::vector<std::array<float,2>> limits;
+	std::vector<float> limits;
 	limits.resize(this->n);
-	for(int i = 0; i < this->n; i++) this->link[i].get_velocity_limits(limits[i][0], limits[i][1]);
+	for(int i = 0; i < this->n; i++) limits[i] = this->link[i].get_velocity_limit();
 	return limits;
+
 }
 
 /******************** Compute forward kinematics chain at current joint position ********************/
