@@ -142,7 +142,7 @@ CubicRot::CubicRot(const std::vector<Eigen::Quaternionf> &rots,
 					this->a[i][j] = (sdd[j+1] - sdd[j])/(6*dt);
 					this->b[i][j] = sdd[j]/2;
 					if(j==0)		this->c[i][j] = 0;
-					else if(j < this->n-1)	this->c[i][j] = s[j] - dt*(sdd[j+1] - 2*sdd[j])/6;
+					else if(j < this->n-1)	this->c[i][j] = s[j]/dt - dt*(sdd[j+1] - 2*sdd[j])/6;
 					else			this->c[i][j] = dt*(sdd[j+1] + sdd[j])/2;
 					this->d[i][j] = 0;				// Starting position of zero for difference over rotation
 				}
