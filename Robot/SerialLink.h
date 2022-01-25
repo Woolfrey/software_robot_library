@@ -329,20 +329,27 @@ Eigen::MatrixXf SerialLink::get_partial_derivative(const Eigen::MatrixXf &J, con
 			{
 				if(this->link[jointNum].is_revolute()) 			// J_i = [a_j x r_j; a_j]
 				{
-					// a_j x (a_i x a_i)
-					dJ(0,i) = J(4,jointNum)*J(2,i) - J(5,jointNum)*J(1,i);
-					dJ(1,i) = J(5,jointNum)*J(0,i) - J(3,jointNum)*J(2,i);
-					dJ(2,i) = J(3,jointNum)*J(1,i) - J(4,jointNum)*J(0,i);
-					
-					if(jointNum < i)
+					if (jointNum < i)
 					{
+						// a_j x (a_i x a_i)
+						dJ(0,i) = J(4,jointNum)*J(2,i) - J(5,jointNum)*J(1,i);
+						dJ(1,i) = J(5,jointNum)*J(0,i) - J(3,jointNum)*J(2,i);
+						dJ(2,i) = J(3,jointNum)*J(1,i) - J(4,jointNum)*J(0,i);
+
 						// a_j x a_i
 						dJ(3,i) = J(4,jointNum)*J(5,i) - J(5,jointNum)*J(4,i);
 						dJ(4,i) = J(5,jointNum)*J(3,i) - J(3,jointNum)*J(5,i);
 						dJ(5,i) = J(3,jointNum)*J(4,i) - J(4,jointNum)*J(3,i);
 					}
+					else
+					{
+						// a_i x (a_j x a_j)
+						dJ(0,i) = J(4,i)*J(2,jointNum) - J(5,i)*J(1,jointNum);
+						dJ(1,i) = J(5,i)*J(0,jointNum) - J(3,i)*J(2,jointNum);
+						dJ(2,i) = J(3,i)*J(1,jointNum) - J(4,i)*J(0,jointNum);
+					}
 				}
-				else if(this->link[jointNum].is_prismatic()&& jointNum > i)	// J_j = [a_j ; 0]
+				else if(this->link[jointNum].is_prismatic() && jointNum > i)	// J_j = [a_j ; 0]
 				{
 					// a_j x a_i
 					dJ(0,i) = J(1,jointNum)*J(2,i) - J(2,jointNum)*J(1,i);
