@@ -61,7 +61,7 @@ RigidBody::RigidBody(const Eigen::Isometry3f &origin,
 				
 	if(this->mass < 0)
 	{
-		std::cerr << "[ERROR] [RIGIDBODY] Constructor : Mass cannot negative. Your input was " << this->mass << "."
+		std::cerr << "[WARNING] [RIGIDBODY] Constructor : Mass cannot negative. Your input was " << this->mass << "."
 			<< " Ensuring the value is positive to avoid problems..." << std::endl;
 		this->mass *= -1;
 	}
