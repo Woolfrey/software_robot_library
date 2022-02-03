@@ -60,10 +60,10 @@ bool test_serial_link()
 //		</xacro:if>
 //	</joint>
 	
-	translation = Eigen::Translation3f(0,0,0);
-	rotation =	Eigen::AngleAxisf(0, Eigen::Vector3f::UnitX()) *
-			Eigen::AngleAxisf(0, Eigen::Vector3f::UnitY()) *
-			Eigen::AngleAxisf(0, Eigen::Vector3f::UnitZ());
+	translation = Eigen::Translation3f(0,0,0.08);
+	rotation =	Eigen::AngleAxisf (0, Eigen::Vector3f::UnitX()) *
+			Eigen::AngleAxisf( 0, Eigen::Vector3f::UnitY()) *
+			Eigen::AngleAxisf( 0, Eigen::Vector3f::UnitZ());
 	axisOfActuation << 0, 0, 1;
 	positionLimits[0] = -3.0503; positionLimits[1] = 3.0503;
 	velocityLimit = 1.74;
@@ -95,9 +95,9 @@ bool test_serial_link()
 //	</joint>
 	
 	translation = Eigen::Translation3f(0.081, 0.05, 0.237);
-	rotation =	Eigen::AngleAxisf(-M_PI/2, Eigen::Vector3f::UnitX()) *
-			Eigen::AngleAxisf( M_PI/2, Eigen::Vector3f::UnitY()) *
-			Eigen::AngleAxisf( 0, Eigen::Vector3f::UnitZ());
+	rotation =	Eigen::AngleAxisf( -1.57079632679, Eigen::Vector3f::UnitX()) *
+			Eigen::AngleAxisf( 1.57079632679, Eigen::Vector3f::UnitZ()) *
+			Eigen::AngleAxisf( 0, Eigen::Vector3f::UnitY());
 	axisOfActuation << 0, 0, 1;
 	positionLimits[0] = -3.8095; positionLimits[1] =  2.2736;
 	velocityLimit = 1.328;
@@ -130,7 +130,7 @@ bool test_serial_link()
 //	</joint>
 
 	translation = Eigen::Translation3f(0, -0.14, 0.1425);
-	rotation = 	Eigen::AngleAxisf( M_PI/2, Eigen::Vector3f::UnitX()) *
+	rotation = 	Eigen::AngleAxisf( 1.57079632679, Eigen::Vector3f::UnitX()) *
 			Eigen::AngleAxisf( 0, Eigen::Vector3f::UnitY()) *
 			Eigen::AngleAxisf( 0, Eigen::Vector3f::UnitZ());
 	axisOfActuation << 0, 0, 1;
@@ -164,7 +164,7 @@ bool test_serial_link()
 //	</joint>
 	
 	translation = Eigen::Translation3f(0, -0.042, 0.26);
-	rotation =	Eigen::AngleAxisf(-M_PI/2, Eigen::Vector3f::UnitX()) *
+	rotation =	Eigen::AngleAxisf( -1.57079632679, Eigen::Vector3f::UnitX()) *
 			Eigen::AngleAxisf( 0, Eigen::Vector3f::UnitY()) *
 			Eigen::AngleAxisf( 0, Eigen::Vector3f::UnitZ());
 	axisOfActuation << 0, 0, 1;
@@ -198,7 +198,7 @@ bool test_serial_link()
 //	</joint>
 	
 	translation = Eigen::Translation3f(0, -0.125, -0.1265);
-	rotation =	Eigen::AngleAxisf( M_PI/2, Eigen::Vector3f::UnitX()) *
+	rotation =	Eigen::AngleAxisf( 1.57079632679, Eigen::Vector3f::UnitX()) *
 			Eigen::AngleAxisf( 0, Eigen::Vector3f::UnitY()) *
 			Eigen::AngleAxisf( 0, Eigen::Vector3f::UnitZ());
 	axisOfActuation << 0, 0, 1;
@@ -216,9 +216,9 @@ bool test_serial_link()
 //		...
 //	</link>
 
-	centreOfMass << -0.0048135, -0.0281, -0.084154;
-	mass = 2.5097;
-	momentOfInertia << 0.01016, -9.7452E-06, 0.00026624, 0.0065685, 0.0030316, 0.0069078;
+	centreOfMass << -0.0018844, 0.0069001, 0.1341;
+	mass = 1.1136;
+	momentOfInertia << 0.013557, 1.8109E-05, 0.00013523, 0.013555, 0.0010561, 0.0013658;
 	links.push_back(RigidBody(Eigen::Isometry3f::Identity(), centreOfMass, mass, momentOfInertia));
 	
 //	<joint name="right_j5" type="revolute">
@@ -232,9 +232,9 @@ bool test_serial_link()
 //	</joint>
 	
 	translation = Eigen::Translation3f(0, 0.031, 0.275);
-	rotation =	Eigen::AngleAxisf(-M_PI/2, Eigen::Vector3f::UnitX()) *
-			Eigen::AngleAxisf( 0, Eigen::Vector3f::UnitY()) *
-			Eigen::AngleAxisf( 0, Eigen::Vector3f::UnitZ());
+	rotation =	Eigen::AngleAxisf( -1.57079632679, Eigen::Vector3f::UnitX()) *
+			Eigen::AngleAxisf( 0, Eigen::Vector3f::UnitZ()) *
+			Eigen::AngleAxisf( 0, Eigen::Vector3f::UnitY());
 	axisOfActuation << 0, 0, 1;
 	positionLimits[0] = -2.9761; positionLimits[1] = 2.9761;
 	velocityLimit = 3.485;
@@ -269,14 +269,14 @@ bool test_serial_link()
 //	</joint>
 
 	translation = Eigen::Translation3f(0, -0.11, 0.1053);
-	rotation =	Eigen::AngleAxisf(-M_PI/2, Eigen::Vector3f::UnitX()) *
-			Eigen::AngleAxisf(-0.17453, Eigen::Vector3f::UnitY()) *
-			Eigen::AngleAxisf( M_PI, Eigen::Vector3f::UnitZ());
+	rotation =	Eigen::AngleAxisf( -1.57079632679, Eigen::Vector3f::UnitX()) *
+			Eigen::AngleAxisf( -0.17453, -Eigen::Vector3f::UnitZ()) *
+			Eigen::AngleAxisf( 3.1416, Eigen::Vector3f::UnitY());
 	axisOfActuation << 0, 0, 1;
 	positionLimits[0] = -3.14; positionLimits[1] = 3.14;
 	velocityLimit = 4.545;
 	torqueLimit = 9.0;
-	joints.push_back(Joint(translation*rotation, axisOfActuation, positionLimits, velocityLimit, torqueLimit, true));	
+	joints.push_back(Joint(translation*rotation, axisOfActuation, positionLimits, velocityLimit, torqueLimit, true));
 	
 //	<link name="right_l6">
 //		<inertial>
@@ -291,7 +291,7 @@ bool test_serial_link()
 	mass = 0.3292;
 	momentOfInertia << 0.00031105, 1.4771E-06, -3.7074E-07, 0.00021549, -8.4533E-06, 0.00035976;
 	links.push_back(RigidBody(Eigen::Isometry3f::Identity(), centreOfMass, mass, momentOfInertia));
-	
+
 	// Create the object
 	SerialLink robot(links, joints);
 	int n = robot.get_number_of_joints();
@@ -299,7 +299,7 @@ bool test_serial_link()
 	{
 		std::cout << "\nSuccessfully created the SerialLink object!" << std::endl;
 		std::cout << "This robot has " << n << " joints." << std::endl;
-		
+
 		// Set a random state for the robot
 		srand((unsigned int) time(0));					// Random seed generator
 		Eigen::VectorXf q = Eigen::VectorXf::Random(n);			// Create random joint positions

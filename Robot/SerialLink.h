@@ -220,7 +220,7 @@ void SerialLink::update_inverse_dynamics()
 		I = this->fkChain[i].rotation()						// Rotation inertia to global frame
 		   *this->link[i].get_inertia()
 		   *this->fkChain[i].rotation().transpose();
-		  
+
 		Jc = get_jacobian(com, i+1);							// Get the Jacobian to the ith c.o.m.
 		Jv = Jc.block(0,0,3,i+1);							// Makes calcs a little easier
 		Jw = Jc.block(3,0,3,i+1);							// Makes calcs a little easier
