@@ -9,7 +9,7 @@ class SerialDynCtrl : public SerialKinCtrl
 		bool set_gains(const float &proportional, const float &derivative);
 		
 		// Get Functions
-virtual	Eigen::VectorXf get_joint_control(const float &time);		// Get the control to track the joint trajectory
+//virtual	Eigen::VectorXf get_joint_control(const float &time);		// Get the control to track the joint trajectory
 		
 	private:
 		float kp = 100;							// Proportional gain
@@ -19,14 +19,14 @@ virtual	Eigen::VectorXf get_joint_control(const float &time);		// Get the contro
 		
 };											// Semicolon needed after class declaration
 
-/******************** Create a dynamic-level controller for a SerialLink object ********************/
+/******************** Create a dynamic-level controller for a SerialLink object ********************
 SerialDynCtrl::SerialDynCtrl(const SerialLink &serial) : SerialKinCtrl(serial)
 {
 	this->K.resize(6,6); this->K.setIdentity()*25;				// Set default values for Cartesian stiffness
 	this->D.resize(6,6); this->D.setIdentity()*10;				// Cartesian damping >= 2*sqrt(K)
 }
 
-/******************** Set the gains for joint feedback control ********************/
+/******************** Set the gains for joint feedback control ********************
 bool SerialDynCtrl::set_gains(const float &proportional, const float &derivative)
 {
 	// Check that the inputs are sound
@@ -52,7 +52,7 @@ bool SerialDynCtrl::set_gains(const float &proportional, const float &derivative
 	}	
 }
 
-/******************** Get the joint torque to track a trajectory ********************/
+/******************** Get the joint torque to track a trajectory ********************
 Eigen::VectorXf SerialDynCtrl::get_joint_control(const float &time)
 {
 	Eigen::VectorXf q_d(this->n), qdot_d(this->n), qddot_d(this->n);			// Desired joint state
@@ -65,3 +65,4 @@ Eigen::VectorXf SerialDynCtrl::get_joint_control(const float &time)
 	// tau = M*qddot + C*qdot + g
 	return this->robot.get_inertia()*qddot + this->robot.get_coriolis*qdot + this->robot.get_gravity_torque();				
 }
+*/
