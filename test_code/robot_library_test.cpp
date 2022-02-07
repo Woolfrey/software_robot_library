@@ -290,7 +290,13 @@ bool test_serial_link()
 	centreOfMass << -8.0726E-06, 0.0085838, -0.0049566;
 	mass = 0.3292;
 	momentOfInertia << 0.00031105, 1.4771E-06, -3.7074E-07, 0.00021549, -8.4533E-06, 0.00035976;
-	links.push_back(RigidBody(Eigen::Isometry3f::Identity(), centreOfMass, mass, momentOfInertia));
+
+	// this transform is obtained from the joint "right_hand", whose parent is "right_l6"
+	translation = Eigen::Translation3f(0, 0, 0.0245);
+	rotation = Eigen::AngleAxisf(0, Eigen::Vector3f::UnitX()) *
+		Eigen::AngleAxisf(0, Eigen::Vector3f::UnitY()) *
+		Eigen::AngleAxisf(M_PI_2, Eigen::Vector3f::UnitZ());
+	links.push_back(RigidBody(translation*rotation, centreOfMass, mass, momentOfInertia));
 
 	// Create the object
 	SerialLink robot(links, joints);
