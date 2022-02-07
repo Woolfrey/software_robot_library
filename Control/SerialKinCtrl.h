@@ -18,7 +18,7 @@ class SerialKinCtrl
 		Eigen::VectorXf get_cartesian_control(const float &time);		// Control to track Cartesian trajectory
 		Eigen::MatrixXf get_inverse(const Eigen::MatrixXf &A);		// Get the inverse of the given matrix
 		Eigen::MatrixXf get_inverse(const Eigen::MatrixXf &A, const Eigen::MatrixXf &W); // Get the weighted inverse of a given matrix
-virtual	Eigen::VectorXf get_joint_control(const float &time);		// Control to track joint trajectory
+		Eigen::VectorXf get_joint_control(const float &time);		// Control to track joint trajectory
 		Eigen::VectorXf get_pose_error(const Eigen::Isometry3f &desired, const Eigen::Isometry3f &actual);
 	
 	protected: // SerialDynCtrl can access these
@@ -31,11 +31,12 @@ virtual	Eigen::VectorXf get_joint_control(const float &time);		// Control to tra
 		MultiPointTrajectory jointTrajectory;					// Joint trajectory object		
 	
 	private:
-		float k = 1.0;								// Proportional gain on position error
+		float k = 1.0;								// Proportional gain on pose error
 
 		// Functions
-		Eigen::MatrixXf get_joint_limit_weighting();				// For redundant manipulators
-		bool scale_velocity_vector(Eigen::VectorXf &vec, const Eigen::VectorXf ref);
+		bool scale_velocity_vector(Eigen::VectorXf &vec, const Eigen::VectorXf ref);			// Ensure feasibility with RMRC
+		Eigen::MatrixXf get_joint_limit_weighting();							// For redundant manipulators
+		Eigen::VectorXf optimise_manipulability(const float &scalar, const Eigen::MatrixXf &J);	// Redundant task
 	
 };											// Semicolon needed after class declaration
 
@@ -56,8 +57,8 @@ bool SerialKinCtrl::set_joint_target(Eigen::VectorXf &target)
 {
 	if(target.size() != this->n)
 	{
-		std::cout << "ERROR: SerialKinCtrl::set_joint_target() : Input vector has "
-			<< target.size() << " elements, but the robot has " << n << " joints!"
+		std::cerr << "[ERROR] [SERIALKINCTRL] set_joint_target() : Input vector had "
+			<< target.size() << " elements, but the robot has " << this->n << " joints."
 			<< " Joint target has not been set." << std::endl;
 			
 		return false;
@@ -105,7 +106,7 @@ bool SerialKinCtrl::set_feedback_gain(const float &gain)
 {
 	if(gain < 0)
 	{
-		std::cerr << "[ERROR][SERIALKINCTRL] set_feedback_gain() : Value cannot be negative." << std::endl;
+		std::cerr << "[ERROR] [SERIALKINCTRL] set_feedback_gain() : Value cannot be negative." << std::endl;
 		std::cerr << " Input value: " << gain << std::endl;
 		return false;
 	}
@@ -121,7 +122,7 @@ bool SerialKinCtrl::set_target_pose(Eigen::Isometry3f &target, float &time)
 {
 	if(time <= 0)
 	{
-		std::cerr << "[ERROR][SERIALKINCTRL] set_target_pose() : Time must be greater than zero." << std::endl;
+		std::cerr << "[ERROR] [SERIALKINCTRL] set_target_pose() : Time must be greater than zero." << std::endl;
 		std::cerr << "Input time: " << time << std::endl;
 		return false;
 	}
@@ -137,7 +138,7 @@ bool SerialKinCtrl::set_target_pose(Eigen::Isometry3f &target, float &time)
 		maxSpeed = 1.0;							// m/s
 		if(distance / time > maxSpeed)
 		{
-			std::cerr << "[WARNING][SERIALKINCTRL] set_target_pose() : Linear velocity exceeds "
+			std::cerr << "[WARNING] [SERIALKINCTRL] set_target_pose() : Linear velocity exceeds "
 				<< maxSpeed << " m/s! Increasing the trajectory time..." << std::endl;
 			time = distance/maxSpeed;
 		}
@@ -148,8 +149,8 @@ bool SerialKinCtrl::set_target_pose(Eigen::Isometry3f &target, float &time)
 		if(distance > M_PI) distance = 2*M_PI - distance;			// Shortest path (should be corrected in trajectory object)
 		if(distance / time > maxSpeed)
 		{
-			std::cerr << "[WARNING][SERIALKINCTRL] set_target_pose() : Angular velocity exceeds "
-				<< maxSpeed*9.54 << " RPM! Increasing the trajectory time..." << std::endl;
+			std::cerr << "[WARNING] [SERIALKINCTRL] set_target_pose() : Angular velocity exceeds "
+				<< maxSpeed*30/M_PI << " RPM! Increasing the trajectory time..." << std::endl;
 			time = distance/maxSpeed;
 		}
 		
@@ -173,13 +174,12 @@ bool SerialKinCtrl::set_target_poses(const std::vector<Eigen::Isometry3f> &targe
 Eigen::VectorXf SerialKinCtrl::get_cartesian_control(const float &time)
 {
 	// Get the desired state for the endpoint
-	Eigen::Isometry3f x_d;
-	Eigen::VectorXf xdot_d(6), xddot_d(6);
+	Eigen::Isometry3f x_d; Eigen::VectorXf xdot_d(6), xddot_d(6);
 	this->cartesianTrajectory.get_state(x_d, xdot_d, xddot_d, time);		// Desired state for give time
 	
 	// Compute the mapping from Cartesian to joint space
 	Eigen::MatrixXf J = this->robot.get_jacobian();				// Get the Jacobian
-	Eigen::MatrixXf W = get_joint_limit_weighting(); // NOTE: THIS IS CURRENTLY THE INVERSE!
+	Eigen::MatrixXf W = get_joint_limit_weighting(); 				// NOTE: THIS IS CURRENTLY THE INVERSE!
 	Eigen::MatrixXf invWJt = W*J.transpose();					// Makes things a little faster
 	Eigen::MatrixXf invJ = invWJt*get_inverse(J*invWJt);				// Weighted pseudoinverse
 
@@ -187,15 +187,31 @@ Eigen::VectorXf SerialKinCtrl::get_cartesian_control(const float &time)
 	Eigen::VectorXf qdot_R = invJ*(xdot_d + this->k*get_pose_error(x_d, this->robot.get_endpoint_pose())); // Range space vector
 	scale_velocity_vector(qdot_R, qdot_R);					// Ensure feasiblity of the range space vector
 	
-// 	Eigen::MatrixXf N = Eigen::MatrixXf::Identity(this->n, this->n) - invJ*J;	// Null space projection matrix
-//	Eigen::VectorXf qdot_N = N*something;						// Null space vector
+	if(this->n <= 6) return qdot_R;						// No redundancy available
+	else										// Add a redundant task
+	{
+		Eigen::MatrixXf N = Eigen::MatrixXf::Identity(this->n, this->n) - invJ*J; // Null space projection matrix
+		Eigen::VectorXf qdot_N(this->n);					// Desired joint velocity
 
-// 	Eigen::VectorXf qdot = qdot_R + qdot_N;					// Combine the range and null space vectors
-//	scale_velocity_vector(qdot_N, qdot);						// Scale null space vector so joint velocities are in limits
-//	qdot_N = scale_velocity_vector(qdot_N, qdot);			
-//	qdot = qdot_R + qdot_N;
-
-	return qdot_R;
+//		NOTE TO SELF: Need to expand this later.
+//		switch(redunantTask)
+//		{
+//			case: manipulability
+//			{
+				qdot_N = N*W*optimise_manipulability(0.5, J);		// This is really N*inv(W)*qdot_d;
+//				break;
+//			}
+//			default:
+//			{
+//				¯\_(ツ)_/¯
+//				break;
+//			}
+//		}
+		
+		Eigen::VectorXf qdot = qdot_R + qdot_N;				// Add the range space and null space vectors together
+		scale_velocity_vector(qdot_N, qdot);					// Scale null space vector to ensure feasibility
+		return qdot_R + qdot_N;						// Recombine after scaling
+	}
 }
 
 /******************** Get the inverse of a matrix, add damping as necessary ********************/
@@ -205,7 +221,7 @@ Eigen::MatrixXf SerialKinCtrl::get_inverse(const Eigen::MatrixXf &A)
 	Eigen::MatrixXf V = SVD.matrixV();						// V-matrix
 	Eigen::VectorXf s = SVD.singularValues();					// Get the singular values
 	Eigen::MatrixXf invA(A.cols(), A.rows()); invA.setZero();			// Value we want to return
-	
+
 	for(int i = 0; i < A.cols(); i++)
 	{
 		for(int j = 0; j < A.rows(); j++)
@@ -324,4 +340,33 @@ bool SerialKinCtrl::scale_velocity_vector(Eigen::VectorXf &vec, const Eigen::Vec
 		vec *= s;								// Scale to ensure feasibility
 		return true;
 	}
+}
+
+/******************** Get the gradient of manipulability to avoid singularities ********************/
+Eigen::VectorXf SerialKinCtrl::optimise_manipulability(const float &scalar, const Eigen::MatrixXf &J)
+{
+	// Variables used in this scope
+	Eigen::MatrixXf JJt = J*J.transpose();					// This makes things a little easier
+	Eigen::MatrixXf invJ = J.transpose()*get_inverse(JJt);			// Pseudoinverse of Jacobian
+	Eigen::MatrixXf dJ;								// Partial derivative of the Jacobian
+	Eigen::VectorXf grad(this->n);						// Value to be returned
+	float mu = sqrt(JJt.determinant());						// Actual measure of manipulability
+
+	if(scalar <= 0)
+	{
+		std::cerr << "[ERROR] [SERIALKINCTRL] optimise_manipulability () : Scalar " << scalar << " must be positive." << std::endl;
+		grad.setZero();							// Don't do anything!
+	}
+	else
+	{
+		grad[0] = 0.0;								// First joint doesn't affect manipulability
+		
+		for(int i = 1; i < this->n; i++)
+		{
+			dJ = this->robot.get_partial_derivative(J, i);		// Get partial derivative w.r.t. ith joint
+			grad[i] = scalar*mu*(dJ*invJ).trace();			// Gradient of manipulability
+		}
+	}
+	
+	return grad;
 }
