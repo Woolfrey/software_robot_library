@@ -23,7 +23,7 @@ class Joint
 		float get_velocity_limit() const {return this->vLim;}	// Get the speed limit
 		void get_position_limits(float &lower, float &upper);	// Get the position limits
 		
-	private:
+	protected:
 		bool isRevolute = true;
 		Eigen::Isometry3f pose;					// Pose relative to some origin
 		Eigen::Vector3f axis = {0,0,1};				// Axis of actuation
@@ -34,7 +34,9 @@ class Joint
 
 };										// Semicolon needed after a class declaration
 
-/******************** Constructor ********************/
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+//					Constructor						      //
+////////////////////////////////////////////////////////////////////////////////////////////////////
 Joint::Joint(const Eigen::Isometry3f &origin,
 		const Eigen::Vector3f &axisOfActuation,
 		const float positionLimits[2],
@@ -67,15 +69,18 @@ Joint::Joint(const Eigen::Isometry3f &origin,
 	if(this->vLim == 0) std::cerr << "[ERROR] [JOINT] Constructor : Velocity limit is zero!" << std::endl;
 }
 
-
-/******************** Get the transform from the joint displacement ********************/
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+//			Compute the transform from the joint displacement			      //
+////////////////////////////////////////////////////////////////////////////////////////////////////
 Eigen::Isometry3f Joint::get_pose(const float &pos)
 {
 	if(this->isRevolute) 	return this->pose*Eigen::AngleAxisf(pos, this->axis);
 	else			return this->pose*Eigen::Translation3f(pos*this->axis);
 }
 
-/******************** Get the position limits for the attached joint ********************/
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+//			Get the position limits from the joint				      //
+////////////////////////////////////////////////////////////////////////////////////////////////////
 void Joint::get_position_limits(float &lower, float &upper)
 {
 	// Can't think of a good error check / message here ¯\_(ツ)_/¯
