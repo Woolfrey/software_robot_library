@@ -299,7 +299,7 @@ bool test_serial_link()
 	links.push_back(RigidBody(translation*rotation, centreOfMass, mass, momentOfInertia));
 
 	// Create the object
-	SerialLink robot(links, joints);
+	SerialKinCtrl robot(links, joints, 100);					// SerialLink object is generated inside this object
 	int n = robot.get_number_of_joints();
 	if(robot.is_valid())
 	{
@@ -342,14 +342,13 @@ bool test_serial_link()
 		std::cout << robot.get_coriolis()*qdot << std::endl;
 		
 		// Test the control functions
-		SerialKinCtrl controller(robot);						// Create controller for the robot
-		Eigen::MatrixXf invJ = controller.get_inverse(J,robot.get_inertia());	// Get the weighted pseudoinverse
+		Eigen::MatrixXf invJ = robot.get_weighted_inverse(J,robot.get_inertia());	// Get the weighted pseudoinverse
 		std::cout << "\nHere is the weighted pseudoinverse Jacobian:\n" << std::endl;
 		std::cout << invJ << std::endl;
 		std::cout << "\nHere is the Jacobian by the weighted pseudoinverse:\n" << std::endl;
 		std::cout << J*invJ << std::endl;
 		std::cout << "\n(It's not exactly the identity but it's pretty damn close!)\n" << std::endl;
-		
+	
 		return true;
 	}
 	else	return false;
