@@ -1,6 +1,8 @@
-/*
-*	A class for dynamic control of a SerialLink object.
-*/
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+   //                                                                                                //
+  //                        A class for dynamic control of a serial link robot                      //
+ //                                                                                                //
+////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #ifndef SERIALDYNCTRL_H_
 #define SERIALDYNCTRL_H_
@@ -14,7 +16,7 @@ class SerialDynCtrl : public SerialKinCtrl
 		
 	private:
 		
-};											// Semicolon needed after class declaration
+};                                                                                                 // Semicolon needed after class declaration
 
 #endif
 
