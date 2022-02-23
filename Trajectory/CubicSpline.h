@@ -1,43 +1,45 @@
-/*
-*	A minimum acceleration trajectory across multiple points.
-*/
-
+    ////////////////////////////////////////////////////////////////////////////////////////////////////  
+   //                                                                                                //
+  //                  A minimum acceleration trajectory across multiple points                      //
+ //                                                                                                //
+////////////////////////////////////////////////////////////////////////////////////////////////////
 #ifndef CUBIC_SPLINE_H
 #define CUBIC_SPLINE_H
 
-#include <Eigen/Geometry>							// Eigen::Quaternionf and the like
-#include <iostream>								// std::cerr << lol << std::endl
-#include <vector>								// std::vector
+#include <Eigen/Geometry>                                                                          // Eigen::Quaternionf and the like
+#include <iostream>                                                                                // std::cerr << lol << std::endl
+#include <vector>                                                                                  // std::vector
 
 class CubicSpline
 {
 	public:
 		CubicSpline() {}
 		
-		CubicSpline(const std::vector<Eigen::VectorXf> &points,
-				const std::vector<float> &times);
+		CubicSpline(const std::vector<Eigen::VectorXf> &points, const std::vector<float> &times);
 
 		bool get_state(Eigen::VectorXf &pos,
-				Eigen::VectorXf &vel,
-				Eigen::VectorXf &acc,
-				const float &time);
+                               Eigen::VectorXf &vel,
+                               Eigen::VectorXf &acc,
+                               const float &time);
 				
-	protected:								// CubicRot class can access these
+	protected:                                                                                 // CubicRot class can access these
 
-		bool isNotValid = true;					// Object will not do calcs if this is true
-		int m, n;							// n waypoints
-		std::vector<float> t;						// Time to reach each waypoint
-		std::vector<std::vector<float>> a, b, c, d;			// Spline coefficients
+		bool isNotValid = true;                                                            // Object will not do calcs if this is true
+		int m, n;                                                                          // n waypoints
+		std::vector<float> t;                                                              // Time to reach each waypoint
+		std::vector<std::vector<float>> a, b, c, d;                                        // Spline coefficients
 		bool check_inputs();
 		
-};										// Semicolon needed after class declaration
+};                                                                                                 // Semicolon needed after class declaration
 
-/******************** Constructor ********************/
+  ////////////////////////////////////////////////////////////////////////////////////////////////////
+ //                                            Constructor                                         //
+////////////////////////////////////////////////////////////////////////////////////////////////////
 CubicSpline::CubicSpline(const std::vector<Eigen::VectorXf> &points,
-			const std::vector<float> &times)
-			: m(points[0].size())					// Number of dimensions
-			, n(points.size())					// Number of waypoints
-			, t(times)	
+                         const std::vector<float> &times):
+                         m(points[0].size()),                                                      // Number of dimensions
+                         n(points.size()),                                                         // Number of waypoints (for n-1 splines)
+                         t(times)	
 {
 	// Check the inputs are of equal length
 	if(points.size() != times.size())
@@ -104,8 +106,8 @@ CubicSpline::CubicSpline(const std::vector<Eigen::VectorXf> &points,
 				B(i,i+1) = 1/dt2;
 			}
 			
-			Eigen::MatrixXf C = A.inverse()*B; 				// A*sddot = B*s ---> sddot = A^-1*B*s
-			Eigen::VectorXf s(this->n), sdd(this->n);			// Pos, acc for a single dimension
+			Eigen::MatrixXf C = A.inverse()*B;                                         // A*sddot = B*s ---> sddot = A^-1*B*s
+			Eigen::VectorXf s(this->n), sdd(this->n);                                  // Pos, acc for a single dimension
 			
 			// Resize the rows of the array
 			this->a.resize(this->m);
@@ -121,17 +123,17 @@ CubicSpline::CubicSpline(const std::vector<Eigen::VectorXf> &points,
 				this->c[i].resize(this->n-1);
 				this->d[i].resize(this->n-1);
 				
-				for(int j = 0; j < this->n; j++)			// There are only n-1 splines
+				for(int j = 0; j < this->n; j++)                                   // There are only n-1 splines
 				{
 					// NOTE: points has n waypoints with m dimensions
-					s[j] = points[j][i];				// Fill in the position for each waypoint
+					s[j] = points[j][i];                                       // Fill in the position for each waypoint
 				}
-				sdd = C*s;						// Solve the acceleration at each waypoint
+				sdd = C*s;                                                         // Solve the acceleration at each waypoint
 				
 				// Compute the coefficient for the n-1 splines
 				for(int j = 0; j < this->n-1; j++)
 				{
-					double dt = this->t[j+1] - this->t[j];	// Difference in time
+					double dt = this->t[j+1] - this->t[j];                     // Difference in time
 					
 					// NOTE: a, b, c, d are m dimensions across n-1 splines
 					this->a[i][j] = (sdd[j+1] - sdd[j])/(6*dt);
@@ -142,14 +144,16 @@ CubicSpline::CubicSpline(const std::vector<Eigen::VectorXf> &points,
 						this->c[i][j] = (s[j+1] - s[j])/dt - dt*(sdd[j+1] - 2*sdd[j])/6;
 					}
 					else this->c[i][j] = dt*(sdd[j+1] + sdd[j])/2;
-					this->d[i][j] = s[j];					// Position at the start of each spline
+					this->d[i][j] = s[j];                                      // Position at the start of each spline
 				}
 			}
 		}
 	}
 }
 
-/******************** Get the state for the given time ********************/
+  ////////////////////////////////////////////////////////////////////////////////////////////////////
+ //                           Get the desired state for the given time                             //
+////////////////////////////////////////////////////////////////////////////////////////////////////
 bool CubicSpline::get_state(Eigen::VectorXf &pos, Eigen::VectorXf &vel, Eigen::VectorXf &acc, const float &time)
 {
 	// Check the input arguments are the same size
@@ -159,8 +163,8 @@ bool CubicSpline::get_state(Eigen::VectorXf &pos, Eigen::VectorXf &vel, Eigen::V
 		std::cerr << "pos: " << pos.size() << " vel: " << vel.size() << " acc: " << acc.size() << std::endl;
 				
 		pos.resize(this->m);
-		for(int i = 0; i < this->m; i++) pos[i] = d[i][0];		// Remain at the start
-		vel.setZero(); acc.setZero();					// Don't move
+		for(int i = 0; i < this->m; i++) pos[i] = d[i][0];                                 // Remain at the start
+		vel.setZero(); acc.setZero();                                                      // Don't move
 		
 		return false;
 	}
@@ -168,8 +172,8 @@ bool CubicSpline::get_state(Eigen::VectorXf &pos, Eigen::VectorXf &vel, Eigen::V
 	{
 		std::cerr << "[ERROR][CUBICSPLINE] get_state() : Something went wrong during construction of this object." << std::endl;
 		
-		for(int i = 0; i < this->m; i++) pos[i] = d[i][0];		// Remain at the start
-		vel.setZero(); acc.setZero();					// Don't move
+		for(int i = 0; i < this->m; i++) pos[i] = d[i][0];                                 // Remain at the start
+		vel.setZero(); acc.setZero();                                                      // Don't move
 		
 		return false;
 	}
@@ -177,27 +181,27 @@ bool CubicSpline::get_state(Eigen::VectorXf &pos, Eigen::VectorXf &vel, Eigen::V
 	{
 		// Figure out where we are on the trajectory
 		int j; float dt;
-		if(time < this->t[0])						// Not yet started
+		if(time < this->t[0])                                                              // Not yet started
 		{
-			j = 0;							// On the first spline
-			dt = 0;						// Remain at the beginning
+			j = 0;                                                                     // On the first spline
+			dt = 0;                                                                    // Remain at the beginning
 		}
-		else if(time < this->t.back())				// Somewhere in the middle
+		else if(time < this->t.back())                                                     // Somewhere in the middle
 		{
 			for(int i = 1; i < this->n-1; i++)
 			{
-				if(time < this->t[i])				// Not yet reached the ith waypoint...
+				if(time < this->t[i])                                              // Not yet reached the ith waypoint...
 				{
-					j = i-1;				// ... so must be on spline i-1
-					dt = time - this->t[j];		// Elapsed time since start of spline i-1
+					j = i-1;                                                   // ... so must be on spline i-1
+					dt = time - this->t[j];                                    // Elapsed time since start of spline i-1
 					break;
 				}
 			}
 		}
-		else								// Must be finised
+		else                                                                               // Must be finised
 		{
-			j = this->n-1;						// Start from the last spline
-			dt = this->t[j] - this->t[j-1];			// Interpolate up to the last waypoint
+			j = this->n-1;                                                             // Start from the last spline
+			dt = this->t[j] - this->t[j-1];                                            // Interpolate up to the last waypoint
 		}
 		
 		// Interpolate along the jth spline

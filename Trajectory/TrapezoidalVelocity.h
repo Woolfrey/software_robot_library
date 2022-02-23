@@ -1,7 +1,13 @@
+    ////////////////////////////////////////////////////////////////////////////////////////////////////  
+   //                                                                                                //
+  //                              A constant velocity trajectory                                    //
+ //                                                                                                //
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
 #ifndef TRAPEZOIDAL_VELOCITY_H_
 #define TRAPEZOIDAL_VELOCITY_H_
 
-#include <Eigen/Geometry>						// Eigen::Vector, Eigen::Matrix, Eigen::Quaternion
+#include <Eigen/Geometry>                                                                          // Eigen::Vector, Eigen::Matrix, Eigen::Quaternion
 
 class TrapezoidalVelocity
 {
@@ -11,32 +17,28 @@ class TrapezoidalVelocity
 		
 		// Constructor for trajectory over real numbers
 		TrapezoidalVelocity(const Eigen::VectorXf &startPoint,
-				const Eigen::VectorXf &endPoint,
-				const float &velocity,
-				const float &acceleration);
-		
-		// Constructor for orientation		
-		TrapezoidalVelocity(const Eigen::Quaternionf &startPoint,
-				const Eigen::Quaternionf &endPoint,
-				const float &velocity,
-				const float &acceleration);
+                                   const Eigen::VectorXf &endPoint,
+                                   const float &velocity,
+                                   const float &acceleration);
 		
 		// Get state for trajectory over real numbers
-		void get_state(Eigen::VectorXf &pos,
-				Eigen::VectorXf &vel,
-				Eigen::VectorXf &acc,
-				const float &time);
-		
-		// Get state for trajectory over orientation
-		void get_state(Eigen::Quaternionf &quat,
-				Eigen::Vector3f &vel,
-				Eigen::Vector3f &acc,
-				const float &time);				
+		void get_state(Eigen::VectorXf &pos, Eigen::VectorXf &vel, Eigen::VectorXf &acc, const float &time);			
 				
 	private:
-		int n;							// Number of dimensions
+		int n;                                                                             // Number of dimensions
 		
 		float vMax, aMax, startTime, endTime;
-};									// Semicolon needed after class declaration
+};                                                                                                 // Semicolon needed after class declaration
+
+  ////////////////////////////////////////////////////////////////////////////////////////////////////
+ //                                            Constructor                                         //
+////////////////////////////////////////////////////////////////////////////////////////////////////
+TrapezoidalVelocity::TrapezoidalVelocity(const Eigen::VectorXf &startPoint,
+                                         const Eigen::VectorXf &endPoint,
+                                         const float &velocity,
+                                         const float &acceleration)
+{
+	// The time to complete the trajectory should be computed from the given values.
+}
 
 #endif

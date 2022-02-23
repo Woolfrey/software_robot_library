@@ -1,12 +1,14 @@
-/*
-*	A trajectory generator in Cartesian space.
-*/
+    ////////////////////////////////////////////////////////////////////////////////////////////////////  
+   //                                                                                                //
+  //                    A trajectory generator for translation and rotation                         //
+ //                                                                                                //
+////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #ifndef CARTESIAN_TRAJECTORY_H_
 #define CARTESIAN_TRAJECTORY_H_
 
-#include <CubicRot.h>
-#include <QuinticRot.h>
+#include <CubicRotation.h>
+#include <QuinticRotation.h>
 
 class CartesianTrajectory
 {
@@ -14,9 +16,9 @@ class CartesianTrajectory
 		CartesianTrajectory() {}
 		
 		CartesianTrajectory(const Eigen::Isometry3f &startPose,
-					const Eigen::Isometry3f &endPose,
-					const float &startTime,
-					const float &endTime);
+                                   const Eigen::Isometry3f &endPose,
+                                   const float &startTime,
+                                   const float &endTime);
 		
 		CartesianTrajectory(const std::vector<Eigen::Isometry3f> &poses, const std::vector<float> &times);
 		
@@ -25,17 +27,19 @@ class CartesianTrajectory
 	private:
 		bool isNotValid = true;
 		CubicSpline translationTrajectory;
-		CubicRot rotationTrajectory;
+		CubicRotation rotationTrajectory;
 		Eigen::Isometry3f T0;
 				
-};										// Semicolon needed after a class declaration
+};                                                                                                 // Semicolon needed after a class declaration
 
-/******************** Constructor with 2 points ********************/
+  ////////////////////////////////////////////////////////////////////////////////////////////////////
+ //                                A constructor for 2 waypoints                                   //
+////////////////////////////////////////////////////////////////////////////////////////////////////
 CartesianTrajectory::CartesianTrajectory(const Eigen::Isometry3f &startPose,
-					const Eigen::Isometry3f &endPose,
-					const float &startTime,
-					const float &endTime)
-					: T0(startPose)
+                                         const Eigen::Isometry3f &endPose,
+                                         const float &startTime,
+                                         const float &endTime):
+                                         T0(startPose)
 {
 	//Check the times are in correct order
 	double t1 = startTime;
@@ -61,13 +65,15 @@ CartesianTrajectory::CartesianTrajectory(const Eigen::Isometry3f &startPose,
 	std::vector<Eigen::Quaternionf> rot;
 	rot.push_back(Eigen::Quaternionf(startPose.rotation()));
 	rot.push_back(Eigen::Quaternionf(endPose.rotation()));
-	this->rotationTrajectory = CubicRot(rot, times);
+	this->rotationTrajectory = CubicRotation(rot, times);
 }
 
-/******************** Constructor with multiple points ********************/
+  ////////////////////////////////////////////////////////////////////////////////////////////////////
+ //                          A constructor for 3 or more waypoints                                 //
+////////////////////////////////////////////////////////////////////////////////////////////////////
 CartesianTrajectory::CartesianTrajectory(const std::vector<Eigen::Isometry3f> &poses,
-					const std::vector<float> &times)
-					: T0(poses[0])
+                                         const std::vector<float> &times):
+                                         T0(poses[0])
 {
 	// Check the input arguments are of the same length
 	if(poses.size() != times.size())
@@ -101,12 +107,14 @@ CartesianTrajectory::CartesianTrajectory(const std::vector<Eigen::Isometry3f> &p
 			}
 			
 			this->translationTrajectory = CubicSpline(pos, times);
-			this->rotationTrajectory = CubicRot(rot, times);
+			this->rotationTrajectory = CubicRotation(rot, times);
 		}
 	}
 }
 
-/******************** Get the desired state for the given time ********************/
+  ////////////////////////////////////////////////////////////////////////////////////////////////////
+ //                        Get the desired state for the given time                                //
+////////////////////////////////////////////////////////////////////////////////////////////////////
 bool CartesianTrajectory::get_state(Eigen::Isometry3f &pose, Eigen::VectorXf &vel, Eigen::VectorXf &acc, const float &time)
 {
 	// Variables used in this scope
@@ -119,15 +127,15 @@ bool CartesianTrajectory::get_state(Eigen::Isometry3f &pose, Eigen::VectorXf &ve
 		std::cerr << "[ERROR][CARTESIANTRAJECTORY] get_state() : Velocity and acceleration vectors must have 6 elements." << std::endl;
 		std::cerr << " vel: " << vel.size() << " acc: " << acc.size() << std::endl;
 			
-		pose = this->T0;						// Remain at the start
-		vel.setZero(); acc.setZero();					// Don't move
+		pose = this->T0;                                                                   // Remain at the start
+		vel.setZero(); acc.setZero();                                                      // Don't move
 		
 		return false;
 	}
 	else if(this->translationTrajectory.get_state(pos, linearVel, linearAcc, time)
 	     && this->rotationTrajectory.get_state(rot, angularVel, angularAcc, time))
 	{
-		pose = Eigen::Translation3f(pos)*rot;				// Transform should be translation x rotation
+		pose = Eigen::Translation3f(pos)*rot;                                              // Transform should be translation*rotation
 		
 		for(int i = 0; i < 3; i++)
 		{
@@ -142,8 +150,8 @@ bool CartesianTrajectory::get_state(Eigen::Isometry3f &pose, Eigen::VectorXf &ve
 	{
 		std::cerr << "[ERROR][CARTESIANTRAJECTORY] get_state() : Could not obtain the state." << std::endl;
 		
-		pose = this->T0;						// Remain at the start
-		vel.setZero(); acc.setZero();					// Don't move
+		pose = this->T0;                                                                   // Remain at the start
+		vel.setZero(); acc.setZero();                                                      // Don't move
 		
 		return false;
 	}
