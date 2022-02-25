@@ -25,7 +25,7 @@ class SerialKinControl : public SerialLink
 		Eigen::MatrixXf get_inverse(const Eigen::MatrixXf &A);                             // Get the inverse of a matrix
 		Eigen::MatrixXf get_weighted_inverse(const Eigen::MatrixXf &A, const Eigen::MatrixXf &W);
 		Eigen::VectorXf get_cartesian_control(const Eigen::VectorXf &vel);
-		Eigen::VectorXf get_cartesian_control(const Eigen::VectorXf &vel,const Eigen::VectorXf &secondaryTask);
+		Eigen::VectorXf get_cartesian_control(const Eigen::VectorXf &vel, const Eigen::VectorXf &secondaryTask);
 		Eigen::VectorXf get_cartesian_control(const Eigen::Isometry3f &pose, const Eigen::VectorXf &vel);
 		Eigen::VectorXf get_cartesian_control(const Eigen::Isometry3f &pose,
 		                                      const Eigen::VectorXf &vel,
@@ -44,7 +44,7 @@ class SerialKinControl : public SerialLink
 		// Functions
 		bool scale_task_vector(Eigen::VectorXf &vec, const Eigen::VectorXf ref);
 		Eigen::MatrixXf get_joint_weighting();                                             // Used for joint limit avoidance
-		Eigen::VectorXf singularity_avoidance(const float &scalar, const Eigen::MatrixXf &J);
+		Eigen::VectorXf singularity_avoidance(const float &scalar);                        // Returns gradient of manipulability
 		void update_speed_limits();
 		
 };                                                                                                 // Semicolon needed after a class declaration
@@ -83,13 +83,14 @@ bool SerialKinControl::set_proportional_gain(const float &gain)
 {
 	if(gain == 0)
 	{
-		std::cerr << "[ERROR] [SERIALKINCTRL] set_proportional_gain() : Value cannot be zero. Gain not set." << std::endl;
+		std::cerr << "[ERROR] [SERIALKINCONTROL] set_proportional_gain() : "
+		          << "Value cannot be zero. Gain not set." << std::endl;
 		return false;
 	}
 	else if(gain < 0)
 	{
-		std::cerr << "[WARNING] [SERIALKINCTRL] set_proportional_gain() : Gain of " << gain << " cannot be negative! "
-			<< "Setting the value positive to avoid problems." << std::endl;
+		std::cerr << "[WARNING] [SERIALKINCONTROL] set_proportional_gain() "
+                         << "Gain of " << gain << " cannot be negative. It has been automatically made positive..." << std::endl;
 		this->k = -1*gain;
 		return true;
 	}
@@ -132,9 +133,9 @@ Eigen::MatrixXf SerialKinControl::get_weighted_inverse(const Eigen::MatrixXf &A,
 {
 	if(W.rows() != W.cols())
 	{
-		std::cerr << "[WARNING] [SERIALKINCTRL] get_weighted_inverse() : Weighting matrix must be square. "
-			<< "Your input had " << W.rows() << " rows and " << W.cols() << " columns. "
-			<< "Ignoring the weighting matrix..." << std::endl;
+		std::cerr << "[WARNING] [SERIALKINCONTROL] get_weighted_inverse() : "
+                         << "Weighting matrix must be square. Your input had " << W.rows() << " rows and "
+                         << W.cols() << " columns. Ignoring the weighting matrix..." << std::endl;
 		return get_inverse(A);                                                             // Return a null matrix
 	}
 	else if(A.cols() == W.rows())                                                              // Overdetermined system
@@ -149,9 +150,10 @@ Eigen::MatrixXf SerialKinControl::get_weighted_inverse(const Eigen::MatrixXf &A,
 	}
 	else
 	{
-		std::cerr << "[WARNING] [SERIALKINCTRL] get_weighted_inverse() : Input matrices do not have compatible dimensions. "
-			<< "The matrix A has " << A.rows() << " rows and " << A.cols() << " columns, and the matrix W has "
-			<< W.rows() << " rows and " << W.cols() << " columns. Ignoring the weighting matrix..." << std::endl;
+		std::cerr << "[WARNING] [SERIALKINCONTROL] get_weighted_inverse() : "
+                         << "Input matrices do not have compatible dimensions. Matrix A has " << A.rows()
+                         << " rows and " << A.cols() << " columns, and matrix W has " << W.rows()
+                         << " rows and " << W.cols() << " columns. Ignoring the weighting matrix..." << std::endl;
 		return get_inverse(A);
 	}
 }
@@ -175,38 +177,27 @@ Eigen::VectorXf SerialKinControl::get_cartesian_control(const Eigen::VectorXf &v
 {
 	if(vel.size() != 6)
 	{
-		std::cerr << "[ERROR] [SERIALKINCTRL] get_cartesian_control() : Expected a 6x1 vector for the input argument "
-			<< "but it had " << vel.size() << " elements." << std::endl;
+		std::cerr << "[ERROR] [SERIALKINCONTROL] get_cartesian_control() : "
+                         << "Expected a 6x1 vector for the input argument but it was " << vel.size() << "x1." << std::endl;
 		return Eigen::VectorXf::Zero(this->n);
 	}
 	else
 	{
 		update_speed_limits();                                                             // Update the variable joint speed limits
+		Eigen::VectorXf qdot;                                                              // Velocity vector to be solved
 		
-		Eigen::MatrixXf J = get_jacobian();                                                // Jacobian matrix (duh)
-		Eigen::VectorXf qdot(this->n);                                                     // Velocity vector to be solved
-		if(this->n == 6)
+		if(this->n < 6)                                                                    // Underactuated robot
+		{
+			std::cerr << "[ERROR] [SERIALKINCONTROL] get_cartesian_control() : "
+			          << "Control for underactuated robots hasn't been programmed yet." << std::endl;
+			qdot.Zero(this->n);                                                        // Don't move
+		}
+		if(this->n == 6)                                                                   // Fully actuated robot
 		{	
-			qdot= get_inverse(J)*vel;                                                  // Inverse kinematics
+			qdot = get_inverse(get_jacobian())*vel;                                    // Inverse kinematics
 			scale_task_vector(qdot, qdot);                                             // Ensure feasibility
 		}
-		else
-		{
-			Eigen::MatrixXf W = this->M + get_joint_weighting();                       // Inertia + joint limit avoidance
-			Eigen::MatrixXf invJ = get_weighted_inverse(J, W);                         // W^-1*J'*(J*W^-1*J')^-1
-			Eigen::VectorXf qdot_R = invJ*vel;                                         // Range space task
-			
-			scale_task_vector(qdot_R, qdot_R);                                         // Scale the range space task for feasibility
-			
-			Eigen::VectorXf secondaryTask = singularity_avoidance(5.0, J);             // Secondary task = singularity avoidance
-			Eigen::VectorXf qdot_N = (Eigen::MatrixXf::Identity(this->n, this->n) - invJ*J)*get_inverse(W)*secondaryTask;
-			
-			qdot = qdot_R + qdot_N;                                                    // Add the range and null space tasks together
-			
-			scale_task_vector(qdot_N, qdot);                                           // Scale the null space task for feasibility
-			
-			qdot = qdot_R + qdot_N;                                                    // Add them back together
-		}
+		else qdot = get_cartesian_control(vel, singularity_avoidance(5.0));                // Automatically perform singularity avoidance
 		
 		return qdot;                                                                       // Return the optimised velocity vector
 	}
@@ -219,20 +210,22 @@ Eigen::VectorXf SerialKinControl::get_cartesian_control(const Eigen::VectorXf &v
 {
 	if(vel.size() != 6)
 	{
-		std::cerr << "[ERROR] [SERIALKINCTRL] get_cartesian_control() : Expected a 6x1 vector for the input argument, "
-			<< "but it had " << vel.size() << " elements." << std::endl;
+		std::cerr << "[ERROR] [SERIALKINCONTROL] get_cartesian_control() : "
+                         << "Expected a 6x1 vector for the input argument, but it was " << vel.size() << "x1." << std::endl;
 		return Eigen::VectorXf::Zero(this->n);
 	}
 	else if(secondaryTask.size() < 7)
 	{
-		std::cerr << "[WARNING] [SERIALKINCTRL] get_cartesian_control() : This robot has " << this->n 
-			<< " joints and is not redundant. The secondary task cannot be performed." << std::endl;
+		std::cerr << "[WARNING] [SERIALKINCONTROL] get_cartesian_control() : "
+		          << "This robot has " << this->n << " joints and is not redundant. "
+		          << "The secondary task cannot be performed." << std::endl;
 		return get_cartesian_control(vel);
 	}
 	else if(secondaryTask.size() != this->n)
 	{
-		std::cerr << "[WARNING] [SERIALKINCTRL] get_cartesian_control() : Expected a " << this->n << "x1 vector "
-			<< " for the secondary task, but it had " << secondaryTask.size() << " elements." << std::endl;
+		std::cerr << "[WARNING] [SERIALKINCONTROL] get_cartesian_control() : "
+                         << "Expected a " << this->n << "x1 vector for the secondary task, but it was "
+                         << secondaryTask.size() << "x1." << std::endl;
 		return get_cartesian_control(vel);
 	}
 	else
@@ -263,8 +256,8 @@ Eigen::VectorXf SerialKinControl::get_cartesian_control(const Eigen::Isometry3f 
 {
 	if(vel.size() != 6)
 	{
-		std::cerr << "[ERROR] [SERIALKINCTRL] get_cartesian_control() : Expected a 6x1 vector for the velocity argument, "
-			<< "but it had " << vel.size() << " elements." << std::endl;
+		std::cerr << "[ERROR] [SERIALKINCONTROL] get_cartesian_control() : "
+                         << "Expected a 6x1 vector for the velocity argument, but it was " << vel.size() << "x1." << std::endl;
 		
 		return Eigen::VectorXf::Zero(this->n);                                             // Don't move
 	}
@@ -284,21 +277,22 @@ Eigen::VectorXf SerialKinControl::get_cartesian_control(const Eigen::Isometry3f 
 {
 	if(vel.size()!= 6)
 	{
-		std::cerr << "[ERROR] [SERIALKINCTRL] get_cartesian_control() : Expected a 6x1 vector for the velocity argument, "
-			<< "but it had " << vel.size() << " elements." << std::endl;
+		std::cerr << "[ERROR] [SERIALKINCONTROL] get_cartesian_control() : "
+                         << "Expected a 6x1 vector for the velocity argument, but it was " << vel.size() << "x1." << std::endl;
 			
 		return Eigen::VectorXf::Zero(this->n);
 	}
 	else if(secondaryTask.size() != this->n)
 	{
-		std::cerr << "[ERROR] [SERIALKINCTRL] get_cartesian_control() : Expected a " << this->n << "x1 vector for the "
-			<< "secondary task argument, but it had " << secondaryTask.size() << " elements." << std::endl;
+		std::cerr << "[ERROR] [SERIALKINCONTROL] get_cartesian_control() : "
+                         << "Expected a " << this->n << "x1 vector for the secondary task argument, but it was "
+                         << secondaryTask.size() << "x1." << std::endl;
 		return Eigen::VectorXf::Zero(this->n);	
 	}
 	else
 	{
-		Eigen::VectorXf e = get_pose_error(pose, get_endpoint_pose());	
-		return get_cartesian_control(vel + this->k*e, secondaryTask);
+		Eigen::VectorXf e = get_pose_error(pose, get_endpoint_pose());                     // As it says on the label	
+		return get_cartesian_control(vel + this->k*e, secondaryTask);                      // Feedforward + feedback control
 	}
 }
 
@@ -309,15 +303,23 @@ Eigen::VectorXf SerialKinControl::get_joint_control(const Eigen::VectorXf &pos, 
 {
 	if(pos.size() != this->n || vel.size() != this->n)
 	{
-		std::cerr << "[ERROR] [SERIALKINCTRL] get_joint_control() : This robot has " << this->n
-			<< " joints, but the position argument had " << pos.size() << " elements "
-			<< "and the velocity argument had " << vel.size() << " elements." << std::endl;
+		std::cerr << "[ERROR] [SERIALKINCONTROL] get_joint_control() : "
+                         << "This robot has " << this->n << " joints, but the position argument had "
+                         << pos.size() << " elements and the velocity argument had " << vel.size() << " elements." << std::endl;
 		return Eigen::VectorXf::Zero(this->n);
 	}
 	else
 	{
-		return vel + this->k*(pos - this->q);                                              // Feedforward + feedback control
-		// NOTE TO SELF: NEED TO CHECK JOINT LIMITS HERE
+		Eigen::VectorXf qdot = vel + this->k*(pos - this->q);                              // Feedforward + feedback control
+		
+		// Ensure speed limits are obeyed
+		update_speed_limits();                                                             // Get new speed limits
+		for(int i = 0; i < this->n; i++)
+		{
+			if(qdot[i] < this->speedLimit[i][0])      qdot[i] = this->speedLimit[i][0];
+			else if(qdot[i] > this->speedLimit[i][1]) qdot[i] = this->speedLimit[i][1];
+		}
+		return qdot;
 	}
 }
 
@@ -328,9 +330,9 @@ bool SerialKinControl::scale_task_vector(Eigen::VectorXf &vec, const Eigen::Vect
 {
 	if(vec.size() != ref.size())
 	{
-		std::cerr << "[ERROR] [SERIALKINCTRL] scale_task_vector() : Input vectors are not the same length."
-			<< " Input vector has " << vec.size() << " elements and reference vector has " << ref.size()
-			<< " elements." << std::endl;
+		std::cerr << "[ERROR] [SERIALKINCONTROL] scale_task_vector() : "
+                         << "Input vectors are not the same length. Input vector has " << vec.size()
+                         << " elements and reference vector has " << ref.size() << " elements." << std::endl;
 		return false;
 	}
 	else
@@ -377,7 +379,7 @@ Eigen::MatrixXf SerialKinControl::get_joint_weighting()
 			
 			if(W(i,i) < 1)
 			{
-				std::cout << "[ERROR] [SERIALKINCTRL] get_joint_limit_weighting() : "
+				std::cout << "[ERROR] [SERIALKINCONTROL] get_joint_limit_weighting() : "
 				<< "Penalty function is less than 1! How did that happen???" << std::endl;
 				std::cout << "qMin: " << this->pLim[i][0] << " q: " << this->q[i] << " qMax: " << this->pLim[i][1] << std::endl;
 				W(i,i) = 1.0;
@@ -390,9 +392,10 @@ Eigen::MatrixXf SerialKinControl::get_joint_weighting()
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //               Compute the gradient of manipulability to avoid singularities                    //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::VectorXf SerialKinControl::singularity_avoidance(const float &scalar, const Eigen::MatrixXf &J)
+Eigen::VectorXf SerialKinControl::singularity_avoidance(const float &scalar)
 {
 	// Variables used in this scope
+	Eigen::MatrixXf J = get_jacobian();                                                        // As it says on the label
 	Eigen::MatrixXf JJt = J*J.transpose();                                                     // This makes things a little easier
 	Eigen::MatrixXf invJ = J.transpose()*get_inverse(JJt);                                     // Pseudoinverse of Jacobian
 	Eigen::MatrixXf dJ;                                                                        // Partial derivative of the Jacobian
@@ -401,7 +404,8 @@ Eigen::VectorXf SerialKinControl::singularity_avoidance(const float &scalar, con
 	
 	if(scalar <= 0)
 	{
-		std::cerr << "[ERROR] [SERIALKINCTRL] singularity_avoidance() : Scalar  of " << scalar << " must be positive." << std::endl;
+		std::cerr << "[ERROR] [SERIALKINCONTROL] singularity_avoidance() : "
+                         << "Scalar  of " << scalar << " must be positive." << std::endl;
 		grad.setZero();                                                                    // Don't do anything!
 	}
 	else
