@@ -25,7 +25,8 @@ class SerialKinControl : public SerialLink
 		Eigen::MatrixXf get_inverse(const Eigen::MatrixXf &A);                             // Get the inverse of a matrix
 		Eigen::MatrixXf get_weighted_inverse(const Eigen::MatrixXf &A, const Eigen::MatrixXf &W);
 		Eigen::VectorXf get_cartesian_control(const Eigen::VectorXf &vel);
-		Eigen::VectorXf get_cartesian_control(const Eigen::VectorXf &vel, const Eigen::VectorXf &secondaryTask);
+		Eigen::VectorXf get_cartesian_control(const Eigen::VectorXf &vel,
+		                                      const Eigen::VectorXf &secondaryTask);
 		Eigen::VectorXf get_cartesian_control(const Eigen::Isometry3f &pose, const Eigen::VectorXf &vel);
 		Eigen::VectorXf get_cartesian_control(const Eigen::Isometry3f &pose,
 		                                      const Eigen::VectorXf &vel,
@@ -39,13 +40,15 @@ class SerialKinControl : public SerialLink
 		std::vector<std::array<float,2>> pLim;                                             // Position limits for all the joints
 		std::vector<float> vLim;                                                           // Velocity limits for all the joints
 		std::vector<float> aLim;                                                           // Acceleration limits for all the joints
-		std::vector<std::array<float,2>> speedLimit;                                       // Variable speed limits
+		Eigen::VectorXf maxSpeed, minSpeed;                                                // Variable speed limits
 				
 		// Functions
-		bool scale_task_vector(Eigen::VectorXf &vec, const Eigen::VectorXf ref);
+		bool cap_joint_velocities(Eigen::VectorXf &vel,
+					   const Eigen::VectorXf &upper,
+					   const Eigen::VectorXf &lower);
 		Eigen::MatrixXf get_joint_weighting();                                             // Used for joint limit avoidance
 		Eigen::VectorXf singularity_avoidance(const float &scalar);                        // Returns gradient of manipulability
-		void update_speed_limits();
+		void update_speed_limits();		
 		
 };                                                                                                 // Semicolon needed after a class declaration
 
@@ -56,7 +59,9 @@ SerialKinControl::SerialKinControl(const std::vector<RigidBody> links,
                                    const std::vector<Joint> joints,
                                    const float &controlFrequency):
                                    SerialLink(links, joints),
-                                   dt(1/controlFrequency)
+                                   dt(1/controlFrequency),
+                                   maxSpeed(Eigen::VectorXf::Zero(this->n)),
+                                   minSpeed(Eigen::VectorXf::Zero(this->n))
 {
 	// Not sure if I should "duplicate" the joint limits here, or just grab them from the Joint class... 
 	// It makes the code a little neater, and the limits in the Control class can be altered
@@ -65,7 +70,6 @@ SerialKinControl::SerialKinControl(const std::vector<RigidBody> links,
 	this->pLim.resize(this->n);
 	this->vLim.resize(this->n);
 	this->aLim.resize(this->n);
-	this->speedLimit.resize(this->n);
 	
 	// Transfer the values from the Joint classes
 	for(int i = 0; i < this->n; i++)
@@ -83,14 +87,15 @@ bool SerialKinControl::set_proportional_gain(const float &gain)
 {
 	if(gain == 0)
 	{
-		std::cerr << "[ERROR] [SERIALKINCONTROL] set_proportional_gain() : "
+		std::cerr << "[ERROR] [SERIALKINCONTROL] set_proportional_gain(): "
 		          << "Value cannot be zero. Gain not set." << std::endl;
 		return false;
 	}
 	else if(gain < 0)
 	{
-		std::cerr << "[WARNING] [SERIALKINCONTROL] set_proportional_gain() "
-                         << "Gain of " << gain << " cannot be negative. It has been automatically made positive..." << std::endl;
+		std::cerr << "[WARNING] [SERIALKINCONTROL] set_proportional_gain(): "
+                         << "Gain of " << gain << " cannot be negative. "
+                         << "It has been automatically made positive..." << std::endl;
 		this->k = -1*gain;
 		return true;
 	}
@@ -165,8 +170,11 @@ Eigen::VectorXf SerialKinControl::get_pose_error(const Eigen::Isometry3f &desire
 {
 	Eigen::VectorXf error(6);                                                                  // Value to be returned
 	error.head(3) = desired.translation() - actual.translation();                              // Get the translation error
-	Eigen::Isometry3f Re = desired*actual.inverse();                                           // Get the rotation error (is there a better way?)
-	error.tail(3) = Eigen::Quaternionf(Re.rotation()).vec();                                   // Quaternion feedback
+	Eigen::AngleAxisf temp(desired.rotation()*actual.rotation().inverse());
+	double angle = temp.angle();
+	if(angle > M_PI) angle = 2*M_PI - angle;                                                   // Take the shortest path
+	error.tail(3) = angle*temp.axis();
+
 	return error;	
 }
 
@@ -177,25 +185,26 @@ Eigen::VectorXf SerialKinControl::get_cartesian_control(const Eigen::VectorXf &v
 {
 	if(vel.size() != 6)
 	{
-		std::cerr << "[ERROR] [SERIALKINCONTROL] get_cartesian_control() : "
-                         << "Expected a 6x1 vector for the input argument but it was " << vel.size() << "x1." << std::endl;
+		std::cerr << "[ERROR] [SERIALKINCONTROL] get_cartesian_control(): "
+                         << "Expected a 6x1 vector for the input argument "
+                         << "but it was " << vel.size() << "x1." << std::endl;
 		return Eigen::VectorXf::Zero(this->n);
 	}
 	else
 	{
-		update_speed_limits();                                                             // Update the variable joint speed limits
 		Eigen::VectorXf qdot;                                                              // Velocity vector to be solved
 		
 		if(this->n < 6)                                                                    // Underactuated robot
 		{
-			std::cerr << "[ERROR] [SERIALKINCONTROL] get_cartesian_control() : "
+			std::cerr << "[ERROR] [SERIALKINCONTROL] get_cartesian_control(): "
 			          << "Control for underactuated robots hasn't been programmed yet." << std::endl;
 			qdot.Zero(this->n);                                                        // Don't move
 		}
 		if(this->n == 6)                                                                   // Fully actuated robot
 		{	
 			qdot = get_inverse(get_jacobian())*vel;                                    // Inverse kinematics
-			scale_task_vector(qdot, qdot);                                             // Ensure feasibility
+			update_speed_limits();                                                     // Update the variable joint speed limits
+			cap_joint_velocities(qdot, this->minSpeed, this->maxSpeed);                // Ensure feasibility
 		}
 		else qdot = get_cartesian_control(vel, singularity_avoidance(5.0));                // Automatically perform singularity avoidance
 		
@@ -210,20 +219,21 @@ Eigen::VectorXf SerialKinControl::get_cartesian_control(const Eigen::VectorXf &v
 {
 	if(vel.size() != 6)
 	{
-		std::cerr << "[ERROR] [SERIALKINCONTROL] get_cartesian_control() : "
-                         << "Expected a 6x1 vector for the input argument, but it was " << vel.size() << "x1." << std::endl;
+		std::cerr << "[ERROR] [SERIALKINCONTROL] get_cartesian_control(): "
+                         << "Expected a 6x1 vector for the input argument, "
+                         << "but it was " << vel.size() << "x1." << std::endl;
 		return Eigen::VectorXf::Zero(this->n);
 	}
 	else if(secondaryTask.size() < 7)
 	{
-		std::cerr << "[WARNING] [SERIALKINCONTROL] get_cartesian_control() : "
+		std::cerr << "[WARNING] [SERIALKINCONTROL] get_cartesian_control(): "
 		          << "This robot has " << this->n << " joints and is not redundant. "
 		          << "The secondary task cannot be performed." << std::endl;
 		return get_cartesian_control(vel);
 	}
 	else if(secondaryTask.size() != this->n)
 	{
-		std::cerr << "[WARNING] [SERIALKINCONTROL] get_cartesian_control() : "
+		std::cerr << "[WARNING] [SERIALKINCONTROL] get_cartesian_control(): "
                          << "Expected a " << this->n << "x1 vector for the secondary task, but it was "
                          << secondaryTask.size() << "x1." << std::endl;
 		return get_cartesian_control(vel);
@@ -235,15 +245,14 @@ Eigen::VectorXf SerialKinControl::get_cartesian_control(const Eigen::VectorXf &v
 		Eigen::MatrixXf J = get_jacobian();                                                // As it says on the label
 		Eigen::MatrixXf W = this->M + get_joint_weighting();                               // Weight by inertia, joint limit avoidance
 		Eigen::MatrixXf invJ = get_weighted_inverse(J, W);                                 // Pseudoinverse Jacobian
-		Eigen::VectorXf qdot_R = invJ*vel;                                                 // Range space vector
 		
-		scale_task_vector(qdot_R, qdot_R);                                                 // Scale the range space task for feasibility
+		Eigen::VectorXf qdot_R = invJ*vel;                                                 // Range space task	
+		cap_joint_velocities(qdot_R, this->minSpeed, this->maxSpeed);                      // Ensure kinematic feasibility
+
+		Eigen::VectorXf qdot_N = (Eigen::MatrixXf::Identity(this->n,this->n) - invJ*J)*secondaryTask; // Null space task
+		cap_joint_velocities(qdot_N, this->minSpeed - qdot_R, this->maxSpeed - qdot_R);    // Ensure kinematic feasibility
 		
-		Eigen::VectorXf qdot_N = (Eigen::MatrixXf::Identity(this->n, this->n) - invJ*J)*get_inverse(W)*secondaryTask;
-		
-		Eigen::VectorXf qdot = qdot_R + qdot_N;                                            // Add range and null space vectors together
-		
-		scale_task_vector(qdot_N, qdot);                                                   // Scale the null space task for feasibility
+		// NOTE: qdot_R.transpose()*W*qdot_N = 0
 		
 		return qdot_R + qdot_N;                                                            // Return feasible solutions
 	}
@@ -314,43 +323,8 @@ Eigen::VectorXf SerialKinControl::get_joint_control(const Eigen::VectorXf &pos, 
 		
 		// Ensure speed limits are obeyed
 		update_speed_limits();                                                             // Get new speed limits
-		for(int i = 0; i < this->n; i++)
-		{
-			if(qdot[i] < this->speedLimit[i][0])      qdot[i] = this->speedLimit[i][0];
-			else if(qdot[i] > this->speedLimit[i][1]) qdot[i] = this->speedLimit[i][1];
-		}
+		cap_joint_velocities(qdot, this->minSpeed, this->maxSpeed);
 		return qdot;
-	}
-}
-
-  ////////////////////////////////////////////////////////////////////////////////////////////////////
- //                     Scale a task vector to ensure kinematic feasibility                        //
-////////////////////////////////////////////////////////////////////////////////////////////////////
-bool SerialKinControl::scale_task_vector(Eigen::VectorXf &vec, const Eigen::VectorXf ref)
-{
-	if(vec.size() != ref.size())
-	{
-		std::cerr << "[ERROR] [SERIALKINCONTROL] scale_task_vector() : "
-                         << "Input vectors are not the same length. Input vector has " << vec.size()
-                         << " elements and reference vector has " << ref.size() << " elements." << std::endl;
-		return false;
-	}
-	else
-	{
-		float s = 1.0;                                                                     // Scalar for the velocity vector
-		for(int i = 0; i < ref.size(); i++)
-		{
-			if(ref[i] < this->speedLimit[i][0] && this->speedLimit[i][0]/ref[i] < s)
-			{
-				s = 0.99*this->speedLimit[i][0]/ref[i];
-			}
-			else if(ref[i] > this->speedLimit[i][1] && this->speedLimit[i][1]/ref[i] < s)
-			{
-				s = 0.99*this->speedLimit[i][1]/ref[i];
-			}
-		}
-		vec *= s;                                                                          // Scale to ensure feasibility
-		return true;
 	}
 }
 
@@ -447,9 +421,33 @@ void SerialKinControl::update_speed_limits()
 		if(upper > v) upper = v;                                                           // If velocity limit is smaller, override
 		if(upper > a) upper = a;                                                           // If acceleration limit is smaller, override
 		
-		this->speedLimit[i][0] = lower;
-		this->speedLimit[i][1] = upper;
+		this->minSpeed[i] = lower;                                                         // Update variable minimum speed
+		this->maxSpeed[i] = upper;                                                         // Update variable maximum speed
 	}
+}
+
+  ////////////////////////////////////////////////////////////////////////////////////////////////////
+ //                 Cap any joint velocities that exceed the given speed limits                    //
+////////////////////////////////////////////////////////////////////////////////////////////////////
+bool SerialKinControl::cap_joint_velocities(Eigen::VectorXf &vel,
+					     const Eigen::VectorXf &upper,
+					     const Eigen::VectorXf &lower)
+{
+	bool capped = false;
+	for(int i = 0; i < this->n; i++)
+	{
+		if(vel[i] < lower[i])
+		{
+			vel[i] = 0.99*lower[i];
+			capped = true;
+		}
+		else if(vel[i] > upper[i])
+		{
+			vel[i] = 0.99*upper[i];
+			capped = true;
+		}
+	}
+	return capped;
 }
 
 #endif

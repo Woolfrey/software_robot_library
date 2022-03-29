@@ -1,6 +1,6 @@
 #include <iostream>
 #include <SerialLink.h>
-#include <SerialKinCtrl.h>
+#include <SerialKinControl.h>
 
 /******************** Forward Declarations ********************/
 bool test_serial_link();
@@ -299,7 +299,7 @@ bool test_serial_link()
 	links.push_back(RigidBody(translation*rotation, centreOfMass, mass, momentOfInertia));
 
 	// Create the object
-	SerialKinCtrl robot(links, joints, 100);					// SerialLink object is generated inside this object
+	SerialKinControl robot(links, joints, 100);					// SerialLink object is generated inside this object
 	int n = robot.get_number_of_joints();
 	if(robot.is_valid())
 	{
@@ -347,8 +347,12 @@ bool test_serial_link()
 		std::cout << invJ << std::endl;
 		std::cout << "\nHere is the Jacobian by the weighted pseudoinverse:\n" << std::endl;
 		std::cout << J*invJ << std::endl;
-		std::cout << "\n(It's not exactly the identity but it's pretty damn close!)\n" << std::endl;
-	
+		std::cout << "\nHere is the null space projection matrix:\n" << std::endl;
+		Eigen::MatrixXf N = Eigen::MatrixXf::Identity(n,n) - invJ*J;
+		std::cout << N << std::endl;
+		std::cout << "\nHere is J*N:\n" << std::endl;
+		std::cout << J*N << std::endl;
+
 		return true;
 	}
 	else	return false;
