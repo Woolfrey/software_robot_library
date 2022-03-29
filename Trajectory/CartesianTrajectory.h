@@ -1,160 +1,86 @@
-    ////////////////////////////////////////////////////////////////////////////////////////////////////  
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
    //                                                                                                //
-  //                    A trajectory generator for translation and rotation                         //
+  //                      A minimum acceleration trajectory in Cartesian space                      //
  //                                                                                                //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#ifndef CARTESIAN_TRAJECTORY_H_
-#define CARTESIAN_TRAJECTORY_H_
-
-#include <CubicRotation.h>
-#include <QuinticRotation.h>
+#include <CubicSpline.h>                                                                           // Custom trajectory class
+#include <Eigen/Geometry>                                                                          // Eigen::Isometry3f, Eigen::AngleAxisf
+#include <vector>                                                                                  // std::vector
 
 class CartesianTrajectory
 {
 	public:
-		CartesianTrajectory() {}
+		CartesianTrajectory();
 		
-		CartesianTrajectory(const Eigen::Isometry3f &startPose,
-                                   const Eigen::Isometry3f &endPose,
-                                   const float &startTime,
-                                   const float &endTime);
-		
-		CartesianTrajectory(const std::vector<Eigen::Isometry3f> &poses, const std::vector<float> &times);
-		
-		bool get_state(Eigen::Isometry3f &pose, Eigen::VectorXf &vel, Eigen::VectorXf &acc, const float &time);
-		
+		CartesianTrajectory(const std::vector<Eigen::Isometry3f> &waypoint,
+							const std::vector<float> &time);
+							
+		bool get_state(Eigen::Isometry3f &pose,
+					   Eigen::VectorXf &vel,
+					   Eigen::VectorXf &acc,
+					   const float &time);
+	
 	private:
-		bool isNotValid = true;
-		CubicSpline translationTrajectory;
-		CubicRotation rotationTrajectory;
-		Eigen::Isometry3f T0;
-				
-};                                                                                                 // Semicolon needed after a class declaration
+		bool isValid = false;                                                                      // Won't do calcs if this is false
+		int n;                                                                                     // Number of waypoints
+		CubicSpline translationTrajectory, orientationTrajectory;
+		
+};                                                                                                 // Semicolon needed after class declaration
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
- //                                A constructor for 2 waypoints                                   //
+ //                                        Constructor                                             //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-CartesianTrajectory::CartesianTrajectory(const Eigen::Isometry3f &startPose,
-                                         const Eigen::Isometry3f &endPose,
-                                         const float &startTime,
-                                         const float &endTime):
-                                         T0(startPose)
+CartesianTrajectory::CartesianTrajectory(const std::vector<Eigen::Isometry3f> &waypoint,
+										 const std::vector<float> &time):
+										 n(waypoint.size())
 {
-	//Check the times are in correct order
-	double t1 = startTime;
-	double t2 = endTime;
-	if(t1 > t2)
+	// Check that the vectors are of equal length
+	if(time.size() != this->n)
 	{
-		std::cerr 	<< "[WARNING][CARTESIANTRAJECTORY] Constructor : Start time of "
-				<< t1 << " is greater than end time of " << t2 << ". Swapping values..." << std::endl;
-		double temp = t1;
-		t1 = t2;
-		t2 = temp;
-	}
-	
-	std::vector<float> times;
-	times.push_back(t1);
-	times.push_back(t2);
-	
-	std::vector<Eigen::VectorXf> pos;
-	pos.push_back(startPose.translation());
-	pos.push_back(endPose.translation());
-	this->translationTrajectory = CubicSpline(pos, times);
-	
-	std::vector<Eigen::Quaternionf> rot;
-	rot.push_back(Eigen::Quaternionf(startPose.rotation()));
-	rot.push_back(Eigen::Quaternionf(endPose.rotation()));
-	this->rotationTrajectory = CubicRotation(rot, times);
-}
-
-  ////////////////////////////////////////////////////////////////////////////////////////////////////
- //                          A constructor for 3 or more waypoints                                 //
-////////////////////////////////////////////////////////////////////////////////////////////////////
-CartesianTrajectory::CartesianTrajectory(const std::vector<Eigen::Isometry3f> &poses,
-                                         const std::vector<float> &times):
-                                         T0(poses[0])
-{
-	// Check the input arguments are of the same length
-	if(poses.size() != times.size())
-	{
-		std::cerr << "[ERROR][CARTESIANTRAJECTORY] Constructor : Input arguments are not of equal length." << std::endl;
-		std::cerr << " poses: " << poses.size() << " times: " << times.size() << std::endl;
+		std::cerr << "[ERROR] [CARTESIANTRAJECTORY] Constructor: "
+				  << "Input arguments are not of equal length. "
+				  << "There were " << waypoint.size() << " waypoints "
+				  << "and " << time.size() << " times." << std::endl;
 	}
 	else
 	{
-		this->isNotValid = false;
-		
-		// Check that the times are in ascending order
-		for(int i = 0; i < times.size() - 1; i++)
+		// Check that times are in increasing order
+		for(int i = 0; i < this->n-1; i++)
 		{
-			if(times[i] > times[i+1])
+			if(time[i] == time[i+1])
 			{
-				std::cerr << "[ERROR][CARTESIANTRAJECTORY] Constructor : Times are not in ascending order." << std::endl;
-				this->isNotValid = true;
+				std::cerr << "[ERROR] [CARTESIANTRAJECTORY] Constructor: "
+						  << "Cannot move in zero time. "
+						  << "Time " << i+1 << " was " << time[i] << " seconds and "
+						  << "time " << i+2 << " was " << time[i+1] << " seconds." << std::endl;
+				break;
+			}
+			else if(time[i] > time[i+1])
+			{
+				std::cerr << "[ERROR] [CARTESIANTRAJECTORY] Constructor: "
+						  << "Times are not in ascending order. "
+						  << "Time " << i+1 << " was " << time[i] << " seconds and "
+						  << "time " << i+2 << " was " << time[i+1] << " seconds." << std::endl;
 				break;
 			}
 		}
 		
-		if(!this->isNotValid) // this is valid
-		{		
+		// If no problems, instantiate the object
+		if(this->isValid)
+		{
 			std::vector<Eigen::VectorXf> pos;
-			std::vector<Eigen::Quaternionf> rot;
-			for(int i = 0; i < poses.size(); i++)
+			std::vector<Eigen::AngleAxisf> rot;
+			for(int i = 0; i < this->n; i++)
 			{
-				pos.push_back(poses[i].translation());
-				rot.push_back(Eigen::Quaternionf(poses[i].rotation()));
+				      pos.push_back( waypoint[i].translation() );                                  // Add all translation vectors to array
+					  rot.push_back( waypoint[i].rotation() );                                     // Add all rotation objects to array
 			}
 			
-			this->translationTrajectory = CubicSpline(pos, times);
-			this->rotationTrajectory = CubicRotation(rot, times);
+			this->translationTrajectory = CubicSpline(pos, time);
+			this->orientationTrajectory = CubicSpline(rot, time);
+
+			}
 		}
 	}
 }
-
-  ////////////////////////////////////////////////////////////////////////////////////////////////////
- //                        Get the desired state for the given time                                //
-////////////////////////////////////////////////////////////////////////////////////////////////////
-bool CartesianTrajectory::get_state(Eigen::Isometry3f &pose, Eigen::VectorXf &vel, Eigen::VectorXf &acc, const float &time)
-{
-	// Variables used in this scope
-	Eigen::VectorXf pos(3), linearVel(3), linearAcc(3);
-	Eigen::Vector3f angularVel(3), angularAcc(3);
-	Eigen::Quaternionf rot;
-	
-	if(vel.size() != 6 || acc.size() != 6)
-	{
-		std::cerr << "[ERROR][CARTESIANTRAJECTORY] get_state() : Velocity and acceleration vectors must have 6 elements." << std::endl;
-		std::cerr << " vel: " << vel.size() << " acc: " << acc.size() << std::endl;
-			
-		pose = this->T0;                                                                   // Remain at the start
-		vel.setZero(); acc.setZero();                                                      // Don't move
-		
-		return false;
-	}
-	else if(this->translationTrajectory.get_state(pos, linearVel, linearAcc, time)
-	     && this->rotationTrajectory.get_state(rot, angularVel, angularAcc, time))
-	{
-		pose = Eigen::Translation3f(pos)*rot;                                              // Transform should be translation*rotation
-		
-		for(int i = 0; i < 3; i++)
-		{
-			vel[i]   = linearVel[i];
-			vel[i+3] = angularVel[i];
-			acc[i]   = linearAcc[i];
-			acc[i+3] = angularAcc[i];
-		}
-		return true;
-	}
-	else
-	{
-		std::cerr << "[ERROR][CARTESIANTRAJECTORY] get_state() : Could not obtain the state." << std::endl;
-		
-		pose = this->T0;                                                                   // Remain at the start
-		vel.setZero(); acc.setZero();                                                      // Don't move
-		
-		return false;
-	}
-}
-
-#endif
