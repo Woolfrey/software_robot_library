@@ -4,6 +4,10 @@
  //                                                                                                //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
+#ifndef POLYNOMIAL_H_
+#define POLYNOMIAL_H_
+
+#include <Eigen/Geometry>                                                                          // Eigen::VectorXf, Eigen::AngleAxisf
 #include <math.h>                                                                                  // M_PI
 #include <vector>                                                                                  // std::vector
 
@@ -11,7 +15,6 @@ class Polynomial
 {
 	public:
 	
-		// Empty constructor
 		Polynomial();
 
 		// Constructor with only positions, delegates zero velocity
@@ -188,6 +191,7 @@ bool Polynomial::times_are_sound(const float &startTime, const float &endTime)
 				  << "Start time of " << startTime << " seconds was greater than "
 				  << "end time of " << endTime << " seconds. "
 				  << "Swapping their values to avoid problems..." << std::endl;
+				  
 		float temp = this->t0;
 		this->t0 = this->tf;
 		this->tf = temp;
@@ -212,6 +216,7 @@ bool Polynomial::compute_coefficients(const std::vector<float> &startPoint,
 	{
 		std::cerr << "[ERROR][POLYNOMIAL] compute_coefficients(): "
 				  << "Something went wrong assigning memory to the dynamic array." << std::endl;
+				  
 		return false;
 	}
 	else
@@ -301,7 +306,7 @@ bool Polynomial::get_state(Eigen::VectorXf &pos,
 	}
 	else
 	{
-		double dt;
+		float dt;
 		if(time < this->t0)      dt = 0.0;                                                         // Not yet begun, remain at start
 		else if(time < this->tf) dt = time - this->t0;                                             // Somewhere inbetween...
 		else                     dt = this->tf - this->t0;                                         // Finished, remain at end
@@ -336,3 +341,4 @@ bool Polynomial::get_state(Eigen::AngleAxisf &rot,
 	}
 	else return false;
 }
+#endif

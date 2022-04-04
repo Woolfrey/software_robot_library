@@ -7,13 +7,12 @@
 #ifndef CUBICSPLINE_H_
 #define CUBICSPLINE_H_
 
-#include <Eigen/Core>                                                                              // Eigen::VectorXf, Eigen::MatrixXf
 #include <Polynomial.h>                                                                            // Custom class
-#include <vector>                                                                                  // std::vector class
 
 class CubicSpline
 {
 	public:
+	
 		CubicSpline();
 		
 		CubicSpline(const std::vector<Eigen::VectorXf> &waypoint,
@@ -35,10 +34,11 @@ class CubicSpline
 	private:
 	
 		bool isValid = false;                                                                      // Won't do calcs if this is false
-		int m, n;                                                                                  // m dimensions, n waypoints (for n-1 splines)
 		std::vector<Polynomial> spline;                                                            // Array of cubic polynomials
 		std::vector<float> t;                                                                      // Time at which to pass each waypoint
-
+		unsigned int m;                                                                            // Number of dimensions
+		unsigned int n;                                                                            // Number of waypoints (for n-1 splines)
+		
 		bool inputs_are_sound(const std::vector<Eigen::VectorXf> &waypoint,
 							  const std::vector<float> &time);
 							  
@@ -50,15 +50,23 @@ class CubicSpline
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                           Constructor for spline over real numbers                             //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-CubicSpline::CubicSpline(const std::vector<std::vector<float>> &waypoint,
+CubicSpline::CubicSpline(const std::vector<Eigen::VectorXf> &waypoint,
 						 const std::vector<float> &time):
 						 m(waypoint[0].size()),
 						 n(waypoint.size()),
 						 t(time);
 {
-	if(inputs_are_sound(waypoint, time))
+	// Check the input vectors are the same length
+	if(waypoint.size() != time.size())
 	{
-		Eigen::VectorXf velocity = compute_velocities(waypoint, time);
+		std::cerr << "[ERROR] [CUBICSPLINE] Constructor: "
+				  << "Inputs are not of equal length! "
+				  << "There were " << waypoint.size() << " waypoints "
+				  << "and " << time.size() << " times." << std::endl;
+	}
+	else if(times_are_sound(time))
+	{
+		Eigen::VectorXf velocity = compute_velocities(waypoint, time);                             // Get the velocities for each waypoint
 		
 		for(int i = 0; i < this->n-1; i++)
 		{
@@ -69,6 +77,8 @@ CubicSpline::CubicSpline(const std::vector<std::vector<float>> &waypoint,
 											  time,
 											  3));
 		}
+		
+		this->isValid = true;
 	}
 }
 
@@ -78,36 +88,6 @@ CubicSpline::CubicSpline(const std::vector<std::vector<float>> &waypoint,
 CubicSpline::CubicSpline(const std::vector<Eigen::AngleAxisf> &waypoint,
 						 const std::vector<float> &time)
 {
-
-/* This doesn't seem right...
-	if(inputs_are_sound(waypoint, time)
-	{
-		std::vector<Eigen::VectorXf> temp;
-		for(int i = 0; i < this->n-1; i++)
-		{
-			Eigen::AngleAxisf dR = waypoint[i].inverse()*waypoint[i+1];                            // Get the difference in rotation
-			double angle = dR.angle();                                                             // Get the angle
-			if(angle > M_PI) angle = 2*M_PI - angle;                                               // If > 180 degrees, take shorter path
-			Eigen::Vector3f axis = dR.axis();                                                      // Get the axis of rotation
-			temp.push_back( angle*axis() );                                                        
-		}
-		
-		std::vector<Eigen::VectorXf> vel = get_velocities(temp time);
-		
-		for(int i = 0; i < this->n-1; i++)
-		{
-				this->spline[j].push_back( Polynomial(waypoint[i], waypoint[i+1], vel[i], vel[i+1], time, 3) );
-		}
-	}
-*/
-}
-
-  ////////////////////////////////////////////////////////////////////////////////////////////////////
- //                                 Check that the inputs are sound                                //
-////////////////////////////////////////////////////////////////////////////////////////////////////
-bool CubicSpline::inputs_are_sound(const std::vector<Eigen::VectorXf> &waypoint,
-								   const std::vector<float> &time)
-{
 	// Check the input vectors are the same length
 	if(waypoint.size() != time.size())
 	{
@@ -115,41 +95,71 @@ bool CubicSpline::inputs_are_sound(const std::vector<Eigen::VectorXf> &waypoint,
 				  << "Inputs are not of equal length! "
 				  << "There were " << waypoint.size() << " waypoints "
 				  << "and " << time.size() << " times." << std::endl;
+				  
 		return false;
 	}
-	else
+	else if(times_are_sound(time))
 	{
-		for(int i = 0; i < time.size()-1; i++)
+		// For orientations we generate trajectories over the *difference* in orientation dR such that:
+		// R(t) = R0*dR(t) ---> dR = R0^-1*Rf
+		std::vector<Eigen::VectorXf> temp;
+		for(int i = 0; i < this->n-1; i++)
 		{
-			if(waypoint[i].size() != waypoint[i+1].size())
-			{
-				std::cerr << "[ERROR] [CUBICSPLINE] Constructor: "
-						  << "Waypoints are not of equal dimension! "
-						  << "Waypoint " << i+1 << " had " << waypoint[i].size() << " elements and "
-						  << "waypoint " << i+2 << " had " << waypoint[i+1].size() << " elements." << std::endl;
-				return false;
-			}
-			else if(time[i] == time[i+1] or time[i] > time[i+1])
-			{
-				std::cerr << "[ERROR] [CUBICSPLINE] Constructor: "
-						  << "Times are not in ascending order! "
-						  << "Time " << i+1 << " was " << time[i] << " seconds and "
-						  << "time " << i+2 << " was " << time[i+1] << " seconds." << std::endl;
-				return false;
-			}
+			Eigen::AngleAxisf dR = waypoint[i].inverse()*waypoint[i+1];                            // Get the difference in orientation
+			double angle = dR.angle();                                                             // Get the angle between orientations
+			if(angle > M_PI) angle = 2*M_PI - angle;                                               // If > 180 degrees, take the shorter path
+			Eigen::Vector3f axis = dR.axis();                                                      // Get the axis of rotation
+			temp.push_back( angle*axis );                                                          // Angle*axis
 		}
-		return true;
+		
+		std::vector<Eigen::VectorXf> velocity = get_velocities(temp, time);                        // Solve the velocities for each waypoint
+		
+		for(int i = 0; i < this->n-1; i++)
+		{
+			this->spline[i].push_back(Polynomial(waypoint[i],
+												 waypoint[i+1],
+												 velocity[i],
+												 velocity[i+1],
+												 time,
+												 3));
+		}
+		
+		this->isValid = true;
 	}
 }
+
+  ////////////////////////////////////////////////////////////////////////////////////////////////////
+ //                               Check that the inputs are sound                                  //
+////////////////////////////////////////////////////////////////////////////////////////////////////
+bool CubicSpline::timess_are_sound(const std::vector<float> &time)
+{
+	for(int i = 0; i < time.size()-1; i++)
+	{
+		if(time[i] == time[i+1] or time[i] > time[i+1])
+		{
+			std::cerr << "[ERROR] [CUBICSPLINE] Constructor: "
+					  << "Times are not in ascending order! "
+					  << "Time " << i+1 << " was " << time[i] << " seconds and "
+					  << "time " << i+2 << " was " << time[i+1] << " seconds." << std::endl;
+
+			return false;
+		}
+	}
+	return true;
+}
+
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                           Compute the velocities at each waypoint                              //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-std::vector<Eigen::VectorXf> CubicSpline::compute_velocities(const std::vector<Eigen::VectorXf> &waypoint,
+std::vector<Eigen::VectorXf> CubicSpline::compute_velocities(const std::vector<Eigen::VectorXf> &position,
 														     const std::vector<float> &time)
 {
-	// Velocities related to positions by A*xdot = B*x
+	// Linear velocities related to positions by A*xdot = B*x
+	// Angular velocities are related to *difference* in orientation: A*w = B*dR,
+	// so there should be n-1 "positions"
+	int p = position.size();
 	Eigen::MatrixXf A = Eigen::MatrixXf::Identity(this->n, this->n);
-	Eigen::MatrixXf B = Eigen::MatrixXf::Zeros(this->n, this->n);
+	Eigen::MatrixXf B = Eigen::MatrixXf::Zeros(this->n, p);
 	
 	// Set the constraints at each waypoint
 	for(int i = 1; i < this->n-1; i++)
@@ -161,24 +171,36 @@ std::vector<Eigen::VectorXf> CubicSpline::compute_velocities(const std::vector<E
 		A(i,i)   = 2/dt1 + 2/dt2;
 		A(i,i+1) = 1/dt2;
 		
-		B(i,i-1) = -3/(dt1*dt1);
-		B(i,i)   =  3/(dt1*dt1) - 3/(dt2*dt2);
-		B(i,i+1) =  3/(dt2*dt2);
+		// Relationship for linear velocities
+		if(p == this->n)
+		{
+			B(i,i-1) = -3/(dt1*dt1);
+			B(i,i)   =  3/(dt1*dt1) - 3/(dt2*dt2);	
+			B(i,i+1) =  3/(dt2*dt2);
+		}
+		
+		// Relationship for angular velocities
+		else
+		{
+			B(i,i-1) = 3/(dt1*dt1);
+			B(i,i)   = 3/(dt2*dt2);
+		}
 	}
 	
-	Eigen::MatrixXf C = A.inverse()*B;                                                             // This makes calcs a little easier
+	Eigen::MatrixXf C = A.inverse()*B;                                                       // This makes calcs a little easier
+	Eigen::VectorXf x(p), xdot;                                                              // Positions, velocities of a single dimension
+	std::vector<Eigen::VectorXf> velocity(this->n);
+	for(int i = 0; i < this->n; i++) velocity[i].resize(this->m);
 	
-	// Solve the velocity at each waypoint for each of the m dimensions
-	std::vector<Eigen::VectorXf> vel; vel.resize(this->n);
-	Eigen::VectorXf x(this->n);
-	for(int i = 0; i < this->n; i++)
+	// Solve the velocity at each waypoint for each of the m dimensions.
+	// Note: Waypoints are stored column-wise, but we need to solve velocities across each row.
+	for(int i = 0; i < this->m; i++)
 	{
-		for(int j = 0; j < this->m; j++) x(j) = waypoint[i][j];                                    // Get all waypoints of jth dimension
-		Eigen::VectorXf xdot = C*x;                                                                // Compute all velocities for the jth dimension
-		for(int j = 0; k < this->m; j++) vel[i][j] = xdot[j];                                      // Put them back in the array
+		for(int j = 0; j < p; j++) x(j) = position[j][i];                                    // Grab all waypoints of the ith row
+		xdot = C*x;                                                                          // Velocities for all n waypoints of ith dimension
+		for(int j = 0; j < this->n; j++) velocity[j][i] = xdot(j);                           // Put the velocities back along the ith row
 	}
-	
-	return vel;
+	return velocity;
 }
 						 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
