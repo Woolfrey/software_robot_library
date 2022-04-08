@@ -52,9 +52,9 @@ class CubicSpline
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 CubicSpline::CubicSpline(const std::vector<Eigen::VectorXf> &waypoint,
 						 const std::vector<float> &time):
-						 m(waypoint[0].size()),
-						 n(waypoint.size()),
-						 t(time);
+						 m(waypoint[0].size()),                                                    // Dimensions for each point
+						 n(waypoint.size()),                                                       // Number of points
+						 t(time);                                                                  // Time at which to pass each point
 {
 	// Check the input vectors are the same length
 	if(waypoint.size() != time.size())
@@ -66,18 +66,23 @@ CubicSpline::CubicSpline(const std::vector<Eigen::VectorXf> &waypoint,
 	}
 	else if(times_are_sound(time))
 	{
-		Eigen::VectorXf velocity = compute_velocities(waypoint, time);                             // Get the velocities for each waypoint
-		
+		// Compute the displacements between each waypoint
+		std::vector<Eigen::VectorXf> displacement; displacement.resize(this->n-1);
 		for(int i = 0; i < this->n-1; i++)
 		{
-			this->spline.push_back(Polynomial(waypoint[i],
-											  waypoint[i+1],
-											  velocity[i],
-											  velocity[i+1],
-											  time,
-											  3));
+			for(int j = 0; j < this->m; j++) displacement[i][j] = waypoint[i+1][j] - waypoint[i][j]; // Get the difference in position
 		}
 		
+		std::vector<Eigen::VectorXf> velocity = compute_velocties(displacement, time);             // Compute the velocities for each waypoint
+		
+		// Now create n-1 cubic polynomials for the spline
+		for(int i = 0; i < this->n-1; i++) this->spline[i].push_back( Polynomial(waypoint[i],
+																				 waypoint[i+1],
+																				 velocity[i],
+																				 velocity[i+1],
+																				 time[i],
+																				 time[i+1],
+																				 3));
 		this->isValid = true;
 	}
 }
@@ -86,7 +91,10 @@ CubicSpline::CubicSpline(const std::vector<Eigen::VectorXf> &waypoint,
  //                           Constructor for spline over orientations                             //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 CubicSpline::CubicSpline(const std::vector<Eigen::AngleAxisf> &waypoint,
-						 const std::vector<float> &time)
+						 const std::vector<float> &time) :
+						 m(3),
+						 n(waypoint.size()),
+						 t(time)						 
 {
 	// Check the input vectors are the same length
 	if(waypoint.size() != time.size())
@@ -100,30 +108,30 @@ CubicSpline::CubicSpline(const std::vector<Eigen::AngleAxisf> &waypoint,
 	}
 	else if(times_are_sound(time))
 	{
-		// For orientations we generate trajectories over the *difference* in orientation dR such that:
-		// R(t) = R0*dR(t) ---> dR = R0^-1*Rf
-		std::vector<Eigen::VectorXf> temp;
+		std::vector<Eigen::VectorXf> displacement; displacement.resize(this->n-1);
+		
+		// Compute the displacements in orientation
 		for(int i = 0; i < this->n-1; i++)
 		{
-			Eigen::AngleAxisf dR = waypoint[i].inverse()*waypoint[i+1];                            // Get the difference in orientation
-			double angle = dR.angle();                                                             // Get the angle between orientations
-			if(angle > M_PI) angle = 2*M_PI - angle;                                               // If > 180 degrees, take the shorter path
+			Eigen::AngleAxisf dR = waypoint[i].inverse()*waypoint[i+1];                            // Difference in orientation
+			
+			float angle = dR.angle(); if(angle > M_PI) angle = 2*M_PI - angle;                     // If > 180 degrees, take the shorter path
 			Eigen::Vector3f axis = dR.axis();                                                      // Get the axis of rotation
-			temp.push_back( angle*axis );                                                          // Angle*axis
+			
+			displacement[i].resize(this->m);
+			for(int j = 0; j < this->m; j++) displacement[i][j] = angle*axis[j];                   // Store the displacement as angle*axis
 		}
 		
-		std::vector<Eigen::VectorXf> velocity = get_velocities(temp, time);                        // Solve the velocities for each waypoint
+		std::vector<Eigen::VectorXf> velocity = compute_velocities(displacement,time);             // Solve for the velocities at each waypoint
 		
-		for(int i = 0; i < this->n-1; i++)
-		{
-			this->spline[i].push_back(Polynomial(waypoint[i],
-												 waypoint[i+1],
-												 velocity[i],
-												 velocity[i+1],
-												 time,
-												 3));
-		}
-		
+		// Now generate n-1 cubic polynomials for the spline
+		for(int i = 0; i < this->n-1; i++) this->spline[i].push_back( Polynomial(waypoint[i],
+																				 waypoint[i+1],
+																				 velocity[i],
+																				 velocity[i+1],
+																				 time[i],
+																				 time[i+1],
+																				 3));
 		this->isValid = true;
 	}
 }
@@ -131,7 +139,7 @@ CubicSpline::CubicSpline(const std::vector<Eigen::AngleAxisf> &waypoint,
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                               Check that the inputs are sound                                  //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-bool CubicSpline::timess_are_sound(const std::vector<float> &time)
+bool CubicSpline::times_are_sound(const std::vector<float> &time)
 {
 	for(int i = 0; i < time.size()-1; i++)
 	{
@@ -151,15 +159,14 @@ bool CubicSpline::timess_are_sound(const std::vector<float> &time)
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                           Compute the velocities at each waypoint                              //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-std::vector<Eigen::VectorXf> CubicSpline::compute_velocities(const std::vector<Eigen::VectorXf> &position,
+std::vector<Eigen::VectorXf> CubicSpline::compute_velocities(const std::vector<Eigen::VectorXf> &dx,
 														     const std::vector<float> &time)
 {
-	// Linear velocities related to positions by A*xdot = B*x
-	// Angular velocities are related to *difference* in orientation: A*w = B*dR,
-	// so there should be n-1 "positions"
-	int p = position.size();
+	// Velocities are related to the displacements via A*xdot = B*dx.
+	// Note that dx = x(i+1) - x(i) is used instead of just x because
+	// it generalizes better to orientations as well
 	Eigen::MatrixXf A = Eigen::MatrixXf::Identity(this->n, this->n);
-	Eigen::MatrixXf B = Eigen::MatrixXf::Zeros(this->n, p);
+	Eigen::MatrixXf B = Eigen::MatrixXf::Zeros(this->n, this->n-1);
 	
 	// Set the constraints at each waypoint
 	for(int i = 1; i < this->n-1; i++)
@@ -168,39 +175,30 @@ std::vector<Eigen::VectorXf> CubicSpline::compute_velocities(const std::vector<E
 		double dt2 = this->t[i+1] - this->t[i];
 		
 		A(i,i-1) = 1/dt1;
-		A(i,i)   = 2/dt1 + 2/dt2;
+		A(i,i)   = 2*(1/dt1 + 1/dt2);
 		A(i,i+1) = 1/dt2;
 		
-		// Relationship for linear velocities
-		if(p == this->n)
-		{
-			B(i,i-1) = -3/(dt1*dt1);
-			B(i,i)   =  3/(dt1*dt1) - 3/(dt2*dt2);	
-			B(i,i+1) =  3/(dt2*dt2);
-		}
-		
-		// Relationship for angular velocities
-		else
-		{
-			B(i,i-1) = 3/(dt1*dt1);
-			B(i,i)   = 3/(dt2*dt2);
-		}
+		B(i,i-1) = 3/(dt1*dt1);
+		B(i,i)   = 3/(dt2*dt2);
 	}
 	
-	Eigen::MatrixXf C = A.inverse()*B;                                                       // This makes calcs a little easier
-	Eigen::VectorXf x(p), xdot;                                                              // Positions, velocities of a single dimension
-	std::vector<Eigen::VectorXf> velocity(this->n);
-	for(int i = 0; i < this->n; i++) velocity[i].resize(this->m);
+	Eigen::MatrixXf C = A.inverse()*B;                                                             // This makes calcs a little easier
 	
-	// Solve the velocity at each waypoint for each of the m dimensions.
-	// Note: Waypoints are stored column-wise, but we need to solve velocities across each row.
+	std::vector<Eigen::VectorXf> xdot; xdot.resize(this->n);                                       // Value to be returned
+	for(int i = 0; i < this->n; i++) xdot[i].resize(this->m);                                      // Set the appropriate dimensions
+	
+	// Solve the velocity eat each waypoint for each dimension
+	// Note: Waypoints are stored column wise, but we need to solve velocities across each row
 	for(int i = 0; i < this->m; i++)
 	{
-		for(int j = 0; j < p; j++) x(j) = position[j][i];                                    // Grab all waypoints of the ith row
-		xdot = C*x;                                                                          // Velocities for all n waypoints of ith dimension
-		for(int j = 0; j < this->n; j++) velocity[j][i] = xdot(j);                           // Put the velocities back along the ith row
+		Eigen::VectorXf displacement(this->n-1);
+		for(int j = 0; j < displacement.size(); j++) displacement[j] = dx[j][i];                   // Get all waypoints for the ith row
+		
+		Eigen::VectorXf velocity = C*displacement;                                                 // Compute all n velocities
+		for(int j = 0; j < velocity.size(); j++) xdot[j][i] = velocity[j];                         // Store velocities along ith row
 	}
-	return velocity;
+	
+	return xdot;
 }
 						 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
