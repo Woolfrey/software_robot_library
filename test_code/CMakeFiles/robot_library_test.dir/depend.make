@@ -5,6 +5,9 @@ CMakeFiles/robot_library_test.dir/robot_library_test.cpp.o: ../Control/SerialKin
 CMakeFiles/robot_library_test.dir/robot_library_test.cpp.o: ../Robot/Joint.h
 CMakeFiles/robot_library_test.dir/robot_library_test.cpp.o: ../Robot/RigidBody.h
 CMakeFiles/robot_library_test.dir/robot_library_test.cpp.o: ../Robot/SerialLink.h
+CMakeFiles/robot_library_test.dir/robot_library_test.cpp.o: ../Trajectory/CartesianTrajectory.h
+CMakeFiles/robot_library_test.dir/robot_library_test.cpp.o: ../Trajectory/CubicSpline.h
+CMakeFiles/robot_library_test.dir/robot_library_test.cpp.o: ../Trajectory/Polynomial.h
 CMakeFiles/robot_library_test.dir/robot_library_test.cpp.o: robot_library_test.cpp
 CMakeFiles/robot_library_test.dir/robot_library_test.cpp.o: /usr/include/eigen3/Eigen/Cholesky
 CMakeFiles/robot_library_test.dir/robot_library_test.cpp.o: /usr/include/eigen3/Eigen/Core

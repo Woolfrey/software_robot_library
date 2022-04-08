@@ -34,12 +34,34 @@ RigidBody.h
 vector
 -
 
+../Trajectory/CartesianTrajectory.h
+CubicSpline.h
+-
+Eigen/Geometry
+-
+vector
+-
+
+../Trajectory/CubicSpline.h
+Polynomial.h
+-
+
+../Trajectory/Polynomial.h
+Eigen/Geometry
+-
+math.h
+-
+vector
+-
+
 /home/woolfrey/workspace/RobotLibrary/test_code/robot_library_test.cpp
 iostream
 -
 SerialLink.h
 -
 SerialKinControl.h
+-
+CartesianTrajectory.h
 -
 
 /usr/include/eigen3/Eigen/Cholesky

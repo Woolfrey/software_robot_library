@@ -1,6 +1,7 @@
 #include <iostream>
 #include <SerialLink.h>
 #include <SerialKinControl.h>
+#include <CartesianTrajectory.h>
 
 /******************** Forward Declarations ********************/
 bool test_serial_link();
