@@ -1,6 +1,6 @@
     ////////////////////////////////////////////////////////////////////////////////////////////////////
    //                                                                                                //
-  //                                A class representing a single solid object                      //
+  //                           A class representing a single solid object                           //
  //                                                                                                //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -25,14 +25,17 @@ class RigidBody
                               const Eigen::Vector3f &angularVel);
 		
 		// Get Functions
-		Eigen::Vector3f get_com() const {return this->com;}
-		Eigen::Isometry3f get_pose() const {return this->pose;}
+		Eigen::Vector3f get_com() const {return this->com;}                                // Get the position of the c.o.m. in local frame
+		
+		Eigen::Isometry3f get_pose() const {return this->pose;}                            // Get the pose relative to some local frame
+		
 		Eigen::Matrix3f get_inertia() const {return this->inertia;}
+		
 		float get_mass() const {return this->mass;}
 		
 	private:
 		// Kinematic Properties
-		Eigen::Isometry3f pose;                                                            // Pose of the origin to the local frame
+		Eigen::Isometry3f pose;                                                            // Pose of the object relative to some local frame
 		Eigen::Vector3f linearVel = {0.0 , 0.0 , 0.0};
 		Eigen::Vector3f angularVel = {0.0 , 0.0 , 0.0};
 				
@@ -57,8 +60,9 @@ RigidBody::RigidBody(const Eigen::Isometry3f &origin,
 {
 	if(momentOfInertia.size() != 6)
 	{
-		std::cerr << "[ERROR] [RIGIDBODY] Constructor : Expected 6 elements for the momentOfInertia argument. "
-			<< " Your input had " << momentOfInertia.size() << " elements." << std::endl;
+		std::cerr << "[ERROR] [RIGIDBODY] Constructor: "
+			  << "Expected 6 elements for the momentOfInertia argument. "
+			  << " Your input had " << momentOfInertia.size() << " elements." << std::endl;
 	}
 	else
 	{
@@ -69,8 +73,11 @@ RigidBody::RigidBody(const Eigen::Isometry3f &origin,
 				
 	if(this->mass < 0)
 	{
-		std::cerr << "[WARNING] [RIGIDBODY] Constructor : Mass cannot negative. Your input was " << this->mass << "."
-			<< " Ensuring the value is positive to avoid problems..." << std::endl;
+		std::cerr << "[WARNING] [RIGIDBODY] Constructor: "
+                         << "Mass cannot negative. "
+                         << "Your input was " << this->mass << ". "
+			  << "Ensuring the value is positive to avoid problems..." << std::endl;
+			  
 		this->mass *= -1;
 	}
 }
