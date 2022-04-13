@@ -311,7 +311,7 @@ bool test_serial_link()
 		srand((unsigned int) time(0));					// Random seed generator
 		Eigen::VectorXf q = Eigen::VectorXf::Random(n);			// Create random joint positions
 		Eigen::VectorXf qdot = Eigen::VectorXf::Random(n);			// Create random joint velocities
-		robot.update_state(q,qdot);						// Compute new joint state
+		robot.set_joint_state(q,qdot);					// Compute new joint state
 		
 		// Check the endpoint pose and Jacobian
 		std::cout << "\nHere is the end-effector pose:\n" << std::endl;

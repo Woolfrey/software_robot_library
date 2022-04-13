@@ -7,6 +7,8 @@
 #IncludeRegexTransform: 
 
 ../Control/SerialKinControl.h
+algorithm
+-
 array
 -
 SerialLink.h
