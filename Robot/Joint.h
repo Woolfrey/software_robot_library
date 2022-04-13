@@ -23,10 +23,15 @@ class Joint
 		
 		// Get Functions
 		bool is_revolute() const {return this->isRevolute;}                                // Returns true if revolute
-		bool is_prismatic() const {return !this->isRevolute;}                              // Returns true if NOT revolute
-		Eigen::Isometry3f get_pose(const float &pos);                                      // Get the pose from the displacement of this joint
+		
+		bool is_prismatic() const {return not this->isRevolute;}                           // Returns true if NOT revolute
+		
+		Eigen::Isometry3f get_pose(const float &pos);                                      // Get the pose from displacement of this joint
+		
 		Eigen::Vector3f get_axis() const {return this->axis;}
+		
 		float get_velocity_limit() const {return this->vLim;}                              // Get the speed limit
+		
 		void get_position_limits(float &lower, float &upper);                              // Get the position limits
 		
 	protected:
@@ -60,19 +65,28 @@ Joint::Joint(const Eigen::Isometry3f &origin,
 	
 	if(this->pLim[0] > this->pLim[1])
 	{
-		std::cerr << "[ERROR] [JOINT] Constructor : Lower joint limits of " << this->pLim[0]
-			<< " is greater than upper joint limit of " << this->pLim[1] << ". Swapping their values to avoid problems..." << std::endl;
+		std::cerr << "[ERROR] [JOINT] Constructor: "
+			  << "Lower joint limits of " << this->pLim[0] << "is greater than "
+			  << "upper joint limit of " << this->pLim[1] << ". "
+			  << "Swapping their values to avoid problems..." << std::endl;
+			  
 		float temp = this->pLim[1];
 		this->pLim[1] = this->pLim[0];
 		this->pLim[0] = temp;
 	}
 	if(this->vLim < 0)
 	{
-		std::cerr << "[ERROR] [JOINT] Constructor : Velocity limit " << this->vLim << " is less than zero!"
-			<< " Making the value positive to avoid problems..." << std::endl;
+		std::cerr << "[ERROR] [JOINT] Constructor: "
+		          << "Velocity limit " << this->vLim << " is less than zero! "
+                         << "Making the value positive to avoid problems..." << std::endl;
+                         
 		this->vLim *= -1;
 	}
-	if(this->vLim == 0) std::cerr << "[ERROR] [JOINT] Constructor : Velocity limit is zero!" << std::endl;
+	if(this->vLim == 0)
+	{
+		std::cerr << "[ERROR] [JOINT] Constructor: "
+		          << "Velocity limit is zero!" << std::endl;
+	}
 }
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
