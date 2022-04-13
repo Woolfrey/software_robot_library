@@ -162,6 +162,12 @@ bool CubicSpline::times_are_sound(const std::vector<float> &time)
 std::vector<Eigen::VectorXf> CubicSpline::compute_velocities(const std::vector<Eigen::VectorXf> &dx,
 							       const std::vector<float> &time)
 {
+	// Decent explanation here:
+        // Angeles, J. (Ed.). (2014). Fundamentals of robotic mechanical systems:
+        // theory, methods, and algorithms (Fourth Edition)
+        // Springer,  p. 258 - 276
+        // Method is altered here to constraint velocities instead of accelerations
+        
 	// Velocities are related to the displacements via A*xdot = B*dx.
 	// Note that dx = x(i+1) - x(i) is used instead of just x because
 	// it generalizes better to orientations as well
@@ -262,6 +268,7 @@ bool CubicSpline::get_state(Eigen::AngleAxisf &rot,
 		std::cerr << "[ERROR] [CUBICSPLINE] get_state(): "
 			  << "Something went wrong during the construction of this object. "
 			  << "Cannot get the desired state." << std::endl;
+			  
 		return false;
 	}
 	else
@@ -280,7 +287,6 @@ bool CubicSpline::get_state(Eigen::AngleAxisf &rot,
 				}
 			}
 		}
-		
 		return spline[j].get_state(rot, vel, acc, time);
 	}
 }

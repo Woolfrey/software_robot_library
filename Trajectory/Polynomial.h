@@ -209,6 +209,11 @@ bool Polynomial::compute_coefficients(const std::vector<float> &startPoint,
 				       const std::vector<float> &startVelocity,
 				       const std::vector<float> &endVelocity)
 {
+	// Decent explanation here:
+        // Angeles, J. (Ed.). (2014). Fundamentals of robotic mechanical systems:
+        // theory, methods, and algorithms (Fourth Edition)
+        // Springer,  p. 258 - 276
+        
 	float dt = this->tf - this->t0;                                                            // Time difference
 	this->coeff.resize(this->m);                                                              
 

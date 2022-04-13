@@ -19,7 +19,7 @@ class CartesianTrajectory
 		
 		CartesianTrajectory(const std::vector<Eigen::Isometry3f> &waypoint,
                                    const std::vector<float> &time);
-							
+
 		bool get_state(Eigen::Isometry3f &pose,
                               Eigen::VectorXf &vel,
                               Eigen::VectorXf &acc,
