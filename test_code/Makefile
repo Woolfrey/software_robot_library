@@ -48,10 +48,10 @@ RM = /usr/bin/cmake -E remove -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/woolfrey/workspace/RobotLibrary/test_code
+CMAKE_SOURCE_DIR = /home/woolfrey/workspace/RobotLibrary
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/woolfrey/workspace/RobotLibrary/test_code
+CMAKE_BINARY_DIR = /home/woolfrey/workspace/RobotLibrary
 
 #=============================================================================
 # Targets provided globally by CMake.
@@ -80,14 +80,14 @@ edit_cache/fast: edit_cache
 
 # The main all target
 all: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/woolfrey/workspace/RobotLibrary/test_code/CMakeFiles /home/woolfrey/workspace/RobotLibrary/test_code/CMakeFiles/progress.marks
-	$(MAKE) -f CMakeFiles/Makefile2 all
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/woolfrey/workspace/RobotLibrary/test_code/CMakeFiles 0
+	cd /home/woolfrey/workspace/RobotLibrary && $(CMAKE_COMMAND) -E cmake_progress_start /home/woolfrey/workspace/RobotLibrary/CMakeFiles /home/woolfrey/workspace/RobotLibrary/test_code/CMakeFiles/progress.marks
+	cd /home/woolfrey/workspace/RobotLibrary && $(MAKE) -f CMakeFiles/Makefile2 test_code/all
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/woolfrey/workspace/RobotLibrary/CMakeFiles 0
 .PHONY : all
 
 # The main clean target
 clean:
-	$(MAKE) -f CMakeFiles/Makefile2 clean
+	cd /home/woolfrey/workspace/RobotLibrary && $(MAKE) -f CMakeFiles/Makefile2 test_code/clean
 .PHONY : clean
 
 # The main clean target
@@ -97,30 +97,32 @@ clean/fast: clean
 
 # Prepare targets for installation.
 preinstall: all
-	$(MAKE) -f CMakeFiles/Makefile2 preinstall
+	cd /home/woolfrey/workspace/RobotLibrary && $(MAKE) -f CMakeFiles/Makefile2 test_code/preinstall
 .PHONY : preinstall
 
 # Prepare targets for installation.
 preinstall/fast:
-	$(MAKE) -f CMakeFiles/Makefile2 preinstall
+	cd /home/woolfrey/workspace/RobotLibrary && $(MAKE) -f CMakeFiles/Makefile2 test_code/preinstall
 .PHONY : preinstall/fast
 
 # clear depends
 depend:
-	$(CMAKE_COMMAND) -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 1
+	cd /home/woolfrey/workspace/RobotLibrary && $(CMAKE_COMMAND) -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 1
 .PHONY : depend
 
-#=============================================================================
-# Target rules for targets named robot_library_test
+# Convenience name for target.
+test_code/CMakeFiles/robot_library_test.dir/rule:
+	cd /home/woolfrey/workspace/RobotLibrary && $(MAKE) -f CMakeFiles/Makefile2 test_code/CMakeFiles/robot_library_test.dir/rule
+.PHONY : test_code/CMakeFiles/robot_library_test.dir/rule
 
-# Build rule for target.
-robot_library_test: cmake_check_build_system
-	$(MAKE) -f CMakeFiles/Makefile2 robot_library_test
+# Convenience name for target.
+robot_library_test: test_code/CMakeFiles/robot_library_test.dir/rule
+
 .PHONY : robot_library_test
 
 # fast build rule for target.
 robot_library_test/fast:
-	$(MAKE) -f CMakeFiles/robot_library_test.dir/build.make CMakeFiles/robot_library_test.dir/build
+	cd /home/woolfrey/workspace/RobotLibrary && $(MAKE) -f test_code/CMakeFiles/robot_library_test.dir/build.make test_code/CMakeFiles/robot_library_test.dir/build
 .PHONY : robot_library_test/fast
 
 robot_library_test.o: robot_library_test.cpp.o
@@ -129,7 +131,7 @@ robot_library_test.o: robot_library_test.cpp.o
 
 # target to build an object file
 robot_library_test.cpp.o:
-	$(MAKE) -f CMakeFiles/robot_library_test.dir/build.make CMakeFiles/robot_library_test.dir/robot_library_test.cpp.o
+	cd /home/woolfrey/workspace/RobotLibrary && $(MAKE) -f test_code/CMakeFiles/robot_library_test.dir/build.make test_code/CMakeFiles/robot_library_test.dir/robot_library_test.cpp.o
 .PHONY : robot_library_test.cpp.o
 
 robot_library_test.i: robot_library_test.cpp.i
@@ -138,7 +140,7 @@ robot_library_test.i: robot_library_test.cpp.i
 
 # target to preprocess a source file
 robot_library_test.cpp.i:
-	$(MAKE) -f CMakeFiles/robot_library_test.dir/build.make CMakeFiles/robot_library_test.dir/robot_library_test.cpp.i
+	cd /home/woolfrey/workspace/RobotLibrary && $(MAKE) -f test_code/CMakeFiles/robot_library_test.dir/build.make test_code/CMakeFiles/robot_library_test.dir/robot_library_test.cpp.i
 .PHONY : robot_library_test.cpp.i
 
 robot_library_test.s: robot_library_test.cpp.s
@@ -147,7 +149,7 @@ robot_library_test.s: robot_library_test.cpp.s
 
 # target to generate assembly for a file
 robot_library_test.cpp.s:
-	$(MAKE) -f CMakeFiles/robot_library_test.dir/build.make CMakeFiles/robot_library_test.dir/robot_library_test.cpp.s
+	cd /home/woolfrey/workspace/RobotLibrary && $(MAKE) -f test_code/CMakeFiles/robot_library_test.dir/build.make test_code/CMakeFiles/robot_library_test.dir/robot_library_test.cpp.s
 .PHONY : robot_library_test.cpp.s
 
 # Help Target
@@ -173,6 +175,6 @@ help:
 # No rule that depends on this can have commands that come from listfiles
 # because they might be regenerated.
 cmake_check_build_system:
-	$(CMAKE_COMMAND) -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 0
+	cd /home/woolfrey/workspace/RobotLibrary && $(CMAKE_COMMAND) -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 0
 .PHONY : cmake_check_build_system
 

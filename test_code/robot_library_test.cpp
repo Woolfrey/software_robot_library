@@ -358,4 +358,3 @@ bool test_serial_link()
 	}
 	else	return false;
 }
-

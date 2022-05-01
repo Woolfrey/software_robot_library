@@ -6,5 +6,5 @@ CXX_FLAGS =
 
 CXX_DEFINES = 
 
-CXX_INCLUDES = -I/home/woolfrey/workspace/RobotLibrary/test_code/../Control -I/home/woolfrey/workspace/RobotLibrary/test_code/../Robot -I/home/woolfrey/workspace/RobotLibrary/test_code/../Trajectory -isystem /usr/include/eigen3 
+CXX_INCLUDES = -I/home/woolfrey/workspace/RobotLibrary/Control -I/home/woolfrey/workspace/RobotLibrary/Robot -I/home/woolfrey/workspace/RobotLibrary/Trajectory -isystem /usr/include/eigen3 
 
