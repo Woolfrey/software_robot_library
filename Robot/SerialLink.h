@@ -138,7 +138,7 @@ SerialLink::SerialLink(const std::vector<RigidBody> &links,
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 bool SerialLink::set_joint_state(const Eigen::VectorXf &pos, const Eigen::VectorXf &vel)
 {
-	if(pos.size() != this->n or vel.size() != this->n)                                          // Dimension of all arguments are correct
+	if(pos.size() != this->n or vel.size() != this->n)                                          // Dimension of all arguments are incorrect
 	{
 		std::cerr << "[ERROR] [SERIALLINK] set_joint_state(): "
 			  << "Expected " << this->n <<"x1" << " vectors for the input arguments but "
@@ -155,8 +155,8 @@ bool SerialLink::set_joint_state(const Eigen::VectorXf &pos, const Eigen::Vector
 //		update_inverse_dynamics();                                                          // Compute inertia, coriolis, gravity
 
 		// Variables used in this scope
-		Eigen::Matrix3f I = Eigen::Matrix3f::Identity();                                    // Inertia matrix
-		Eigen::Matrix3f Idot = Eigen::Matrix3f::Zero();                                     // Time-derivative of inertia
+		Eigen::Matrix3f A = Eigen::Matrix3f::Identity();                                    // Cartesian mass-inertia matrix
+		Eigen::Matrix3f Adot = Eigen::Matrix3f::Zero();                                     // Time-derivative of inertia
 		Eigen::MatrixXf Jc, Jcdot, Jv, Jw;                                                  // Jacobian to center of mass
 		Eigen::Vector3f com = Eigen::Vector3f::Zero();                                      // Location of center of mass for a link
 		Eigen::Vector3f omega = Eigen::Vector3f::Zero();                                    // Angular velocity of a link
@@ -177,7 +177,7 @@ bool SerialLink::set_joint_state(const Eigen::VectorXf &pos, const Eigen::Vector
 			this->axis[i] = this->fkChain[i].rotation()*this->joint[i].get_axis();
 			
 			////////////////////////////// DYNAMICS ////////////////////////////////////
-		 	// A (convoluted) derivation can be found here:`update_inverse_dynamics()`
+		 	// A (convoluted) derivation can be found here:
         		// Angeles, J. (Ed.). (2014). Fundamentals of robotic mechanical systems:
         		// theory, methods, and algorithms (4th Edition),
         		// New York, NY: Springer New York. pages 306 - 315
@@ -192,11 +192,11 @@ bool SerialLink::set_joint_state(const Eigen::VectorXf &pos, const Eigen::Vector
 			
 			this->g.head(i+1) -= m*Jv.transpose()*this->gravityVector;                  // We need to *negate* the effect of gravity
 			
-			I = this->fkChain[i].rotation()
+			A = this->fkChain[i].rotation()
 			  * this->link[i].get_inertia()
 			  * this->fkChain[i].rotation().inverse();                                  // Rotate inertia matrix to global frame
 			
-			this->M.block(0,0,i+1,i+1) += m*Jv.transpose()*Jv + Jw.transpose()*I*Jw;    // Accrue inertia
+			this->M.block(0,0,i+1,i+1) += m*Jv.transpose()*Jv + Jw.transpose()*A*Jw;    // Accrue inertia
 		
 			Jcdot = get_time_derivative(Jc);                                            // As it says on the label
 			
@@ -204,14 +204,14 @@ bool SerialLink::set_joint_state(const Eigen::VectorXf &pos, const Eigen::Vector
 			
 			if(i > 0)
 			{
-				// Idot = skew(omega)*I, but we can skip all the zeros by doing it manually:
-				Idot << omega(1)*I(2,0)-omega(2)*I(1,0), omega(1)*I(2,1)-omega(2)*I(1,1), omega(1)*I(2,2)-omega(2)*I(1,2),
+				// Adot = skew(omega)*A, but we can skip all the zeros by doing it manually:
+				Adot << omega(1)*I(2,0)-omega(2)*I(1,0), omega(1)*I(2,1)-omega(2)*I(1,1), omega(1)*I(2,2)-omega(2)*I(1,2),
                                         omega(2)*I(0,0)-omega(0)*I(2,0), omega(2)*I(0,1)-omega(0)*I(2,1), omega(2)*I(0,2)-omega(0)*I(2,2),
                                         omega(0)*I(1,0)-omega(1)*I(0,0), omega(0)*I(1,1)-omega(1)*I(0,1), omega(0)*I(1,2)-omega(1)*I(0,2);
                         }
 			
 			this->C.block(0,0,i+1,i+1) += m*Jv.transpose()*Jcdot.block(0,0,3,i+1)
-                                                    + Jw.transpose()*(I*Jcdot.block(3,0,3,i+1) + Idot*Jw);
+                                                    + Jw.transpose()*(I*Jcdot.block(3,0,3,i+1) + Adot*Jw);
 		}
 		
 		// Update transform from last joint to endpoint
