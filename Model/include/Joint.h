@@ -46,4 +46,3 @@ class Joint
 };                                                                                                 // Semicolon needed after a class declaration
 
 #endif
-

@@ -10,7 +10,7 @@
 #include <Eigen/Geometry>                                                                          // Eigen::VectorXf, Eigen::AngleAxisf
 #include <math.h>                                                                                  // M_PI
 #include <vector>                                                                                  // std::vector
-
+#include <iostream>
 class Polynomial
 {
 	public:

@@ -10,6 +10,7 @@
 #include <CubicSpline.h>                                                                            // Custom trajectory class
 #include <Eigen/Geometry>                                                                           // Eigen::Isometry3f, Eigen::AngleAxisf
 #include <vector>                                                                                   // std::vector
+#include <iostream>
 
 class CartesianTrajectory
 {

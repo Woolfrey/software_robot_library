@@ -62,4 +62,3 @@ void Joint::get_position_limits(float &lower, float &upper)
 	lower = this->pLim[0];
 	upper = this->pLim[1];
 }
-

@@ -1,52 +1,68 @@
 cmake_minimum_required(VERSION 3.8)					                            # Minimum cmake requirement
 
-project(RobotLibrary)							                            # Can use ${PROJECT_NAME} as a reference
-
-find_package(Eigen3 REQUIRED)
+project(RobotLibrary VERSION 1.0.0 LANGUAGES CXX)							                            # Can use ${PROJECT_NAME} as a reference
 
 # Other directories to add to the build
-include_directories(
-	Control
-	Robot
-	Trajectory
- )
 
-add_subdirectory(Test)                                                                              # Location of other CMakeLists files
+add_library(RobotLibrary INTERFACE)
 
+add_subdirectory(Model)
+add_subdirectory(Trajectory)
+add_subdirectory(Control)
 
-###################################################################################################
+target_link_libraries(RobotLibrary INTERFACE Model Trajectory Control)
 
-# Make relative paths absolute (to prevent CMake warning when building)
-foreach(p LIB BIN INCLUDE CMAKE)
-  set(var INSTALL_${p}_DIR)
-  if(NOT IS_ABSOLUTE "${${var}}")
-    set(${var} "${CMAKE_INSTALL_PREFIX}/${${var}}")
-  endif()
-endforeach()
+##############################################
+# Installation instructions
 
-export(TARGETS robot_library_test                                                                   # Target source files
-       FILE "${PROJECT_BINARY_DIR}/RobotLibraryTargets.cmake")                                      # Location
+include(GNUInstallDirs)
 
-export(PACKAGE RobotLibrary)                                                                        # Register with CMake so others can find it
+set(INSTALL_CONFIGDIR ${CMAKE_INSTALL_LIBDIR}/cmake/RobotLibrary)
 
-# Create the RobotLibraryConfig.cmake and RobotLibraryConfigVersion files
-file(RELATIVE_PATH REL_INCLUDE_DIR "${INSTALL_CMAKE_DIR}" "${INSTALL_INCLUDE_DIR}")
-  
-set(CONF_INCLUDE_DIRS "${PROJECT_SOURCE_DIR}" "${PROJECT_BINARY_DIR}")                              # ... for the build tree
-configure_file(RobotLibraryConfig.cmake.in "${PROJECT_BINARY_DIR}/RobotLibraryConfig.cmake" @ONLY)
-  
-set(CONF_INCLUDE_DIRS "\${ROBOTLIBRARY_CMAKE_DIR}/${REL_INCLUDE_DIR}")                              # ... for the install tree
-configure_file(RobotLibraryConfig.cmake.in "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/RobotLibraryConfig.cmake" @ONLY)
-  
-configure_file(RobotLibraryConfigVersion.cmake.in "${PROJECT_BINARY_DIR}/RobotLibraryConfigVersion.cmake" @ONLY) # ... for both
+install(TARGETS RobotLibrary Model Trajectory Control
+    EXPORT RobotLibrary-targets
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+)
 
-# Install the RobotLibraryConfig.cmake and RobotLibraryConfigVersion.cmake
+#Export the targets to a script
+install(EXPORT RobotLibrary-targets
+  FILE
+    RobotLibraryTargets.cmake
+  NAMESPACE
+    RobotLibrary::
+  DESTINATION
+    #${CMAKE_INSTALL_LIBDIR}/cmake/RobotLibrary
+    ${INSTALL_CONFIGDIR}
+)
+
+#Create a ConfigVersion.cmake file
+include(CMakePackageConfigHelpers)
+write_basic_package_version_file(
+    ${CMAKE_CURRENT_BINARY_DIR}/RobotLibraryConfigVersion.cmake
+    VERSION ${PROJECT_VERSION}
+    COMPATIBILITY AnyNewerVersion
+)
+
+configure_package_config_file(${CMAKE_CURRENT_LIST_DIR}/cmake/RobotLibraryConfig.cmake.in
+    ${CMAKE_CURRENT_BINARY_DIR}/RobotLibraryConfig.cmake
+    INSTALL_DESTINATION ${INSTALL_CONFIGDIR}
+)
+
+#Install the config, config version and custom find modules
 install(FILES
-	"${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/RobotLibraryConfig.cmake"
-	"${PROJECT_BINARY_DIR}/RobotLibraryConfigVersion.cmake"
-	DESTINATION "${INSTALL_CMAKE_DIR}" COMPONENT dev)
+    ${CMAKE_CURRENT_BINARY_DIR}/RobotLibraryConfig.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}/RobotLibraryConfigVersion.cmake
+    DESTINATION ${INSTALL_CONFIGDIR}
+)
 
-# Install the export set for use with the install-tree
-install(EXPORT RobotLibraryTargets DESTINATION
-  	"${INSTALL_CMAKE_DIR}" COMPONENT dev)
+##############################################
+## Exporting from the build tree
+export(EXPORT RobotLibrary-targets
+    FILE ${CMAKE_CURRENT_BINARY_DIR}/RobotLibraryTargets.cmake
+    NAMESPACE RobotLibrary::)
 
+#Register package in the User Package Registry
+export(PACKAGE RobotLibrary)
+
+add_subdirectory(Test)
