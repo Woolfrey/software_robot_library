@@ -9,9 +9,11 @@
 
 #include <array>                                                                                    // std::array
 #include <Eigen/Geometry>                                                                           // Transforms (Isometry3f)
-#include <Joint.h>                                                                                  // Custom class representing moveable joints
-#include <RigidBody.h>                                                                              // Custom class
+#include <iostream>
 #include <vector>                                                                                   // std::vector
+
+#include "Joint.h"                                                                                  // Custom class representing moveable joints
+#include "RigidBody.h"                                                                              // Custom class
 
 class SerialLink
 {

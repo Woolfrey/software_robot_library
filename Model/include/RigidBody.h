@@ -8,6 +8,7 @@
 #define RIGIDBODY_H_
 
 #include <Eigen/Geometry>                                                                           // Eigen::Affine3f
+#include <iostream>
 
 class RigidBody
 {

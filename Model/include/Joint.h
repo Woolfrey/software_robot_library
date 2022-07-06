@@ -8,6 +8,7 @@
 #define JOINT_H_
 
 #include <Eigen/Geometry>                                                                          // Eigen::Isometry3f, Eigen::Vector3f
+#include <iostream>
 
 class Joint
 {
