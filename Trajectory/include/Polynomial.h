@@ -15,7 +15,7 @@ class Polynomial
 {
 	public:
 	
-		Polynomial();
+		Polynomial() {}                                                                     // Empty constructor
 
 		// Constructor with only positions, delegates zero velocity
 		Polynomial(const Eigen::VectorXf &startPoint,
