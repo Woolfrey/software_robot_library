@@ -19,8 +19,8 @@ int main(int argc, char *argv[])
 	std::cout <<   "*                      QR DECOMPOSITION                    *" << std::endl;
 	std::cout <<   "************************************************************\n" << std::endl;
 	
-	m = 5;
-	n = 3;
+	m = 6;
+	n = 5;
 	
 	A = Eigen::MatrixXf::Random(m,n);
 	
@@ -54,7 +54,7 @@ int main(int argc, char *argv[])
 
 
 	std::cout << "\n************************************************************" << std::endl;
-	std::cout <<   "*               SOLVING LINEAR SYSTEMS WITH QR             *" << std::endl;
+	std::cout <<   "*             SOLVING LINEAR SYSTEMS WITH QR               *" << std::endl;
 	std::cout <<   "************************************************************\n" << std::endl;
 	
 	std::cout << "\nHere is a random system of equations y = A*x.\n" << std::endl;
@@ -112,7 +112,7 @@ int main(int argc, char *argv[])
 	std::cout << "The estimate is:\n" << std::endl;
 	std::cout << xHat << std::endl;
 	
-	std::cout << "\nIt took " << (float)timer/CLOCKS_PER_SEC << "ms to solve("
+	std::cout << "\nIt took " << (float)timer/CLOCKS_PER_SEC << "ms to solve ("
 	          << 1/((float)timer/CLOCKS_PER_SEC) << "Hz).\n" << std::endl;
 	std::cout << "\nThe solution error was " << (x-xHat).norm() << std::endl;
 	
