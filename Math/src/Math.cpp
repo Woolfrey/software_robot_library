@@ -48,38 +48,11 @@ bool get_qr_decomposition(const Eigen::MatrixXf &A,
 			
 			R(j,j) = Q.col(j).norm();
 			
-			if( R(j,j) > 1E-10 ) Q.col(j) /= R(j,j);
-			else                 Q.col(j) /= 1E-10;                                     // Rounding error on singularities
-		}
-	
-/*		Below are the Householder reflections, which are slow
-
-		Eigen::MatrixXf B = A;                                                              // Copy the input matrix as we need to modify it
-		
-		Q = Eigen::MatrixXf::Identity(A.rows(),A.rows());                                   // This will form the orthogonal matrix
-		
-		int m = A.rows();
-		int steps = m-1; if(A.cols() < steps) steps = A.cols();
-		
-		Eigen::MatrixXf Qtemp(m,m);                                                         // Used to construct Q matrix
-		Eigen::VectorXf b(B.rows());                                                        // For storing column vectors of B matrix
-		Eigen::VectorXf v(B.rows());                                                        // Used for pivoting
-		
-		for(int i = 0; i < steps; i++)
-		{
-			Eigen::VectorXf e = Eigen::VectorXf::Zero(m-i); e(0) = 1;                   // Construct the pivot vector
-			b = B.block(i,i,m-i,1);                                                     // Get the ith column of the B matrix
-			v = (b - b.norm()*e).normalized();                                          // Compute the normalized vector along the pivot
+			if( abs(R(j,j)) > 1E-10 ) Q.col(j) /= R(j,j);
 			
-			Qtemp.setIdentity();                                                        // Construct the ith orthogonal matrix
-			Qtemp.block(i,i,m-i,m-i) = Eigen::MatrixXf::Identity(m-i,m-i) - 2*v*v.transpose();
-			
-			B = Qtemp*B;                                                                // Update the B matrix
-			Q = Q*Qtemp.transpose();                                                    // Update the total orthogonal matrix
+//			if( R(j,j) != 0 ) Q.col(j) /= R(j,j);                                       // Can't divide by zero!
 		}
 		
-		R = Q.transpose()*A;                                                                // Q'*A = Q'*Q*R = R
-*/		
 		return true;
 	}
 }
@@ -170,10 +143,13 @@ Eigen::VectorXf solve_linear_system(const Eigen::VectorXf &y,
 	else
 	{
 		Eigen::VectorXf x = x0;                                                             // Value to be returned
-		Eigen::MatrixXf Q, R;                                                               // Used in QR decomposition	
+		Eigen::MatrixXf Q, R;                                                               // Used in QR decomposition
 		
-		// Overdetermined system, minimize 0.5*x'*x subject to A*x = y
-		if(m < n)                                                                                 
+		if(m == n)                                                                          // Fully determined
+		{
+			if(get_qr_decomposition(A,Q,R)) x = solve_triangular_system(Q.transpose()*y, R, x0);
+		}		
+		else if(m < n)                                                                      // Overdetermined, find minimum  ||x||^2                                                                        
 		{
 			// M = [ 0  A ]
 			//     [ A' W ]
@@ -192,13 +168,7 @@ Eigen::VectorXf solve_linear_system(const Eigen::VectorXf &y,
 					x = solve_triangular_system(Q12.transpose()*y, R22, x0);
 			}
 		}
-		// Fully determined system
-		else if(m == n)
-		{
-			if(get_qr_decomposition(A,Q,R)) x = solve_triangular_system(Q.transpose()*y, R, x0);
-		}
-		// Undetermined system, minimize || y - A*x ||
-		else // m > n
+		else // m > n                                                                       // Underdetermined, minimize ||y-A*x||^2
 		{
 			Eigen::MatrixXf At = A.transpose();
 			if(get_qr_decomposition(At*A,Q,R)) x = solve_triangular_system(Q.transpose()*At*y, R, x0);
