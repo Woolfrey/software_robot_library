@@ -59,10 +59,10 @@ bool SerialLink::set_joint_state(const Eigen::VectorXf &pos, const Eigen::Vector
 //		update_inverse_dynamics();                                                          // Compute inertia, coriolis, gravity
 
 		// Variables used in this scope
-		Eigen::Matrix3f A = Eigen::Matrix3f::Identity();                                    // Cartesian mass-inertia matrix
-		Eigen::Matrix3f Adot = Eigen::Matrix3f::Zero();                                     // Time-derivative of inertia
+		Eigen::Matrix3f A     = Eigen::Matrix3f::Identity();                                // Cartesian mass-inertia matrix
+		Eigen::Matrix3f Adot  = Eigen::Matrix3f::Zero();                                    // Time-derivative of inertia
 		Eigen::MatrixXf Jc, Jcdot, Jv, Jw;                                                  // Jacobian to center of mass
-		Eigen::Vector3f com = Eigen::Vector3f::Zero();                                      // Location of center of mass for a link
+		Eigen::Vector3f com   = Eigen::Vector3f::Zero();                                    // Location of center of mass for a link
 		Eigen::Vector3f omega = Eigen::Vector3f::Zero();                                    // Angular velocity of a link
 		float m = 0.0;                                                                      // Mass of an individual link
 		
@@ -115,7 +115,7 @@ bool SerialLink::set_joint_state(const Eigen::VectorXf &pos, const Eigen::Vector
                         }
 			
 			this->C.block(0,0,i+1,i+1) += m*Jv.transpose()*Jcdot.block(0,0,3,i+1)
-                                                    + Jw.transpose()*(A*Jcdot.block(3,0,3,i+1) + Adot*Jw);
+                                                   + Jw.transpose()*(A*Jcdot.block(3,0,3,i+1) + Adot*Jw);
 		}
 		
 		// Update transform from last joint to endpoint

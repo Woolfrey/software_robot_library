@@ -148,7 +148,7 @@ Eigen::VectorXf SerialKinControl::get_cartesian_control(const Eigen::VectorXf &v
 }
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
- //                          Follow the endpoint pose at the given speed                           //
+ //            Follow a Cartesian trajectory defined by pose and instantaneous velocity            //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 Eigen::VectorXf SerialKinControl::get_cartesian_control(const Eigen::Isometry3f &pose,
                                                         const Eigen::VectorXf &vel)
@@ -164,7 +164,7 @@ Eigen::VectorXf SerialKinControl::get_cartesian_control(const Eigen::Isometry3f 
 }
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
- //            Follow the endpoint pose at the given speed, with added redundant task              //
+ //         Follow Cartesian trajectory with pose, instantaneous velocity, and redundant task      //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 Eigen::VectorXf SerialKinControl::get_cartesian_control(const Eigen::Isometry3f &pose,
                                                         const Eigen::VectorXf &vel,
@@ -182,7 +182,7 @@ Eigen::VectorXf SerialKinControl::get_cartesian_control(const Eigen::Isometry3f 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 Eigen::VectorXf SerialKinControl::get_joint_control(const Eigen::VectorXf &pos, const Eigen::VectorXf &vel)
 {
-	if(pos.size() != this->n || vel.size() != this->n)
+	if(pos.size() != this->n or vel.size() != this->n)
 	{
 		std::cerr << "[ERROR] [SERIALKINCONTROL] get_joint_control() : "
                          << "This robot has " << this->n << " joints "
