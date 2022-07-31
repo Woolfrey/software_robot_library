@@ -1,6 +1,40 @@
 #include <iostream>                                                                                 // std::cerr
 #include <Math.h>                                                                                   // Declaration of function names
 
+
+  ///////////////////////////////////////////////////////////////////////////////////////////////////
+ //                       Decompose a positive-definite matrix A in to L*L'                       //
+///////////////////////////////////////////////////////////////////////////////////////////////////
+Eigen::MatrixXf get_cholesky_decomp(const Eigen::MatrixXf &A)
+{
+	int n = A.rows();
+	Eigen::MatrixXf L = Eigen::MatrixXf::Zero(n,n);
+	if(A.rows() != A.cols())
+	{
+		std::cerr << "[ERROR] get_cholesky_decomp(): "
+		          << "Expected a square matrix, but "
+		          << "the input was " << A.rows() << "x" << A.cols() << "." << std::endl;
+	}
+	else
+	{
+                // Cholesky–Banachiewicz algorithm (row-wise)
+		for(int i = 0; i < n; i++)
+		{
+			for(int j = 0; j <= i; j++)
+			{
+				float sum = 0.0;
+				for(int k = 0; k <= j; k++) sum += L(i,k) * L(j,k);
+				
+				if(i == j) L(i,j) = sqrt(A(i,i) - sum);
+				else       L(i,j) = (A(i,j) - sum)/L(j,j);
+			}
+		}
+	}
+	
+	return L;
+}
+
+
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //           Decompose a matrix A in to orthogonal matrix Q and triangular matrix R              //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -175,6 +209,102 @@ Eigen::VectorXf solve_linear_system(const Eigen::VectorXf &y,
 		{
 			Eigen::MatrixXf At = A.transpose();
 			if(get_qr_decomposition(At*A,Q,R)) x = solve_triangular_system(Q.transpose()*At*y, R, x0);
+		}
+		
+		return x;
+	}
+}
+
+  ///////////////////////////////////////////////////////////////////////////////////////////////////
+ //        Solve a linear system of equations given by y = Ax where A is positive-definite        //
+///////////////////////////////////////////////////////////////////////////////////////////////////
+Eigen::VectorXf solve_cholesky_system(const Eigen::VectorXf &y, const Eigen::MatrixXf &A)
+{
+	int n = A.rows();
+	if(A.cols() != n)
+	{
+		std::cerr << "[ERROR] solve_cholesky_system(): "
+		          << "Expected a square A matrix but it was "
+		          << A.rows() << "x" << A.cols() << "." << std::endl;
+		          
+		return Eigen::VectorXf::Zero(n);
+	}
+	else if(y.size() != n)
+	{
+		std::cerr << "[ERROR] solve_cholesky_system(): "
+		          << "Expected a " << n << "x1 vector for y, but "
+		          << "it was " << y.size() << "x1." << std::endl;
+		
+		return Eigen::VectorXf::Zero(n);
+	}
+	else
+	{
+		Eigen::MatrixXf L = get_cholesky_decomp(A);
+		
+		return back_substitution(forward_substitution(y,L), L.transpose()); // lol too easy
+	}
+}
+
+  ///////////////////////////////////////////////////////////////////////////////////////////////////
+ //                       Solve y = U*x, where U is an upper-triangular matrix                    //
+///////////////////////////////////////////////////////////////////////////////////////////////////
+Eigen::VectorXf back_substitution(const Eigen::VectorXf &y, const Eigen::MatrixXf &U)
+{
+	int n = U.cols();
+	Eigen::VectorXf x(n);
+	
+	if(y.size() != n or U.rows() != n)
+	{
+		std::cerr << "[ERROR] back_substitution(): "
+		          << "Dimensions of inputs do not match. "
+		          << "The y vector had " << y.size() << " elements, and "
+		          << "the U matrix had " << U.rows() << "x" << U.cols() << " elements." << std::endl;
+		          
+		x.setZero();
+		return x;
+	}
+	else
+	{
+		for(int i = n-1; i >= 0; i--)
+		{
+			float sum = 0.0;
+			for(int j = i+1; j < n; j++) sum += U(i,j)*x(j);
+			
+			if(U(i,i) < 1E-6) x(i) = 0.0;
+			else              x(i) = (y(i)-sum)/U(i,i);
+		}
+		
+		return x;
+	}
+}
+
+  ///////////////////////////////////////////////////////////////////////////////////////////////////
+ //                       Solve y = L*x, where L is an lower-triangular matrix                    //
+///////////////////////////////////////////////////////////////////////////////////////////////////
+Eigen::VectorXf forward_substitution(const Eigen::VectorXf &y, const Eigen::MatrixXf &L)
+{
+	int n = L.cols();
+	
+	if(y.size() != n or L.rows() != n)
+	{
+		std::cerr << "[ERROR] forward_substitution(): "
+		          << "Dimensions of inputs do not match. "
+		          << "The y vector had " << y.size() << " elements, and "
+		          << "the L matrix had " << L.rows() << "x" << L.cols() << " elements." << std::endl;
+		
+		return Eigen::VectorXf::Zero(n);
+	}
+	else
+	{
+		Eigen::VectorXf x(n);
+		
+		for(int i = 0; i < n; i++)
+		{
+			float sum = 0.0;
+			for(int j = i; j < i; j++) sum += L(i,j)*x(j);
+			
+			if(L(i,i) < 1E-6) x(i) = 0.0;
+			else              x(i) = (y(i) - sum)/L(i,i);
 		}
 		
 		return x;
