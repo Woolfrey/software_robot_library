@@ -2,6 +2,7 @@
 #define QPSOLVER_H_
 
 #include <Math.h>                                                                                    // Required for QR Decomposition
+#include <vector>                                                                                    // std::vector
 
 class QPSolver
 {
@@ -49,15 +50,15 @@ class QPSolver
 		                         
 	private:
 		// These are variables used by the interior point method:
-		float alpha     = 1.0;                                                              // Modify size of Newton Step
+		float alpha0    = 1.0;                                                              // Modify size of Newton Step
 		float alphaMod  = 0.1;                                                              // Modify step size when constraint violated
-		float beta      = 0.1;                                                              // Rate of decreasing barrier function
+		float beta0     = 0.1;                                                             // Rate of decreasing barrier function
 		float betaMod   = 0.2;                                                              // Increase of rate of barrier function
-		float timeout   = 1e-03;                                                            // Timeout for interior point method
+		float timeout   = 5e-03;                                                            // Timeout for interior point method
 		float tol       = 1e-03;                                                            // Tolerance on step size
-		float u         = 1.0;                                                              // Scalar on barrier function
+		float u0        = 1.0;                                                              // Scalar on barrier function
 		float uMod      = 2.0;                                                              // Value to increase barrier function
-		int   steps     = 30;                                                               // No. of steps to run interior point method
+		int   steps     = 20;                                                               // No. of steps to run interior point method
 		                         
 };                                                                                                  // Semicolon needed after class declaration
 
