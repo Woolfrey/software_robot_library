@@ -36,7 +36,7 @@ Eigen::VectorXf QPSolver::solve(const Eigen::MatrixXf &H,                       
 {
 	// Check the inputs are sound
 	int n = x0.size();
-	if(H.rows() != n or H.cols() != n or f.size() != n or B.cols() != c.size())
+	if(H.rows() != n or H.cols() != n or f.size() != n or B.rows() != c.size())
 	{
 		std::cout << "[ERROR] [QPSOLVER] solve(): "
 		          << "Dimensions of input arguments do not match. "
@@ -62,32 +62,45 @@ Eigen::VectorXf QPSolver::solve(const Eigen::MatrixXf &H,                       
 		//
 		//    I(x) = H + u*sum((1/(d_i^2))*b_i'*b_i)
 		
-		int numConstraints     = B.rows();
+		int count;		
+		
+		float u     = this->u0;
+		float alpha = this->alpha0;
+		float beta  = this->beta0;
+		
+		int numConstraints = B.rows();
+		
+		Eigen::MatrixXf I(n,n);
+		
+		Eigen::VectorXf dx;
+		Eigen::VectorXf g(n);		
 		Eigen::VectorXf x      = x0;
-		Eigen::VectorXf x_prev = x;
+		Eigen::VectorXf x_prev = x0;
+		
 		
 		// Do some pre-processing
 		std::vector<Eigen::VectorXf> bt(numConstraints);
 		std::vector<Eigen::MatrixXf> btb(numConstraints);
+		
 		for(int j = 0; j < numConstraints; j++)
 		{
-			bt[j]  = B.row(j).transpose();                                              // Transpose of the row vector
-			btb[j] = bt[j]*bt[j].transpose();                                           // Row vector by its transpose
+			bt[j]  = B.row(j).transpose();
+			btb[j] = bt[j]*bt[j].transpose();
 		}
 		
 		// Run interior point method
 		for(int i = 0; i < this->steps; i++)
 		{
 			//(Re)set values for new loop
-			bool violation    = false;                                                  // Flag if constraint is violated
-			Eigen::MatrixXf I = H;                                                      // Hessian matrix
-			Eigen::VectorXf g = Eigen::VectorXf::Zero(n);                               // Gradient vector
+			bool violation = false;
+			I = H;
+			g.setZero();
 			
 			// Check the constraints
 			for(int j = 0; j < numConstraints; j++)
 			{
-				float d = bt[j].dot(x) - c[j];                                      // Distance to constraint
-				
+				float d = bt[j].dot(x) - c(j);
+
 				if(d <= 0)
 				{
 					if(i == 0)
@@ -99,30 +112,32 @@ Eigen::VectorXf QPSolver::solve(const Eigen::MatrixXf &H,                       
 					}
 					
 					violation = true;                                           // Flag constraint violation for later
-					this->u   *= this->uMod;                                    // Increase barrier function scalar
-					d         = 1E-5;                                           // Set a very small, non-zero value
+					u        *= this->uMod;                                     // Increase barrier function scalar
+					d         = 1E-6;                                           // Set a very small, non-zero value
 				}
 				
-				g -= (u/d)*bt[i];                                                   // Add up gradient
-				I += (u/(d*d))*btb[i];                                              // Add up Hessian
+				g -= (u/d)*bt[j];
+				I += (u/(d*d))*btb[j];
 			}
 			
 			if(violation)
 			{
-				x            = x_prev;                                              // Go back to the last step
-				this->alpha *= alphaMod;                                            // Decrease the step size
-				this->beta  += this->betaMod*(1 - this->beta);                      // Slow decrement of barrier function
+				x      = x_prev;                                                    // Go back to last solution
+				alpha *= this->alphaMod;                                            // Decrease the step size
+				beta  += this->betaMod*(1 - beta);                                  // Slow decrease of barrier function
 			}
-			
+					
 			g += I*x - f;                                                               // Add final part of gradient
 			
-			Eigen::VectorXf dx = solve_linear_system(-g,H,Eigen::VectorXf::Zero(n));    // Solve the Newton Step
+			dx = solve_cholesky_system(-g,I);                                           // Newton Step
 			
 			if(dx.norm() < this->tol) break;                                            // Step size is small, end algorithm
 			
 			x_prev   = x;                                                               // Save last value for next loop
-			x       += this->alpha*dx;                                                  // Increment the solution
-			this->u *= this->beta;                                                      // Decrement barrier function
+			x       += alpha*dx;                                                        // Increment the solution
+			u       *= beta;                                                            // Decrement barrier function
+			
+			count = i;
 		}
 		
 		// Do one last check on the constraint
@@ -137,6 +152,7 @@ Eigen::VectorXf QPSolver::solve(const Eigen::MatrixXf &H,                       
 			}
 		}
 		
+		std::cout << "\nNumber of steps was: " << count+1 << "." << std::endl;
 		return x;
 	}
 }
