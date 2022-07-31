@@ -84,10 +84,6 @@ bool get_qr_decomposition(const Eigen::MatrixXf &A,
 			
 			if(abs(R(j,j)) > 1E-6) Q.col(j) /= R(j,j);
 			else                   Q.col(j).setZero();
-			
-//			if( abs(R(j,j)) > 1E-10 ) Q.col(j) /= R(j,j);
-			
-//			if( R(j,j) != 0 ) Q.col(j) /= R(j,j);                                       // Can't divide by zero!
 		}
 		
 		return true;
