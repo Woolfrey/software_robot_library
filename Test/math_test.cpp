@@ -15,6 +15,33 @@ int main(int argc, char *argv[])
 	Eigen::VectorXf x0;
 	Eigen::VectorXf xHat;
 	
+	
+	std::cout << "\n************************************************************" << std::endl;
+	std::cout <<   "*                   CHOLESKY DECOMPOSITION                 *" << std::endl;
+	std::cout <<   "************************************************************\n" << std::endl;
+	
+	m = 5;
+	n = 5;
+	A = Eigen::MatrixXf::Random(m,n);
+	A = A*A.transpose();
+	
+	std::cout << "\nWe can use Cholesky decomposition to express a positive-definite matrix A as L*L'.\n" << std::endl;
+	std::cout << "\nHere is the matrix A:\n" << std::endl;
+	std::cout << A << std::endl;
+	
+	timer = clock();
+	Eigen::MatrixXf L = get_cholesky_decomp(A);
+	timer = clock() - timer;
+	
+	std::cout << "\nHere is the matrix L:\n" << std::endl;
+	std::cout << L << std::endl;
+	std::cout << "\nIt took " << (float)timer/CLOCKS_PER_SEC*1000 << "ms to solve ("
+	          <<  1/((float)timer/CLOCKS_PER_SEC) << " Hz).\n" << std::endl;
+	          
+	std::cout << "And here is L*L':\n" << std::endl;
+	std::cout << L*L.transpose() << std::endl;
+	        
+	
 	std::cout << "\n************************************************************" << std::endl;
 	std::cout <<   "*                      QR DECOMPOSITION                    *" << std::endl;
 	std::cout <<   "************************************************************\n" << std::endl;
@@ -43,8 +70,7 @@ int main(int argc, char *argv[])
 	std::cout << "\nHere is Q*R:\n" << std::endl;
 	std::cout << Q*R << std::endl;
 	
-	std::cout << "\nThe error norm || A - Q*R || is:\n" << std::endl;
-	std::cout << (A-Q*R).norm() << std::endl;
+	std::cout << "\nThe error norm || A - Q*R || is: " << (A-Q*R).norm() << "." << std::endl;
 	
 	if( m > n )
 	{
@@ -83,7 +109,7 @@ int main(int argc, char *argv[])
 	
 	std::cout << "\nThe solution error is " << (x - xHat).norm() << std::endl;
 	
-	std::cout << "\nIt took " << (float)timer/CLOCKS_PER_SEC << "ms to solve ("
+	std::cout << "\nIt took " << (float)timer/CLOCKS_PER_SEC*1000 << "ms to solve ("
 	          << 1/((float)timer/CLOCKS_PER_SEC) << "Hz).\n" << std::endl;
 
 	std::cout << "\n************************************************************" << std::endl;
@@ -112,7 +138,7 @@ int main(int argc, char *argv[])
 	std::cout << "The estimate is:\n" << std::endl;
 	std::cout << xHat << std::endl;
 	
-	std::cout << "\nIt took " << (float)timer/CLOCKS_PER_SEC << "ms to solve ("
+	std::cout << "\nIt took " << (float)timer/CLOCKS_PER_SEC*1000<< "ms to solve ("
 	          << 1/((float)timer/CLOCKS_PER_SEC) << "Hz).\n" << std::endl;
 	std::cout << "\nThe solution error was " << (x-xHat).norm() << std::endl;
 	
@@ -127,7 +153,6 @@ int main(int argc, char *argv[])
 	std::cout << "\nAnd the vector y:\n" << std::endl;
 	std::cout << y << std::endl;
 	
-	std::cout << "\nThe least squares solution is:\n" << std::endl;
 	timer = clock();
 	xHat = QPSolver::least_squares(Eigen::VectorXf::Zero(n),                                    // Desired value for xd
 	                               Eigen::MatrixXf::Identity(n,n),                              // Weighting matrix W on solution
@@ -137,8 +162,40 @@ int main(int argc, char *argv[])
 	timer = clock() - timer;
 	
 	std::cout << "\nThe solution error ||y-A*x|| is: " << (y-A*xHat).norm() << ".\n" << std::endl;
-	std::cout << "\nIt took " << (float)timer/CLOCKS_PER_SEC << "ms to solve ("
+	std::cout << "\nIt took " << (float)timer/CLOCKS_PER_SEC*1000 << "ms to solve ("
 	          << 1/((float)timer/CLOCKS_PER_SEC) << "Hz).\n" << std::endl;
+	          
+	          
+	std::cout << "\nWe can put constraints on the solution. "
+	          << "We need to create a QPSolver object for this one since it relies on the Interior Point method." << std::endl;
+	QPSolver solver;
+	m = 7;
+	n = 5;
+	x.resize(n);
+	x << 2, 2, -2, 2 ,2;
+	A = Eigen::MatrixXf::Random(m,n);
+	y = A*x;
+	Eigen::VectorXf xMax(n);
+	Eigen::VectorXf xMin(n);
+	xMax = 3*Eigen::VectorXf::Ones(n);
+	xMin = -3*Eigen::VectorXf::Ones(n);
+	
+	timer = clock();
+	xHat = solver.least_squares(y,A,Eigen::MatrixXf::Identity(m,m),xMin,xMax,0.5*(xMin + xMax));
+	timer = clock() - timer;
+	
+	std::cout << "\nHere is xMax x xMin:\n" << std::endl;
+	Eigen::MatrixXf result(3,n);
+	result.row(0) = xMax.transpose();
+	result.row(1) = xHat.transpose();
+	result.row(2) = xMin.transpose();
+	
+	std::cout << result << std::endl;
+	
+	std::cout << "\nIt took " << (float)timer/CLOCKS_PER_SEC*1000 << "ms to solve. ("
+	          << 1/((float)timer/CLOCKS_PER_SEC) << "Hz)." << std::endl;
+	          
+	std::cout << "\nThe solution error is " << (y - A*xHat).norm() << ".\n" << std::endl;
 	
 	return 0;                                                                                   // No problems with main()
 }
