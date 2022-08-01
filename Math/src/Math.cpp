@@ -21,12 +21,23 @@ Eigen::MatrixXf get_cholesky_decomp(const Eigen::MatrixXf &A)
 		for(int i = 0; i < n; i++)
 		{
 			for(int j = 0; j <= i; j++)
-			{
+			{				
 				float sum = 0.0;
 				for(int k = 0; k <= j; k++) sum += L(i,k) * L(j,k);
 				
-				if(i == j) L(i,j) = sqrt(A(i,i) - sum);
-				else       L(i,j) = (A(i,j) - sum)/L(j,j);
+				if(i == j) 
+				{
+					float temp = A(i,j) - sum;
+					if(temp < 0)
+					{
+						std::cerr << "\n[ERROR] get_cholesky_decomp(): "
+						          << "The input matrix is singular and can't be decomposed!\n" << std::endl;
+						
+						return L;
+					}
+					else L(i,j) = sqrt(A(i,j) - sum);
+				}
+				else         L(i,j) = (A(i,j) - sum)/L(j,j);
 			}
 		}
 	}
