@@ -38,9 +38,19 @@ int main(int argc, char *argv[])
 	std::cout << "\nIt took " << (float)timer/CLOCKS_PER_SEC*1000 << "ms to solve ("
 	          <<  1/((float)timer/CLOCKS_PER_SEC) << " Hz).\n" << std::endl;
 	          
-	std::cout << "And here is L*L':\n" << std::endl;
-	std::cout << L*L.transpose() << std::endl;
-	        
+	std::cout << "\nThe error norm ||A - L*L'|| is: " << (A - L*L.transpose()).norm() << ".\n" << std::endl;
+	          
+	std::cout << "\nIf A is part of a linear system y = A*x, give y we can solve for x.\n" << std::endl;
+	
+	x = Eigen::VectorXf::Random(n);
+	y = A*x;
+	timer = clock();
+	xHat = solve_cholesky_system(y,A);
+	timer = clock() - timer;
+	
+	std::cout << "\nThe error for the estimate of x is: " << (x - xHat).norm() << "." << std::endl;
+	std::cout << "It took " << (float)timer/CLOCKS_PER_SEC*1000 << "ms to solve ("
+	          << 1/((float)timer/CLOCKS_PER_SEC) << " Hz).\n" << std::endl;
 	
 	std::cout << "\n************************************************************" << std::endl;
 	std::cout <<   "*                      QR DECOMPOSITION                    *" << std::endl;
@@ -172,16 +182,18 @@ int main(int argc, char *argv[])
 	m = 6;
 	n = 6;
 	x.resize(n);
-	x << 2, 1, -3, 6 ,2, -2;
+	x << 2, 1, -3, 3 ,2, -2;
 	A = Eigen::MatrixXf::Random(m,n);
 	y = A*x;
 	Eigen::VectorXf xMax(n);
 	Eigen::VectorXf xMin(n);
-	xMax = 5*Eigen::VectorXf::Ones(n);
-	xMin = -5*Eigen::VectorXf::Ones(n);
+	xMax = 4*Eigen::VectorXf::Ones(n);
+	xMin = -4*Eigen::VectorXf::Ones(n);
 	
 	timer = clock();
-	xHat = solver.least_squares(y,A,Eigen::MatrixXf::Identity(m,m),xMin,xMax,0.5*(xMin + xMax));
+	x0.resize(n);
+	x0 << 2, 1, -3, 3, 2, -2;
+	xHat = solver.least_squares(y,A,Eigen::MatrixXf::Identity(m,m),xMin,xMax,x0);
 	timer = clock() - timer;
 	
 	std::cout << "\nHere is xMax x xMin:\n" << std::endl;
@@ -195,7 +207,7 @@ int main(int argc, char *argv[])
 	std::cout << "\nIt took " << (float)timer/CLOCKS_PER_SEC*1000 << "ms to solve. ("
 	          << 1/((float)timer/CLOCKS_PER_SEC) << "Hz)." << std::endl;
 	          
-	std::cout << "\nThe solution error is " << (y - A*xHat).norm() << ".\n" << std::endl;
+	std::cout << "\nThe solution error is " << ((y - A*xHat).norm())/y.norm()*100<< "% .\n" << std::endl;
 	
 	return 0;                                                                                   // No problems with main()
 }
