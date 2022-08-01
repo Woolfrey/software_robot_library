@@ -8,6 +8,8 @@ bool get_qr_decomposition(const Eigen::MatrixXf &A,                             
                                 Eigen::MatrixXf &R);
                                 
 Eigen::MatrixXf get_cholesky_decomp(const Eigen::MatrixXf &A);                                      // A = L*L' for a positive-definite matrix
+
+Eigen::MatrixXf get_cholesky_inverse(const Eigen::MatrixXf &A);                                     // Get the inverse of a positive-definite matrix
                             
 Eigen::MatrixXf get_inverse(const Eigen::MatrixXf &A);                                              // Get the inverse of a matrix
 

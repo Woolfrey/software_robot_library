@@ -34,6 +34,48 @@ Eigen::MatrixXf get_cholesky_decomp(const Eigen::MatrixXf &A)
 	return L;
 }
 
+  ///////////////////////////////////////////////////////////////////////////////////////////////////
+ //                          Get the inverse of a positive-definite matrix                        //
+///////////////////////////////////////////////////////////////////////////////////////////////////
+Eigen::MatrixXf get_cholesky_inverse(const Eigen::MatrixXf &A)
+{
+	int n = A.rows();
+	
+	if(A.cols() != n)
+	{
+		std::cerr << "[ERROR] get_cholesky_inverse(): "
+		          << "Expected a square matrix but "
+		          << "the input was " << A.rows() << "x" << A.cols() << "." << std::endl;
+		
+		return Eigen::MatrixXf::Zero(n,n);
+	}
+	else
+	{
+		Eigen::MatrixXf L = get_cholesky_decomp(A);                                         // As it says on the label
+		Eigen::MatrixXf I = L;                                                              // This will be in the inverse
+		
+		for(int i = 0; i < n; i++)
+		{
+			for(int j = 0; j <= i; j++)
+			{
+				if(i == j)
+				{
+					I(i,i) = 1/(L(i,i));
+				}
+				else
+				{
+					float sum = 0.0;
+					
+					for(int k = j; k < i; k++) sum += L(i,k)*I(k,j);
+
+					I(i,j) = -sum/L(i,i);
+				}
+			}
+		}
+		
+		return I.transpose()*I;
+	}
+}
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //           Decompose a matrix A in to orthogonal matrix Q and triangular matrix R              //
