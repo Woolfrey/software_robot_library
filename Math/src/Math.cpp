@@ -297,7 +297,7 @@ Eigen::VectorXf forward_substitution(const Eigen::VectorXf &y, const Eigen::Matr
 		for(int i = 0; i < n; i++)
 		{
 			float sum = 0.0;
-			for(int j = i; j < i; j++) sum += L(i,j)*x(j);
+			for(int j = 0; j < i; j++) sum += L(i,j)*x(j);
 			
 			if(L(i,i) < 1E-6) x(i) = 0.0;
 			else              x(i) = (y(i) - sum)/L(i,i);
