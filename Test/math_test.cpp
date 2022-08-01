@@ -48,9 +48,24 @@ int main(int argc, char *argv[])
 	xHat = solve_cholesky_system(y,A);
 	timer = clock() - timer;
 	
-	std::cout << "\nThe error for the estimate of x is: " << (x - xHat).norm() << "." << std::endl;
-	std::cout << "It took " << (float)timer/CLOCKS_PER_SEC*1000 << "ms to solve ("
+	std::cout << "\nThe error for the estimate of x is: " << (x - xHat).norm() << ". "
+	          << "It took " << (float)timer/CLOCKS_PER_SEC*1000 << "ms to solve ("
 	          << 1/((float)timer/CLOCKS_PER_SEC) << " Hz).\n" << std::endl;
+	          
+	
+	std::cout << "\nWe can also use the triangular property to compute the inverse of A.\n" << std::endl;
+	std::cout << "\nHere is the inverse of A:\n" << std::endl;
+	timer = clock();
+	Eigen::MatrixXf invA = get_cholesky_inverse(A);
+	timer = clock() - timer;
+	
+	std::cout << invA << std::endl;
+	
+	std::cout << "\nIt took " << (float)timer/CLOCKS_PER_SEC*1000 << " ms to solve ("
+	          << 1/((float)timer/CLOCKS_PER_SEC) << " Hz)." << std::endl;
+	          
+	std::cout << "\nHere is A*inv(A):\n" << std::endl;
+	std::cout << A*invA << std::endl;
 	
 	std::cout << "\n************************************************************" << std::endl;
 	std::cout <<   "*                      QR DECOMPOSITION                    *" << std::endl;
