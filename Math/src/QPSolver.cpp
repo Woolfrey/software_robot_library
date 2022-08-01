@@ -113,7 +113,7 @@ Eigen::VectorXf QPSolver::solve(const Eigen::MatrixXf &H,                       
 					
 					violation = true;                                           // Flag constraint violation for later
 					u        *= this->uMod;                                     // Increase barrier function scalar
-					d         = 1E-6;                                           // Set a very small, non-zero value
+					d         = 1E-4;                                           // Set a very small, non-zero value
 				}
 				
 				g -= (u/d)*bt[j];
@@ -129,8 +129,9 @@ Eigen::VectorXf QPSolver::solve(const Eigen::MatrixXf &H,                       
 					
 			g += I*x - f;                                                               // Add final part of gradient
 			
-			dx = solve_cholesky_system(-g,I);                                           // Newton Step
-			
+//			dx = solve_cholesky_system(-g,I);                                           // Newton Step
+			dx = solve_linear_system(-g,I,Eigen::VectorXf::Zero(n));
+						
 			if(dx.norm() < this->tol) break;                                            // Step size is small, end algorithm
 			
 			x_prev   = x;                                                               // Save last value for next loop

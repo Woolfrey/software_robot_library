@@ -169,16 +169,16 @@ int main(int argc, char *argv[])
 	std::cout << "\nWe can put constraints on the solution. "
 	          << "We need to create a QPSolver object for this one since it relies on the Interior Point method." << std::endl;
 	QPSolver solver;
-	m = 7;
-	n = 5;
+	m = 6;
+	n = 6;
 	x.resize(n);
-	x << 2, 2, -2, 2 ,2;
+	x << 2, 1, -3, 6 ,2, -2;
 	A = Eigen::MatrixXf::Random(m,n);
 	y = A*x;
 	Eigen::VectorXf xMax(n);
 	Eigen::VectorXf xMin(n);
-	xMax = 3*Eigen::VectorXf::Ones(n);
-	xMin = -3*Eigen::VectorXf::Ones(n);
+	xMax = 5*Eigen::VectorXf::Ones(n);
+	xMin = -5*Eigen::VectorXf::Ones(n);
 	
 	timer = clock();
 	xHat = solver.least_squares(y,A,Eigen::MatrixXf::Identity(m,m),xMin,xMax,0.5*(xMin + xMax));
