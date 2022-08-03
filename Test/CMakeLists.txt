@@ -36,6 +36,10 @@ add_executable(math_test math_test.cpp)
 add_dependencies(math_test RobotLibrary)
 target_link_libraries(math_test RobotLibrary)
 
+add_executable(qp_test qp_test.cpp)
+add_dependencies(qp_test RobotLibrary)
+target_link_libraries(qp_test RobotLibrary)
+
 #install(TARGETS robot_library_test                                                                  # Specify the source #file#
 #  	# IMPORTANT: Add the bar executable to the "export-set"#
 #  	EXPORT RobotLibrary

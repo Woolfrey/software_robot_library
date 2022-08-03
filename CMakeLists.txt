@@ -13,12 +13,6 @@ add_subdirectory(Trajectory)
 
 target_link_libraries(RobotLibrary INTERFACE Control Math Model Trajectory)                         # Add these to the library
 
-#add_subdirectory(Model)
-#add_subdirectory(Trajectory)
-#add_subdirectory(Control)
-
-#target_link_libraries(RobotLibrary INTERFACE Model Trajectory Control)
-
 ##############################################
 # Installation instructions
 
