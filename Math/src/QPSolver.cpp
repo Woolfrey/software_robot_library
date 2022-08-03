@@ -2,26 +2,25 @@
 #include <QPSolver.h>                                                                               // Declaration of functions
 #include <vector>                                                                                   // std::vector
 
+/*
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //                        Solve a generic QP problem min 0.5*x'*H*x - x'*f                       //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 Eigen::VectorXf QPSolver::solve(const Eigen::MatrixXf &H,
-                                const Eigen::VectorXf &f,
-                                const Eigen::VectorXf &x0)
+                                const Eigen::VectorXf &f)
 {
 	// Check the inputs are sound
-	int n = x0.size();
+	int n = H.cols();
 	if(H.rows() != n or H.cols() != n or f.size() != n)
 	{
 		std::cerr << "[ERROR] [QPSOLVER] solve(): "
 		          << "Dimensions of input arguments do not match. "
 		          << "H matrix was " << H.rows() << "x" << H.cols() << ", "
-		          << "f vector was " << f.size() << "x1, and "
-		          << "x0 vector was " << n << "x1." << std::endl;
+		          << "f vector was " << f.size() << "x1." << std::endl;
 		
-		return x0;
+		return Eigen::VectorXf::Zero(n);
 	}
-	else	return solve_linear_system(f,H,x0);                                                 // Too easy, lol
+	else	return solve_linear_system(f,H);                                                 // Too easy, lol
 }
 
 
@@ -62,8 +61,6 @@ Eigen::VectorXf QPSolver::solve(const Eigen::MatrixXf &H,                       
 		//
 		//    I(x) = H + u*sum((1/(d_i^2))*b_i'*b_i)
 		
-		int count;		
-		
 		float u     = this->u0;
 		float alpha = this->alpha0;
 		float beta  = this->beta0;
@@ -72,7 +69,7 @@ Eigen::VectorXf QPSolver::solve(const Eigen::MatrixXf &H,                       
 		
 		Eigen::MatrixXf I(n,n);
 		
-		Eigen::VectorXf dx;
+		Eigen::VectorXf dx     = Eigen::VectorXf::Zero(n);
 		Eigen::VectorXf g(n);		
 		Eigen::VectorXf x      = x0;
 		Eigen::VectorXf x_prev = x0;
@@ -127,17 +124,17 @@ Eigen::VectorXf QPSolver::solve(const Eigen::MatrixXf &H,                       
 				beta  += this->betaMod*(1 - beta);                                  // Slow decrease of barrier function
 			}
 					
-			g += I*x - f;                                                               // Add final part of gradient
-			
-			dx = solve_cholesky_system(-g,I);                                           // Newton Step
+			g += H*x - f;                                                               // Add final part of gradient
+
+//			dx = -I.inverse()*g;                                                        // Too slow!
+			dx = solve_linear_system(-g,I);			                      // Still not fast enough!
+//			dx = solve_cholesky_system(-g,I);                                           // Doesn't work for singular matrices!
 						
 			if(dx.norm() < this->tol) break;                                            // Step size is small, end algorithm
 			
 			x_prev   = x;                                                               // Save last value for next loop
 			x       += alpha*dx;                                                        // Increment the solution
 			u       *= beta;                                                            // Decrement barrier function
-			
-			count = i;
 		}
 		
 		// Do one last check on the constraint
@@ -161,34 +158,32 @@ Eigen::VectorXf QPSolver::solve(const Eigen::MatrixXf &H,                       
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 Eigen::VectorXf QPSolver::least_squares(const Eigen::VectorXf &y,
                                         const Eigen::MatrixXf &A,
-                                        const Eigen::MatrixXf &W,
-                                        const Eigen::VectorXf &x0)
+                                        const Eigen::MatrixXf &W)
 {
 	// Check the inputs are sound
 	int m = A.rows();
 	int n = A.cols();
-	if(y.size() != m or x0.size() != n)
+	if(y.size() != m)
 	{
 		std::cerr << "[ERROR] [QPSOLVER] least_squares(): "
 		          << "Dimensions of inputs arguments do not match! "
 		          << "The y vector was " << y.size() << "x1, "
 		          << "the A matrix was " << m << "x" << n << ", "
-		          << "the W matrix was " << W.rows() << "x" << W.cols() << ", and "
-		          << "the x0 vector was " << x0.size() << "x1." << std::endl;
+		          << "the W matrix was " << W.rows() << "x" << W.cols() << "." << std::endl;
 		
-		return x0;
+		return Eigen::VectorXf::Zero(n);
 	}
 	else if(W.rows() != m or W.cols() != m)
 	{
 		std::cerr << "[ERROR] [QPSOLVER] least_squares(): "
 		          << "Weighting matrix W was " << W.rows() << "x" << W.cols() << ", "
 		          << "but expected " << m << "x" << m << "." << std::endl;
-		return x0;
+		return Eigen::VectorXf::Zero(n);
 	}
 	else
 	{
 		Eigen::MatrixXf AtW = A.transpose()*W;
-		return solve(AtW*A,AtW*y,x0);
+		return solve(AtW*A,AtW*y);
 	}
 }
   
@@ -249,23 +244,22 @@ Eigen::VectorXf QPSolver::least_squares(const Eigen::VectorXf &y,
 Eigen::VectorXf QPSolver::least_squares(const Eigen::VectorXf &xd,
                                         const Eigen::MatrixXf &W,
                                         const Eigen::VectorXf &y,
-                                        const Eigen::MatrixXf &A,
-                                        const Eigen::VectorXf &x0)
+                                        const Eigen::MatrixXf &A)
 {
 	// Check that the inputs are sound
 	int m = A.rows();
 	int n = A.cols();
-	if(xd.size() != n or y.size() != m or x0.size() != n)
+	
+	if(xd.size() != n or y.size() != m)
 	{
 		std::cerr << "[ERROR] [QPSOLVER] least_squares(): "
 		          << "Dimensions of input arguments do not match. "
 		          << "The xd vector was " << xd.size() << "x1, "
 		          << "the W matrix was " << W.rows() << "x" << W.cols() << ", "
 		          << "the y vector was " << y.size() << "x1, "
-		          << "the A matrix was " << m << "x" << n << ", and "
-		          << "the x0 vector was " << x0.size() << "x1." << std::endl;
+		          << "the A matrix was " << m << "x" << n << "." << std::endl;
 		
-		return x0;
+		return Eigen::VectorXf::Zero(n);
 	}
 	else if(W.rows() != n or W.cols() != n)
 	{
@@ -273,7 +267,7 @@ Eigen::VectorXf QPSolver::least_squares(const Eigen::VectorXf &xd,
 		          << "Weighting matrix W was " << W.rows() << "x" << W.cols() << ", "
 		          << "but expected " << n << "x" << n << "." << std::endl;
 		
-		return x0;
+		return Eigen::VectorXf::Zero(n);
 	}
 	else
 	{
@@ -298,9 +292,9 @@ Eigen::VectorXf QPSolver::least_squares(const Eigen::VectorXf &xd,
 			Eigen::MatrixXf Q12 = Q.block(0,m,m,n);
 			Eigen::MatrixXf Q22 = Q.block(m,m,n,n);
 			
-			return solve_triangular_system(Q12.transpose()*y + Q22.transpose()*W*xd, R22, x0);
+			return backward_substitution(Q12.transpose()*y + Q22.transpose()*W*xd, R22);
 		}
-		else return x0;
+		else return Eigen::VectorXf::Zero(n);
 	}
 }
 
@@ -311,7 +305,7 @@ Eigen::VectorXf QPSolver::least_squares(const Eigen::VectorXf &xd,
 Eigen::VectorXf QPSolver::least_squares(const Eigen::VectorXf &xd,
                                         const Eigen::MatrixXf &W,
                                         const Eigen::VectorXf &y,
-                                        const Eigen::VectorXf &A,
+                                        const Eigen::MatrixXf &A,
                                         const Eigen::VectorXf &xMin,
                                         const Eigen::VectorXf &xMax,
                                         const Eigen::VectorXf &x0)
@@ -352,6 +346,7 @@ Eigen::VectorXf QPSolver::least_squares(const Eigen::VectorXf &xd,
 		
 		// H = [ W A'
 		//       A 0 ]
+		
 		Eigen::MatrixXf H = Eigen::MatrixXf::Zero(m+n,m+n);
 		H.block(0,0,n,n) = W;
 		H.block(0,n,n,m) = A.transpose();
@@ -362,11 +357,11 @@ Eigen::VectorXf QPSolver::least_squares(const Eigen::VectorXf &xd,
 		//     [   y    ]
 		Eigen::VectorXf f(m+n);
 		f.block(0,0,n,1) = W*xd;
-		f.block(0,0,m,1) = y;
+		f.block(n,0,m,1) = y;
 		
 		// B = [ -I 0 ]
 		//     [  I 0 ]
-		Eigen::VectorXf B =    Eigen::MatrixXf::Zero(2*n,n+m);
+		Eigen::MatrixXf B =    Eigen::MatrixXf::Zero(2*n,n+m);
 		B.block(0,0,n,n)  = -1*Eigen::MatrixXf::Identity(n,n);
 		B.block(n,0,n,n)  =    Eigen::MatrixXf::Identity(n,n);
 		
@@ -376,10 +371,15 @@ Eigen::VectorXf QPSolver::least_squares(const Eigen::VectorXf &xd,
 		c.block(0,0,n,1) = -1*xMax;
 		c.block(n,0,n,1) =    xMin;
 		
-		Eigen::VectorXf temp = solve(H,f,B,c,x0);                                           // Solution is [ x' lambda']'
+		// start = [ x0 ]
+		//         [ 0  ]
+		// NOTE: TRY A'*lambda = f - H*x
+		Eigen::VectorXf start = Eigen::VectorXf::Zero(m+n);
+		start.block(0,0,n,1)  = x0;
+		
+		Eigen::VectorXf temp = solve(H,f,B,c,start);                                         // Solution is [ x' lambda']'
 
 		return temp.block(0,0,n,1);                                                         // Return only the x vector
 	}
-}
-		                              
-		                              
+
+}	*/                              
