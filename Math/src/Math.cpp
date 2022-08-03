@@ -1,91 +1,47 @@
 #include <iostream>                                                                                 // std::cerr
 #include <Math.h>                                                                                   // Declaration of function names
 
-
   ///////////////////////////////////////////////////////////////////////////////////////////////////
- //                       Decompose a positive-definite matrix A in to L*L'                       //
+ //                               Decompose a matrix A = LU                                       //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::MatrixXf get_cholesky_decomp(const Eigen::MatrixXf &A)
+bool get_lu_decomposition(const Eigen::MatrixXf &A,
+                                Eigen::MatrixXf &L,
+                                Eigen::MatrixXf &U)
 {
-	int n = A.rows();
-	Eigen::MatrixXf L = Eigen::MatrixXf::Zero(n,n);
+	int n = A.cols();
+	
 	if(A.rows() != A.cols())
 	{
-		std::cerr << "[ERROR] get_cholesky_decomp(): "
-		          << "Expected a square matrix, but "
-		          << "the input was " << A.rows() << "x" << A.cols() << "." << std::endl;
-	}
-	else
-	{
-                // Cholesky–Banachiewicz algorithm (row-wise)
+		std::cerr << "[ERROR] lu_decomp() "
+                          << "Expected a square matrix for A, but "
+                          << "it was " << A.rows() << "x" << A.cols() << "." << std::endl;
+                
+                return false;
+        }
+        else
+        {
+        	// Doolittle Algorithm - assume diagonal elements of L are all 1
+        	L = Eigen::MatrixXf::Identity(n,n);
+        	U = Eigen::MatrixXf::Zero(n,n);
+        	
 		for(int i = 0; i < n; i++)
 		{
-			for(int j = 0; j <= i; j++)
-			{				
-				float sum = 0.0;
-				for(int k = 0; k <= j; k++) sum += L(i,k) * L(j,k);
-				
-				if(i == j) 
-				{
-					float temp = A(i,j) - sum;
-					if(temp < 0)
-					{
-						std::cerr << "\n[ERROR] get_cholesky_decomp(): "
-						          << "The input matrix is singular and can't be decomposed!\n" << std::endl;
-						
-						return L;
-					}
-					else L(i,j) = sqrt(A(i,j) - sum);
-				}
-				else         L(i,j) = (A(i,j) - sum)/L(j,j);
-			}
-		}
-	}
-	
-	return L;
-}
-
-  ///////////////////////////////////////////////////////////////////////////////////////////////////
- //                          Get the inverse of a positive-definite matrix                        //
-///////////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::MatrixXf get_cholesky_inverse(const Eigen::MatrixXf &A)
-{
-	int n = A.rows();
-	
-	if(A.cols() != n)
-	{
-		std::cerr << "[ERROR] get_cholesky_inverse(): "
-		          << "Expected a square matrix but "
-		          << "the input was " << A.rows() << "x" << A.cols() << "." << std::endl;
-		
-		return Eigen::MatrixXf::Zero(n,n);
-	}
-	else
-	{
-		Eigen::MatrixXf L = get_cholesky_decomp(A);                                         // As it says on the label
-		Eigen::MatrixXf I = L;                                                              // This will be in the inverse
-		
-		for(int i = 0; i < n; i++)
-		{
-			for(int j = 0; j <= i; j++)
+			for(int j = 0; j < n; j++)
 			{
-				if(i == j)
+				float sum = 0.0;			
+				for(int k = 0; k < std::min(i,j); k++) sum += L(i,k)*U(k,j);
+				
+				if(i > j)
 				{
-					I(i,i) = 1/(L(i,i));
+					if(abs(U(j,j)) < 1E-6) L(i,j) = 0.0;
+					else                   L(i,j) = (A(i,j) - sum)/U(j,j);
 				}
-				else
-				{
-					float sum = 0.0;
-					
-					for(int k = j; k < i; k++) sum += L(i,k)*I(k,j);
-
-					I(i,j) = -sum/L(i,i);
-				}
+				else   U(i,j) = (A(i,j) - sum)/L(i,i);
 			}
-		}
-		
-		return I.transpose()*I;
-	}
+        	}
+        	
+        	return true;
+        }
 }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -144,120 +100,233 @@ bool get_qr_decomposition(const Eigen::MatrixXf &A,
 }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
- //                                  Get the inverse of a matrix                                  //
+ //                       Decompose a positive-definite matrix A in to L*L'                       //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::MatrixXf get_inverse(const Eigen::MatrixXf &A)                                               // Get the inverse of a matrix
-{                  
-	Eigen::JacobiSVD<Eigen::MatrixXf> SVD(A, Eigen::ComputeFullU | Eigen::ComputeFullV);        // Get the SVD decomposition
-	Eigen::MatrixXf V = SVD.matrixV();                                                          // V matrix
-	Eigen::MatrixXf U = SVD.matrixU();                                                          // U matrix
-	Eigen::VectorXf s = SVD.singularValues();                                                   // Get the singular values
-	Eigen::MatrixXf invA(A.cols(), A.rows()); invA.setZero();                                   // Value we want to return
-	
-	for(int i = 0; i < A.cols(); i++)
-	{
-		for(int j = 0; j < s.size(); j++)
-		{
-			for(int k = 0; k < A.rows(); k++)
-			{
-				if(s(j) >= 1e-05) invA(i,k) += (V(i,j)*U(k,j))/s(j);                  // Fast inverse
-//				else              invA(i,k) += 0;                                     // Ignore singular directions         
-			}
-		}
-	}
-	return invA;
-}
-
-  ////////////////////////////////////////////////////////////////////////////////////////////////////
- //                           Get the weighted pseudoinverse of a matrix                           //
-////////////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::MatrixXf get_inverse(const Eigen::MatrixXf &A,
-                            const Eigen::MatrixXf &W)
+Eigen::MatrixXf get_cholesky_decomposition(const Eigen::MatrixXf &A)
 {
-	if(W.rows() != W.cols())
+	int n = A.rows();
+	Eigen::MatrixXf L = Eigen::MatrixXf::Zero(n,n);
+	if(A.rows() != A.cols())
 	{
-		std::cerr << "[ERROR] [SERIALKINCONTROL] get_weighted_inverse() : "
-		          << "Weighting matrix must be square. Your input had " << W.rows() << " rows and "
-		          << W.cols() << " columns. Ignoring the weighting matrix..." << std::endl;
-                         
-		return get_inverse(A);                                                              // Ignore the weighting matrix
-	}
-	else if(A.cols() == W.rows())                                                               // Overdetermined system
-	{
-		Eigen::MatrixXf invWAt = get_inverse(W)*A.transpose();
-		
-		return invWAt*get_inverse(A*invWAt);                                                // W^-1*A'*(A*W^-1*A')^-1
-	}
-	else if(W.cols() == A.rows())                                                               // Underdetermined system
-	{
-		Eigen::MatrixXf AtW = A.transpose()*W;
-		
-		return get_inverse(AtW*A)*AtW;                                                      // (A'*W*A)^-1*A'*W
+		std::cerr << "[ERROR] get_cholesky_decomp(): "
+		          << "Expected a square matrix, but "
+		          << "the input was " << A.rows() << "x" << A.cols() << "." << std::endl;
 	}
 	else
 	{
-		std::cerr << "[WARNING] [SERIALKINCONTROL] get_weighted_inverse() : "
-		          << "Input matrices do not have compatible dimensions. Matrix A has " << A.rows()
-		          << " rows and " << A.cols() << " columns, and matrix W has " << W.rows()
-		          << " rows and " << W.cols() << " columns. Ignoring the weighting matrix..." << std::endl;
-                         
-		return get_inverse(A);
+                // Cholesky–Banachiewicz algorithm (row-wise)
+		for(int i = 0; i < n; i++)
+		{
+			for(int j = 0; j <= i; j++)
+			{				
+				float sum = 0.0;
+				for(int k = 0; k <= j; k++) sum += L(i,k) * L(j,k);
+				
+				if(i == j) 
+				{
+					float temp = A(i,j) - sum;
+					if(temp < 0)
+					{
+						std::cerr << "\n[ERROR] get_cholesky_decomp(): "
+						          << "The input matrix is singular and can't be decomposed!\n" << std::endl;
+						
+						return L;
+					}
+					else L(i,j) = sqrt(A(i,j) - sum);
+				}
+				else         L(i,j) = (A(i,j) - sum)/L(j,j);
+			}
+		}
+	}
+	
+	return L;
+}
+
+  ///////////////////////////////////////////////////////////////////////////////////////////////////
+ //                          Get the inverse of a positive-definite matrix                        //
+///////////////////////////////////////////////////////////////////////////////////////////////////
+Eigen::MatrixXf get_cholesky_inverse(const Eigen::MatrixXf &A)
+{
+	int n = A.rows();
+	
+	if(A.cols() != n)
+	{
+		std::cerr << "[ERROR] get_cholesky_inverse(): "
+		          << "Expected a square matrix but "
+		          << "the input was " << A.rows() << "x" << A.cols() << "." << std::endl;
+		
+		return Eigen::MatrixXf::Zero(n,n);
+	}
+	else
+	{
+		Eigen::MatrixXf L = get_cholesky_decomposition(A);                                  // As it says on the label
+		Eigen::MatrixXf I = get_triangular_inverse(L);
+		
+		return I.transpose()*I;
 	}
 }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
- //                       Solve a linear system of equations given by y = Ax                      //
+ //                      Get the inverse of a matrix with LU decomposition                        //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::VectorXf solve_linear_system(const Eigen::VectorXf &y,
-                                    const Eigen::MatrixXf &A,
-				     const Eigen::VectorXf &x0)
+Eigen::MatrixXf get_inverse(const Eigen::MatrixXf &A)
 {
-	int m = A.rows();
-	int n = A.cols();
-	
-	// Check that the inputs are sound
-	if(y.size()  != m or x0.size() != n)
+	int n = A.rows();
+	if(A.cols() != n)
 	{
-		std::cerr << "[ERROR] solve_linear_system(): "
-		          << "Dimensions of inputs do not match! "
-		          << "The y vector was " << y.size() << "x1 ,"
-		          << "the A matrix was " << m << "x" << n << ", and "
-		          << "the x0 vector was " << x0.size() << "x1." << std::endl;
+		std::cerr << "[ERROR] get_inverse(): "
+		          << "Expected a square matrix, but it was "
+		          << A.rows() << "x" << A.cols() << ". "
+		          << "Did you mean to call get_pseudoinverse()?" << std::endl;
+		          
+		return Eigen::MatrixXf::Zero(n,n);
+	}
+	else
+	{
+		Eigen::MatrixXf L, U;
+		if(get_lu_decomposition(A,L,U))
+		{
+			return get_triangular_inverse(U)*get_triangular_inverse(L);
+		}
+		else    return Eigen::MatrixXf::Zero(n,n);
+	}
+}
+
+  ///////////////////////////////////////////////////////////////////////////////////////////////////
+ //                            Get the inverse of a triangular matrix                             //
+///////////////////////////////////////////////////////////////////////////////////////////////////
+Eigen::MatrixXf get_triangular_inverse(const Eigen::MatrixXf &T)
+{
+	int n = T.rows();
+	if(T.cols() != n)
+	{
+		std::cerr << "[ERROR] get_triangular_inverse(): "
+		          << "Expected a square matrix for the input but it was "
+		          << T.rows() << "x" << T.cols() << "." << std::endl;
+		
+		return Eigen::MatrixXf::Zero(n,n);
+	}
+	else
+	{
+		Eigen::MatrixXf I = Eigen::MatrixXf::Zero(n,n);                                     // Value to be returned
+		
+		// Lower triangular
+		if(T(0,n-1) == 0)
+		{
+			for(int i = 0; i < n; i++)                                                  // Start from first row
+			{
+				for(int j = 0; j <= i; j++)                                         // Move forward through columns
+				{
+						if(i == j) I(i,i) = 1/T(i,i);
+						else
+						{
+							float sum = 0.0;
+							for(int k = j; k < i; k++) sum += T(i,k)*I(k,j);
+							
+							I(i,j) = -sum/T(i,i);
+						}
+				}
+			}
+		}
+		// Upper triangular
+		else if(T(n-1,0) == 0)                                                              // Start from last row
+		{
+			for(int i = n-1; i >= 0; i--)
+			{
+				for(int j = n-1; j >= i; j--)                                       // Move backward through columns
+				{
+					if(i == j)
+					{
+						if(abs(T(i,i)) < 1E-6) I(i,i) = 0.0;
+						else                   I(i,i) = 1/T(i,i);
+					}
+					else
+					{
+						float sum = 0.0;
+						for(int k = i+1; k <= j; k++) sum += T(i,k)*I(k,j);
+						
+						if(abs(T(i,i)) < 1E-6) I(i,j) = 0.0;
+						else                   I(i,j) = -sum/T(i,i);
+					}
+				}
+			}
+		}
+		// Not triangular
+		else
+		{
+			std::cerr << "[ERROR] triangular_inverse(): "
+			          << "The input matrix does not appear to be diagonal "
+			          << "as neither of the corner elements are zero!" << std::endl; 
+		}
+
+		return I;
+	}
+}
+
+  ///////////////////////////////////////////////////////////////////////////////////////////////////
+ //                       Solve y = U*x, where U is an upper-triangular matrix                    //
+///////////////////////////////////////////////////////////////////////////////////////////////////
+Eigen::VectorXf backward_substitution(const Eigen::VectorXf &y,
+                                      const Eigen::MatrixXf &U,
+                                      const Eigen::VectorXf &x0)
+{
+	int n = U.cols();
+	if(y.size() != n or U.rows() != n or x0.size() != n)
+	{
+		std::cerr << "[ERROR] back_substitution(): "
+		          << "Dimensions of inputs do not match. "
+		          << "The y vector had " << y.size() << " elements, "
+		          << "the U matrix had " << U.rows() << "x" << U.cols() << " elements, and "
+		          << "the x0 vector had " << x0.size() << " elements." << std::endl;
+		          
+		return x0;
+	}
+	else
+	{
+		Eigen::VectorXf x(n);
+		
+		for(int i = n-1; i >=0; i--)                                                        // Start from the end and count backwards
+		{
+			float sum = 0.0;
+			for(int j = i+1; j < n; j++) sum += U(i,j)*x(j);
+			
+			if(abs(U(i,i)) < 1E-6) x(i) = x0(i);
+			else                   x(i) = (y(i)-sum)/U(i,i);
+		}
+		return x;
+	}
+}
+
+  ///////////////////////////////////////////////////////////////////////////////////////////////////
+ //                       Solve y = L*x, where L is an lower-triangular matrix                    //
+///////////////////////////////////////////////////////////////////////////////////////////////////
+Eigen::VectorXf forward_substitution(const Eigen::VectorXf &y,
+                                     const Eigen::MatrixXf &L,
+                                     const Eigen::VectorXf &x0)
+{
+	int n = L.cols();
+	
+	if(y.size() != n or L.rows() != n or x0.size() != n)
+	{
+		std::cerr << "[ERROR] forward_substitution(): "
+		          << "Dimensions of inputs do not match. "
+		          << "The y vector had " << y.size() << " elements, "
+		          << "the L matrix had " << L.rows() << "x" << L.cols() << " elements, and "
+		          << "the x0 vector had " << x0.size() << " elements." << std::endl;
 		
 		return x0;
 	}
 	else
 	{
-		Eigen::VectorXf x = x0;                                                             // Value to be returned
-		Eigen::MatrixXf Q, R;                                                               // Used in QR decomposition
+		Eigen::VectorXf x(n);
 		
-		if(m == n)                                                                          // Fully determined
+		for(int i = 0; i < n; i++)
 		{
-			if(get_qr_decomposition(A,Q,R)) x = solve_triangular_system(Q.transpose()*y, R, x0);
-		}		
-		else if(m < n)                                                                      // Overdetermined, find minimum  ||x||^2                                                                        
-		{
-			// M = [ 0  A ]
-			//     [ A' W ]
-			Eigen::MatrixXf At = A.transpose();
-			Eigen::MatrixXf M  = Eigen::MatrixXf::Zero(m+n,m+n);
-//			M.block(0,0,m,m)   = Eigen::MatrixXf::Zero(m,m);
-			M.block(0,m,m,n)   = A;
-			M.block(m,0,n,m)   = A.transpose();
-			M.block(m,m,n,n)   = Eigen::MatrixXf::Identity(n,n);
+			float sum = 0.0;
+			for(int j = 0; j < i; j++) sum += L(i,j)*x(j);
 			
-			if(get_qr_decomposition(M,Q,R))
-			{
-					Eigen::MatrixXf R22 = R.block(m,m,n,n);
-					Eigen::MatrixXf Q12 = Q.block(0,m,m,n);
-					
-					x = solve_triangular_system(Q12.transpose()*y, R22, x0);
-			}
-		}
-		else // m > n                                                                       // Underdetermined, minimize ||y-A*x||^2
-		{
-			Eigen::MatrixXf At = A.transpose();
-			if(get_qr_decomposition(At*A,Q,R)) x = solve_triangular_system(Q.transpose()*At*y, R, x0);
+			if(L(i,i) < 1E-6) x(i) = x0(i);
+			else              x(i) = (y(i) - sum)/L(i,i);
 		}
 		
 		return x;
@@ -267,8 +336,12 @@ Eigen::VectorXf solve_linear_system(const Eigen::VectorXf &y,
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //        Solve a linear system of equations given by y = Ax where A is positive-definite        //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::VectorXf solve_cholesky_system(const Eigen::VectorXf &y, const Eigen::MatrixXf &A)
+Eigen::VectorXf solve_cholesky_system(const Eigen::VectorXf &y,
+                                      const Eigen::MatrixXf &A)
 {
+	// NOTE: This function does not need a default value x0
+	// since by definition A cannot be singular and a solution *must* exist.
+	
 	int n = A.rows();
 	if(A.cols() != n)
 	{
@@ -288,111 +361,65 @@ Eigen::VectorXf solve_cholesky_system(const Eigen::VectorXf &y, const Eigen::Mat
 	}
 	else
 	{
-		Eigen::MatrixXf L = get_cholesky_decomp(A);
-		
-		return back_substitution(forward_substitution(y,L), L.transpose()); // lol too easy
+		Eigen::MatrixXf    L = get_cholesky_decomposition(A);
+		Eigen::VectorXf zero = Eigen::VectorXf::Zero(n);
+		return backward_substitution(forward_substitution(y,L,zero), L.transpose(),zero); // lol too easy
 	}
 }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
- //                       Solve y = U*x, where U is an upper-triangular matrix                    //
+ //                       Solve a linear system of equations given by y = Ax                      //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::VectorXf back_substitution(const Eigen::VectorXf &y, const Eigen::MatrixXf &U)
+Eigen::VectorXf solve_linear_system(const Eigen::VectorXf &y,
+                                    const Eigen::MatrixXf &A,
+                                    const Eigen::VectorXf &x0)
 {
-	int n = U.cols();
-	Eigen::VectorXf x(n);
-	
-	if(y.size() != n or U.rows() != n)
-	{
-		std::cerr << "[ERROR] back_substitution(): "
-		          << "Dimensions of inputs do not match. "
-		          << "The y vector had " << y.size() << " elements, and "
-		          << "the U matrix had " << U.rows() << "x" << U.cols() << " elements." << std::endl;
-		          
-		x.setZero();
-		return x;
-	}
-	else
-	{
-		for(int i = n-1; i >= 0; i--)
-		{
-			float sum = 0.0;
-			for(int j = i+1; j < n; j++) sum += U(i,j)*x(j);
-			
-			if(U(i,i) < 1E-6) x(i) = 0.0;
-			else              x(i) = (y(i)-sum)/U(i,i);
-		}
-		
-		return x;
-	}
-}
-
-  ///////////////////////////////////////////////////////////////////////////////////////////////////
- //                       Solve y = L*x, where L is an lower-triangular matrix                    //
-///////////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::VectorXf forward_substitution(const Eigen::VectorXf &y, const Eigen::MatrixXf &L)
-{
-	int n = L.cols();
-	
-	if(y.size() != n or L.rows() != n)
-	{
-		std::cerr << "[ERROR] forward_substitution(): "
-		          << "Dimensions of inputs do not match. "
-		          << "The y vector had " << y.size() << " elements, and "
-		          << "the L matrix had " << L.rows() << "x" << L.cols() << " elements." << std::endl;
-		
-		return Eigen::VectorXf::Zero(n);
-	}
-	else
-	{
-		Eigen::VectorXf x(n);
-		
-		for(int i = 0; i < n; i++)
-		{
-			float sum = 0.0;
-			for(int j = 0; j < i; j++) sum += L(i,j)*x(j);
-			
-			if(L(i,i) < 1E-6) x(i) = 0.0;
-			else              x(i) = (y(i) - sum)/L(i,i);
-		}
-		
-		return x;
-	}
-}
-
-  ///////////////////////////////////////////////////////////////////////////////////////////////////
- //                       Solve y = U*x, where U is an upper-triangular matrix                    //
-///////////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::VectorXf solve_triangular_system(const Eigen::VectorXf &y,
-                                        const Eigen::MatrixXf &U,
-                                        const Eigen::VectorXf &x0)
-{
-	int n = U.cols();
+	int m = A.rows();
+	int n = A.cols();
 	
 	// Check that the inputs are sound
-	if(y.size() != n or U.rows() != n or x0.size() != n)
+	if(y.size() != m or x0.size() != n)
 	{
-		std::cerr << "[ERROR] solve_triangular_system(): "
-		          << "Dimensions of inputs do not match. "
-		          << "The y vector had " << y.size() << " elements, "
-		          << "the U matrix had " << U.rows() << "x" << U.cols() << " elements, and "
-		          << "the x0 vector had " << x0.size() << " elements." << std::endl;
+		std::cerr << "[ERROR] solve_linear_system(): "
+		          << "Dimensions of inputs do not match! "
+		          << "The y vector was " << y.size() << "x1 ,"
+		          << "the A matrix was " << m << "x" << n << ", and "
+		          << "the x0 vector was " << x0.size() << "x1." << std::endl;
 		
 		return x0;
 	}
 	else
 	{
-		Eigen::VectorXf x(n);                                                               // Value to be returned
-		
-		for(int i = n-1; i >=0; i--)                                                        // Solve backwards from the last element
+		if(m == n)
 		{
-			float sum = 0.0;
-			for(int j = i+1; j < n; j++) sum += U(i,j)*x(j);                            // Compute backwards recursions
-			
-			if(U(i,i) < 1E-5) x(i) = x0(i);                                             // Near singular, so use default value
-			else              x(i) = ( y(i) - sum )/U(i,i);                             // Compute ith value
+			Eigen::MatrixXf L, U;
+			get_lu_decomposition(A,L,U);
+			return backward_substitution(forward_substitution(y,L,Eigen::VectorXf::Zero(n)),U,x0);
 		}
-		
-		return x;
+		else if(m > n)
+		{
+			Eigen::MatrixXf At = A.transpose();
+			Eigen::MatrixXf L, U;
+			get_lu_decomposition(At*A,L,U);
+			return backward_substitution(forward_substitution(At*y,L,Eigen::VectorXf::Zero(n)),U,x0);
+		}
+		else
+		{
+			// M = [ 0  A ]
+			//     [ A' W ]
+			Eigen::MatrixXf At = A.transpose();
+			Eigen::MatrixXf M  = Eigen::MatrixXf::Zero(m+n,m+n);
+//			M.block(0,0,m,m)   = Eigen::MatrixXf::Zero(m,m);
+			M.block(0,m,m,n)   = A;
+			M.block(m,0,n,m)   = A.transpose();
+			M.block(m,m,n,n)   = Eigen::MatrixXf::Identity(n,n);
+			
+			Eigen::MatrixXf Q, R;
+			get_qr_decomposition(M,Q,R);
+			
+			Eigen::MatrixXf R22 = R.block(m,m,n,n);
+			Eigen::MatrixXf Q12 = Q.block(0,m,m,n);
+			return backward_substitution(Q12.transpose()*y,R22,x0);
+		}
 	}
 }
