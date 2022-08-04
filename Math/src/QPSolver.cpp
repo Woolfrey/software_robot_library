@@ -2,25 +2,27 @@
 #include <QPSolver.h>                                                                               // Declaration of functions
 #include <vector>                                                                                   // std::vector
 
-/*
+
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //                        Solve a generic QP problem min 0.5*x'*H*x - x'*f                       //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 Eigen::VectorXf QPSolver::solve(const Eigen::MatrixXf &H,
-                                const Eigen::VectorXf &f)
+                                const Eigen::VectorXf &f,
+                                const Eigen::VectorXf &x0)
 {
 	// Check the inputs are sound
-	int n = H.cols();
+	int n = x0.size();
 	if(H.rows() != n or H.cols() != n or f.size() != n)
 	{
 		std::cerr << "[ERROR] [QPSOLVER] solve(): "
 		          << "Dimensions of input arguments do not match. "
 		          << "H matrix was " << H.rows() << "x" << H.cols() << ", "
-		          << "f vector was " << f.size() << "x1." << std::endl;
+		          << "f vector was " << f.size() << "x1, and "
+		          << "x0 vector was " << x0.size() << "x1." << std::endl;
 		
-		return Eigen::VectorXf::Zero(n);
+		return x0;
 	}
-	else	return solve_linear_system(f,H);                                                 // Too easy, lol
+	else	return solve_linear_system(f,H,x0);                                                 // Too easy, lol
 }
 
 
@@ -61,29 +63,91 @@ Eigen::VectorXf QPSolver::solve(const Eigen::MatrixXf &H,                       
 		//
 		//    I(x) = H + u*sum((1/(d_i^2))*b_i'*b_i)
 		
-		float u     = this->u0;
-		float alpha = this->alpha0;
-		float beta  = this->beta0;
+		// Local variables
+		Eigen::VectorXf  x = x0;
+		Eigen::VectorXf  x_prev = x;
+		Eigen::VectorXf g(n);
+		Eigen::MatrixXf I;
+		Eigen::VectorXf dx;
+		
+		float u = 0.1;
+		float alpha = 1.0;
+		float beta = 0.01;
+		
+		int count;
+		
+		for(int i = 0; i < 10; i++)
+		{
+			// (Re)set values for new loop
+			bool violation = false;
+			I = H;
+			g = Eigen::VectorXf::Zero(n);
+			
+			// Calculate distance to each constraint
+			for(int j = 0; j < B.rows(); j++)
+			{
+				float d = B.row(j).dot(x) - c(j);
+				
+				if(d <= 0)
+				{
+					violation = true;
+					d = 1E-4;
+					u *= 10;
+				}
+				
+				g -= u/d*B.row(j).transpose();
+				I += u/(d*d)*B.row(j).transpose()*B.row(j);
+			}
+			
+			if(violation)
+			{
+				x = x_prev;
+				alpha *= 0.1;
+				beta += 0.1*(1-beta);
+			}
+			
+			g += H*x - f;
+			
+			dx = solve_linear_system(-g,I,Eigen::VectorXf::Zero(n));
+			
+			count = i;
+			
+			if(dx.norm() < 1E-2) break;
+			
+			x += alpha*dx;
+			u *= beta;
+		}
+		
+		for(int j = 0; j < B.rows(); j++)
+		{
+			float d = B.row(j).dot(x) - c(j);
+			
+			if(d <= 0)
+			{
+				x = x_prev;
+				break;
+			}
+		}
+		
+		return x;
+	}
+}
+					
+			
+
+/*		
+		float u     = this->u0;                                                             // Scalar for barrier function
+		float alpha = this->alpha0;                                                         // Scalar for Newton Step
+		float beta  = this->beta0;                                                          // Shrinks barrier function scalar each loop
 		
 		int numConstraints = B.rows();
 		
-		Eigen::MatrixXf I(n,n);
+		Eigen::MatrixXf I(n,n);                                                             // Hessian matrix for barrier function
 		
-		Eigen::VectorXf dx     = Eigen::VectorXf::Zero(n);
-		Eigen::VectorXf g(n);		
-		Eigen::VectorXf x      = x0;
-		Eigen::VectorXf x_prev = x0;
-		
-		
-		// Do some pre-processing
-		std::vector<Eigen::VectorXf> bt(numConstraints);
-		std::vector<Eigen::MatrixXf> btb(numConstraints);
-		
-		for(int j = 0; j < numConstraints; j++)
-		{
-			bt[j]  = B.row(j).transpose();
-			btb[j] = bt[j]*bt[j].transpose();
-		}
+		Eigen::VectorXf dx;                                                                 // Newton step
+		Eigen::VectorXf g(n);		                                                    // Gradient vector
+		Eigen::VectorXf x      = x0;                                                        // Set initial state vector
+		Eigen::VectorXf x_prev = x;                                                        // Used to save last solution
 		
 		// Run interior point method
 		for(int i = 0; i < this->steps; i++)
@@ -96,25 +160,17 @@ Eigen::VectorXf QPSolver::solve(const Eigen::MatrixXf &H,                       
 			// Check the constraints
 			for(int j = 0; j < numConstraints; j++)
 			{
-				float d = bt[j].dot(x) - c(j);
+				float d = B.row(j).dot(x) - c(j);
 
 				if(d <= 0)
 				{
-					if(i == 0)
-					{
-						std::cerr << "[ERROR] [QPSOLVER] solve(): "
-						          << "Initial value for x is outside the constraints!" << std::endl;
-						
-						return x0;
-					}
-					
 					violation = true;                                           // Flag constraint violation for later
 					u        *= this->uMod;                                     // Increase barrier function scalar
 					d         = 1E-3;                                           // Set a very small, non-zero value
 				}
 				
-				g -= (u/d)*bt[j];
-				I += (u/(d*d))*btb[j];
+				g -= (u/d)*B.row(j).transpose();                                    // Add up gradient vector
+				I += (u/(d*d))*B.row(j).transpose()*B.row(j);                       // Add up Hessian matrix
 			}
 			
 			if(violation)
@@ -127,7 +183,7 @@ Eigen::VectorXf QPSolver::solve(const Eigen::MatrixXf &H,                       
 			g += H*x - f;                                                               // Add final part of gradient
 
 //			dx = -I.inverse()*g;                                                        // Too slow!
-			dx = solve_linear_system(-g,I);			                      // Still not fast enough!
+			dx = solve_linear_system(-g,I,Eigen::VectorXf::Zero(n));                    // Using LU decomposition
 //			dx = solve_cholesky_system(-g,I);                                           // Doesn't work for singular matrices!
 						
 			if(dx.norm() < this->tol) break;                                            // Step size is small, end algorithm
@@ -140,7 +196,7 @@ Eigen::VectorXf QPSolver::solve(const Eigen::MatrixXf &H,                       
 		// Do one last check on the constraint
 		for(int j = 0; j < numConstraints; j++)
 		{
-			float d = bt[j].dot(x) - c[j];                                              // Distance to constraint
+			float d = B.row(j).dot(x) - c(j);                                           // Distance to constraint
 			
 			if(d <= 0)
 			{
@@ -151,39 +207,41 @@ Eigen::VectorXf QPSolver::solve(const Eigen::MatrixXf &H,                       
 		
 		return x;
 	}
-}
+} */
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //          Solve an unconstrained least squares problem: min 0.5(y-*Ax)'*W*(y-A*x)              //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 Eigen::VectorXf QPSolver::least_squares(const Eigen::VectorXf &y,
                                         const Eigen::MatrixXf &A,
-                                        const Eigen::MatrixXf &W)
+                                        const Eigen::MatrixXf &W,
+                                        const Eigen::VectorXf &x0)
 {
 	// Check the inputs are sound
 	int m = A.rows();
 	int n = A.cols();
-	if(y.size() != m)
+	if(y.size() != m or x0.size() != n)
 	{
 		std::cerr << "[ERROR] [QPSOLVER] least_squares(): "
 		          << "Dimensions of inputs arguments do not match! "
 		          << "The y vector was " << y.size() << "x1, "
 		          << "the A matrix was " << m << "x" << n << ", "
-		          << "the W matrix was " << W.rows() << "x" << W.cols() << "." << std::endl;
+		          << "the W matrix was " << W.rows() << "x" << W.cols() << ", and "
+		          << "the x0 vector was " << x0.size() << "x1." << std::endl;
 		
-		return Eigen::VectorXf::Zero(n);
+		return x0;
 	}
 	else if(W.rows() != m or W.cols() != m)
 	{
 		std::cerr << "[ERROR] [QPSOLVER] least_squares(): "
 		          << "Weighting matrix W was " << W.rows() << "x" << W.cols() << ", "
 		          << "but expected " << m << "x" << m << "." << std::endl;
-		return Eigen::VectorXf::Zero(n);
+		return x0;
 	}
 	else
 	{
 		Eigen::MatrixXf AtW = A.transpose()*W;
-		return solve(AtW*A,AtW*y);
+		return solve(AtW*A,AtW*y,x0);
 	}
 }
   
@@ -193,15 +251,15 @@ Eigen::VectorXf QPSolver::least_squares(const Eigen::VectorXf &y,
 Eigen::VectorXf QPSolver::least_squares(const Eigen::VectorXf &y,
                                         const Eigen::MatrixXf &A,
                                         const Eigen::MatrixXf &W,
-                                        const Eigen::MatrixXf &xMin,
-                                        const Eigen::MatrixXf &xMax,
+                                        const Eigen::VectorXf &xMin,
+                                        const Eigen::VectorXf &xMax,
                                         const Eigen::VectorXf &x0)
 {
 	int m = A.rows();
 	int n = A.cols();
 	
 	// Check that the inputs are sound
-	if(y.size() != m or x0.size() != n or xMin.size() != n or xMax.size() != n)
+	if(y.size() != m or x0.size() != n or xMin.size() != n or xMax.size() != n or x0.size() != n)
 	{
 		std::cerr << "[ERROR] [QPSOLVER] least_squares(): "
 		          << "Dimensions of inputs arguments do not match! "
@@ -244,22 +302,24 @@ Eigen::VectorXf QPSolver::least_squares(const Eigen::VectorXf &y,
 Eigen::VectorXf QPSolver::least_squares(const Eigen::VectorXf &xd,
                                         const Eigen::MatrixXf &W,
                                         const Eigen::VectorXf &y,
-                                        const Eigen::MatrixXf &A)
+                                        const Eigen::MatrixXf &A,
+                                        const Eigen::VectorXf &x0)
 {
 	// Check that the inputs are sound
 	int m = A.rows();
 	int n = A.cols();
 	
-	if(xd.size() != n or y.size() != m)
+	if(xd.size() != n or y.size() != m or x0.size() != n)
 	{
 		std::cerr << "[ERROR] [QPSOLVER] least_squares(): "
 		          << "Dimensions of input arguments do not match. "
 		          << "The xd vector was " << xd.size() << "x1, "
 		          << "the W matrix was " << W.rows() << "x" << W.cols() << ", "
 		          << "the y vector was " << y.size() << "x1, "
-		          << "the A matrix was " << m << "x" << n << "." << std::endl;
+		          << "the A matrix was " << m << "x" << n << ", and "
+		          << "the x0 vector was " << x0.size() << "x1." << std::endl;
 		
-		return Eigen::VectorXf::Zero(n);
+		return x0;
 	}
 	else if(W.rows() != n or W.cols() != n)
 	{
@@ -267,7 +327,7 @@ Eigen::VectorXf QPSolver::least_squares(const Eigen::VectorXf &xd,
 		          << "Weighting matrix W was " << W.rows() << "x" << W.cols() << ", "
 		          << "but expected " << n << "x" << n << "." << std::endl;
 		
-		return Eigen::VectorXf::Zero(n);
+		return x0;
 	}
 	else
 	{
@@ -292,9 +352,9 @@ Eigen::VectorXf QPSolver::least_squares(const Eigen::VectorXf &xd,
 			Eigen::MatrixXf Q12 = Q.block(0,m,m,n);
 			Eigen::MatrixXf Q22 = Q.block(m,m,n,n);
 			
-			return backward_substitution(Q12.transpose()*y + Q22.transpose()*W*xd, R22);
+			return backward_substitution(Q12.transpose()*y + Q22.transpose()*W*xd, R22, x0);
 		}
-		else return Eigen::VectorXf::Zero(n);
+		else    return x0;
 	}
 }
 
@@ -381,5 +441,4 @@ Eigen::VectorXf QPSolver::least_squares(const Eigen::VectorXf &xd,
 
 		return temp.block(0,0,n,1);                                                         // Return only the x vector
 	}
-
-}	*/                              
+}                  

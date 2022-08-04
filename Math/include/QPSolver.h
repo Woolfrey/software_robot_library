@@ -11,16 +11,19 @@ class QPSolver
 		
 		// These functions can be called without creating a QPSolver object:
 		static Eigen::VectorXf solve(const Eigen::MatrixXf &H,                              // Solve a generic QP problem
-		                             const Eigen::VectorXf &f);
+		                             const Eigen::VectorXf &f,
+		                             const Eigen::VectorXf &x0);
 		                             
 		static Eigen::VectorXf least_squares(const Eigen::VectorXf &y,                      // Solve an unconstrained least squares problem
 		                                     const Eigen::MatrixXf &A,
-		                                     const Eigen::MatrixXf &W);
+		                                     const Eigen::MatrixXf &W,
+		                                     const Eigen::VectorXf &x0);
 		                                     
 		static Eigen::VectorXf least_squares(const Eigen::VectorXf &xd,                     // Solve a least squares with equality constraints
 		                                     const Eigen::MatrixXf &W,
 		                                     const Eigen::VectorXf &y,
-		                                     const Eigen::MatrixXf &A);
+		                                     const Eigen::MatrixXf &A,
+		                                     const Eigen::VectorXf &x0);
 		                                     
 		// These functions require an object to be created since they use the
 		// interior point solver:
@@ -33,8 +36,8 @@ class QPSolver
 		Eigen::VectorXf least_squares(const Eigen::VectorXf &y,                             // Solve a constrained least squares problem
 		                              const Eigen::MatrixXf &A,
 		                              const Eigen::MatrixXf &W,
-		                              const Eigen::MatrixXf &xMin,
-		                              const Eigen::MatrixXf &xMax,
+		                              const Eigen::VectorXf &xMin,
+		                              const Eigen::VectorXf &xMax,
 		                              const Eigen::VectorXf &x0);
 		                              
 		Eigen::VectorXf least_squares(const Eigen::VectorXf &xd,                            // Solve a constrained least squares problem
@@ -53,7 +56,7 @@ class QPSolver
 		float betaMod   = 0.1;                                                              // Increase of rate of barrier function
 		float timeout   = 5e-03;                                                            // Timeout for interior point method
 		float tol       = 1e-02;                                                            // Tolerance on step size
-		float u0        = 10.0;                                                             // Scalar on barrier function
+		float u0        = 1.0;                                                             // Scalar on barrier function
 		float uMod      = 10.0;                                                             // Value to increase barrier function
 		int   steps     = 10;                                                               // No. of steps to run interior point method
 		                         
