@@ -4,7 +4,7 @@
 
 int main(int argc, char *argv[])
 {
-	srand((unsigned int) time(0));					                       // Random seed generator
+	srand((unsigned int) time(0));					                            // Random seed generator
 	
 	// Variables used in this scope
 	clock_t timer;
@@ -48,9 +48,9 @@ int main(int argc, char *argv[])
 	
 	std::cout << "\nWe can use the triangular property to get a fast inverse.\n" << std::endl;
 	timer = clock();
-	invA = get_inverse(A);
+	invA  = get_inverse(A);
 	timer = clock() - timer;
-	time = (float)timer/CLOCKS_PER_SEC;
+	time  = (float)timer/CLOCKS_PER_SEC;
 	
 	std::cout << "\nHere is the inverse of A:\n" << std::endl;
 	std::cout << invA << std::endl;
@@ -61,14 +61,12 @@ int main(int argc, char *argv[])
 	std::cout << A*invA << std::endl;
 	
 	std::cout << "\nWe can use the triangular property to solve a system of equations y = A*x "
-	          << "without having to compute the inverse matrix directly.\n" << std::endl;
+	          << "without having to compute the inverse matrix directly. Here is the vector x:\n" << std::endl;
 	x = Eigen::VectorXf::Random(n);
-	y = A*x;
-	
-	std::cout << "\nHere is the vector x:\n" << std::endl;
 	std::cout << x << std::endl;
 	
 	std::cout << "\nAnd here is y = A*x:\n" << std::endl;
+	y = A*x;
 	std::cout << y << std::endl;
 	
 	timer = clock();
@@ -88,12 +86,11 @@ int main(int argc, char *argv[])
 	std::cout << "\nThe error norm ||y-A*x'|| is " << (y-A*xHat).norm() << ". "
 	          << "It took " << time*1000 << " ms to solve (" << 1/time << " Hz)." << std::endl;
 	          
-	std::cout << "\nNotice that get_inverse(A) is not robust to singularities "
-	          << "because it cannot return a proper inverse since A*invA =/= I. "
-	          << "However, solve_linear_system(y,A) is robust!" << std::endl;
+	std::cout << "\nNotice that A is singular, hence A*inv(A) =/= I, but "
+	          << "solve_linear_system(y,A) is robust and can still find a solution.\n" << std::endl;
 	
 	std::cout << "\n************************************************************"   << std::endl;
-	std::cout <<   "*                   CHOLESKY DECOMPOSITION                 *"   << std::endl;
+	std::cout <<   "*                 CHOLESKY DECOMPOSITION                   *"   << std::endl;
 	std::cout <<   "************************************************************\n" << std::endl;
 	
 	m = 5;
@@ -101,7 +98,7 @@ int main(int argc, char *argv[])
 	A = Eigen::MatrixXf::Random(m,n);
 	A = A*A.transpose();
 	
-	/**************************** General test of Cholesky decomposition **********************/
+	//////////////////// General test of Cholesky decomposition ////////////////////
 	std::cout << "\nWe can use Cholesky decomposition to express a positive-definite matrix A as L*L'. "
 	          << "\nHere is the matrix A:\n" << std::endl;
 	          
@@ -117,7 +114,7 @@ int main(int argc, char *argv[])
 	std::cout << "\nIt took " << time*1000 << "ms to solve (" << 1/time << " Hz)." << std::endl;
 	std::cout << "\nThe error norm ||A - L*L'|| is: " << (A - L*L.transpose()).norm() << ".\n" << std::endl;
 	          
-	/****************** Solving linear systems with a positive-definite matrix ****************/
+	//////////////////// Solving linear systems with a positive-definite matrix ////////////////////
 	std::cout << "\nIf A is part of a linear system y = A*x, give y we can solve for x.\n" << std::endl;
 	std::cout << "\nHere is the vector x:\n" << std::endl;
 	x = Eigen::VectorXf::Random(n);
@@ -160,8 +157,8 @@ int main(int argc, char *argv[])
 	std::cout <<   "*                      QR DECOMPOSITION                    *" << std::endl;
 	std::cout <<   "************************************************************\n" << std::endl;
 	
-	m = 6;
-	n = 5;
+	m = 7;
+	n = 6;
 	A = Eigen::MatrixXf::Random(m,n);
 	A.col(0) = A.col(n-2);                                                                      // Force a singularity
 	
@@ -173,15 +170,19 @@ int main(int argc, char *argv[])
 	          << "is upper triangular.\n" << std::endl;
 	
 	Eigen::MatrixXf Q, R;
-	if( get_qr_decomposition(A,Q,R) )
-	{
-		std::cout << "\nHere is the orthogonal Q matrix:\n" << std::endl;
-		std::cout << Q << std::endl;
-		std::cout << "\nHere is Q'*Q:\n" << std::endl;
-		std::cout << Q.transpose()*Q << std::endl;
-		std::cout << "\nHere is the triangular R matrix:\n" << std::endl;
-		std::cout << R << std::endl;
-	}
+	timer = clock();
+	get_qr_decomposition(A,Q,R);
+	timer = clock() - timer;
+	time  = (float)timer/CLOCKS_PER_SEC;
+	
+	std::cout << "\nHere is the orthogonal Q matrix:\n" << std::endl;
+	std::cout << Q << std::endl;
+	std::cout << "\nHere is Q'*Q:\n" << std::endl;
+	std::cout << Q.transpose()*Q << std::endl;
+	std::cout << "\nHere is the triangular R matrix:\n" << std::endl;
+	std::cout << R << std::endl;
+	
+	std::cout << "\nIt took " << time*1000 << " ms to solve (" << 1/time << " Hz)." << std::endl;
 	
 	std::cout << "\nNotice that A is singular and the corresponding diagonal element of "
 	          << "R is close to zero: " << R(n-2,n-2) << ".\n" << std::endl;
