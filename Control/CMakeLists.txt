@@ -12,4 +12,4 @@ target_include_directories(Control
         ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
-target_link_libraries(Control Model)
+target_link_libraries(Control Math Model)
