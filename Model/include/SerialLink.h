@@ -21,7 +21,8 @@ class SerialLink
 		// Constructors(s)
 		SerialLink() {}                                                                     // Empty constructor
 		
-		SerialLink(const std::vector<RigidBody> &links, const std::vector<Joint> &joints);
+		SerialLink(const std::vector<RigidBody> &links,                                     // Proper constructor
+		           const std::vector<Joint> &joints);
 
 		// Set Functions
 		void set_base_transform(const Eigen::Isometry3f &transform)                         // Define a new origin for the base
@@ -49,13 +50,16 @@ class SerialLink
 		
 		Eigen::MatrixXf get_jacobian() {return get_jacobian(this->fkChain[this->n].translation(), this->n);}
 		
-		Eigen::MatrixXf get_partial_derivative(const Eigen::MatrixXf &J, const int &jointNum); // Partial derivative w.r.t a single joint
+		Eigen::MatrixXf get_partial_derivative(const Eigen::MatrixXf &J,                    // Get partial derivative w.r.t a single joint
+		                                       const int &jointNum);
 		
 		Eigen::MatrixXf get_time_derivative(const Eigen::MatrixXf &J);                      // Time derivative of a given Jacobian
 		
 		Eigen::VectorXf get_gravity_torque() const {return this->g;}                        // Get torque needed to oppose gravity
 		
 		Eigen::VectorXf get_joint_positions() const {return this->q;}                       // As it says on the label
+		
+		Eigen::VectorXf get_joint_velocities() const {return this->qdot;}
 		
 		float get_joint_position(const int &i) const {return this->q[i];}                   // Query a single joint position
 		
