@@ -22,7 +22,7 @@ SerialKinControl::SerialKinControl(const std::vector<RigidBody> links,
 	{
 		this->joint[i].get_position_limits(this->pLim[i][0], this->pLim[i][1]);
 		this->vLim[i] = this->joint[i].get_velocity_limit();
-		this->aLim[i] = 2.0;
+		this->aLim[i] = 5.0;
 	}
 }
 
@@ -55,164 +55,13 @@ bool SerialKinControl::set_proportional_gain(const float &gain)
 }
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
- //                                Get the inverse of a matrix                                     //
-////////////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::MatrixXf SerialKinControl::get_inverse(const Eigen::MatrixXf &A)
-{
-	Eigen::JacobiSVD<Eigen::MatrixXf> SVD(A, Eigen::ComputeFullU | Eigen::ComputeFullV);        // Get the SVD decomposition
-	Eigen::MatrixXf V = SVD.matrixV();                                                          // V matrix
-	Eigen::MatrixXf U = SVD.matrixU();                                                          // U matrix
-	Eigen::VectorXf s = SVD.singularValues();                                                   // Get the singular values
-	Eigen::MatrixXf invA(A.cols(), A.rows()); invA.setZero();                                   // Value we want to return
-	
-	for(int i = 0; i < A.cols(); i++)
-	{
-		for(int j = 0; j < s.size(); j++)
-		{
-			for(int k = 0; k < A.rows(); k++)
-			{
-				if(s(j) >= 1e-04) invA(i,k) += (V(i,j)*U(k,j))/s(j);                // Fast inverse
-				else                     
-				{
-//                                      invA(i,k) += 0;                                             // Ignore singular directions
-
-					std::cout << "[WARNING] [SERIALKINCONTROL] get_inverse(): "
-						  << "Matrix is near-singular!" << std::endl;
-				}
-			}
-		}
-	}
-	return invA;
-}
-
-  ////////////////////////////////////////////////////////////////////////////////////////////////////
- //                           Get the weighted pseudoinverse of a matrix                           //
-////////////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::MatrixXf SerialKinControl::get_weighted_inverse(const Eigen::MatrixXf &A, const Eigen::MatrixXf &W)
-{
-	if(W.rows() != W.cols())
-	{
-		std::cerr << "[ERROR] [SERIALKINCONTROL] get_weighted_inverse() : "
-                          << "Weighting matrix must be square. Your input had " << W.rows() << " rows and "
-                          << W.cols() << " columns. Ignoring the weighting matrix..." << std::endl;
-                         
-		return get_inverse(A);                                                              // Ignore the weighting matrix
-	}
-	else if(A.cols() == W.rows())                                                               // Overdetermined system
-	{
-		Eigen::MatrixXf invWAt = get_inverse(W)*A.transpose();
-		
-		return invWAt*get_inverse(A*invWAt);                                                // W^-1*A'*(A*W^-1*A')^-1
-	}
-	else if(W.cols() == A.rows())                                                               // Underdetermined system
-	{
-		Eigen::MatrixXf AtW = A.transpose()*W;
-		
-		return get_inverse(AtW*A)*AtW;                                                      // (A'*W*A)^-1*A'*W
-	}
-	else
-	{
-		std::cerr << "[WARNING] [SERIALKINCONTROL] get_weighted_inverse() : "
-                          << "Input matrices do not have compatible dimensions. Matrix A has " << A.rows()
-                          << " rows and " << A.cols() << " columns, and matrix W has " << W.rows()
-                          << " rows and " << W.cols() << " columns. Ignoring the weighting matrix..." << std::endl;
-                         
-		return get_inverse(A);
-	}
-}
-
-  ////////////////////////////////////////////////////////////////////////////////////////////////////
- //                  Solve the joint velocities to achieve the endpoint velocity                   //
-////////////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::VectorXf SerialKinControl::get_cartesian_control(const Eigen::VectorXf &vel)
-{
-	if(primary_task_is_ok(vel))
-	{
-		if(this->n <= 6) return rmrc(vel, Eigen::VectorXf::Zero(this->n));                  // Not redundant, secondary task doesn't matter
-		else             return rmrc(vel, singularity_avoidance(5.0));                      // Apply automatic singularity avoidance
-	}
-	else	return Eigen::VectorXf::Zero(this->n);
-}
-
-  ////////////////////////////////////////////////////////////////////////////////////////////////////
- //     Solve the joint velocities to achieve the endpoint velocity with added redundant task      //
-////////////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::VectorXf SerialKinControl::get_cartesian_control(const Eigen::VectorXf &vel,
-							const Eigen::VectorXf &secondaryTask)
-{
-	if(primary_task_is_ok(vel) and secondary_task_is_ok(secondaryTask))
-	{
-		return rmrc(vel, secondaryTask);
-	}
-	else	return Eigen::VectorXf::Zero(this->n);
-}
-
-  ////////////////////////////////////////////////////////////////////////////////////////////////////
- //            Follow a Cartesian trajectory defined by pose and instantaneous velocity            //
-////////////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::VectorXf SerialKinControl::get_cartesian_control(const Eigen::Isometry3f &pose,
-                                                        const Eigen::VectorXf &vel)
-{
-	if(primary_task_is_ok(vel))
-	{
-		Eigen::VectorXf xdot = vel + this->k*get_pose_error(pose, this->fkChain.back());
-		
-		if(this->n <= 6) return rmrc(xdot, Eigen::VectorXf::Zero(this->n));                 // Not redundant, secondary task doesn't matter
-		else             return rmrc(xdot, singularity_avoidance(5.0));                     // Apply automatic singularity avoidance
-	}
-	else	return Eigen::VectorXf::Zero(this->n);
-}
-
-  ////////////////////////////////////////////////////////////////////////////////////////////////////
- //         Follow Cartesian trajectory with pose, instantaneous velocity, and redundant task      //
-////////////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::VectorXf SerialKinControl::get_cartesian_control(const Eigen::Isometry3f &pose,
-                                                        const Eigen::VectorXf &vel,
-                                                        const Eigen::VectorXf &secondaryTask)
-{
-	if(primary_task_is_ok(vel) and secondary_task_is_ok(secondaryTask))
-	{
-		return rmrc(vel + this->k*get_pose_error(pose, this->fkChain.back()), secondaryTask);
-	}
-	else	return Eigen::VectorXf::Zero(this->n);
-}
-
-  ////////////////////////////////////////////////////////////////////////////////////////////////////
- //             Compute the feedfoward + feedback control to track a joint trajectory              //
-////////////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::VectorXf SerialKinControl::get_joint_control(const Eigen::VectorXf &pos, const Eigen::VectorXf &vel)
-{
-	if(pos.size() != this->n or vel.size() != this->n)
-	{
-		std::cerr << "[ERROR] [SERIALKINCONTROL] get_joint_control() : "
-                         << "This robot has " << this->n << " joints "
-                         << "but the position argument had " << pos.size() << " elements "
-                         << "and the velocity argument had " << vel.size() << " elements." << std::endl;
-
-		return Eigen::VectorXf::Zero(this->n);
-	}
-	else
-	{
-		Eigen::VectorXf qdot = Eigen::VectorXf::Zero(this->n);                              // Value to be returned
-		
-		for(int i = 0; i < this->n; i++)
-		{
-			qdot(i) = vel(i) + this->k*(pos(i) - this->q(i));                           // Feedforward + feedback control	
-			limit_joint_velocity(qdot(i), i);                                           // Ensure kinematic feasiblity
-		}
-		
-		return qdot;
-	}
-}
-
-  ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                       Get the error between two poses for feedback control                     //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 Eigen::VectorXf SerialKinControl::get_pose_error(const Eigen::Isometry3f &desired, const Eigen::Isometry3f &actual)
 {
 	// Yuan, J. S. (1988). Closed-loop manipulator control using quaternion feedback.
 	// IEEE Journal on Robotics and Automation, 4(4), 434-440.
-	
+
 	Eigen::VectorXf error(6);                                                                   // Value to be returned
 	
 	error.head(3) = desired.translation() - actual.translation();                               // Position error
@@ -227,88 +76,311 @@ Eigen::VectorXf SerialKinControl::get_pose_error(const Eigen::Isometry3f &desire
 	return error;
 }
 
+  ///////////////////////////////////////////////////////////////////////////////////////////////////
+ //                               Move the endpoint at a given speed                              //
+///////////////////////////////////////////////////////////////////////////////////////////////////
+Eigen::VectorXf SerialKinControl::move_at_speed(const Eigen::VectorXf &vel)
+{
+	if(vel.size() != 6)
+	{
+		std::cerr << "[ERROR] [SERIALKINCONTROL] move_at_speed(): "
+		          << "Expected a 6x1 vector for the input, "
+		          << "but it was " << vel.size() << "x1." << std::endl;
+		
+		return 0.9*get_joint_velocities();                                                              // Slow down to avoid problems
+	}
+	else
+	{
+		if(this->n <= 6) return move_at_speed(vel, Eigen::VectorXf::Zero(this->n));         // No redundancy
+		else             return move_at_speed(vel, singularity_avoidance(0.5));             // Automatic singularity avoidance
+	}
+}
+
+  ///////////////////////////////////////////////////////////////////////////////////////////////////
+ //                             Move the endpoint at a given speed                                //
+///////////////////////////////////////////////////////////////////////////////////////////////////
+Eigen::VectorXf SerialKinControl::move_at_speed(const Eigen::VectorXf &vel,
+                                                const Eigen::VectorXf &redundant)
+{
+	// Whitney, D. E. (1969). Resolved motion rate control of manipulators and human prostheses.
+	// IEEE Transactions on man-machine systems, 10(2), 47-53.
+	//
+	// Given xdot = J*qdot, we can solve for:
+	//
+	// - qdot = J^-1 *xdot               if n <= 6
+	// - qdot = J^-1 &xdot + N*redundant otherwise
+	//
+	// Matrix inversion is prone to numerical instability when ill-conditioned,
+	// so we can use QR decomposition instead
+	
+	if(vel.size() != 6)
+	{
+		std::cerr << "[ERROR] [SERIALKINCONTROL] move_at_speed(): "
+		          << "Expected a 6x1 vector for the input, but it was " << vel.size() << "x1." << std::endl;
+		
+		return 0.9*get_joint_velocities();
+	}
+	else if(redundant.size() != this->n)
+	{
+		std::cerr << "[ERROR] [SERIALKINCONTROL] move_at_speed(): "
+		          << "Expected a " << this->n << "x1 vector for the redundant task, "
+		          << "but it was " << redundant.size() << "x1." << std::endl;
+		
+		return 0.9*get_joint_velocities();
+	}
+	else
+	{
+		Eigen::VectorXf ctrl;
+		Eigen::MatrixXf J  = get_jacobian();                                                // As it says on the label
+		Eigen::MatrixXf Jt = J.transpose();                                                 // Makes calcs a little easier
+		Eigen::MatrixXf A, Q, R;
+		Eigen::MatrixXf W = get_joint_weighting();                                          // Penalise joint motion toward limits
+		Eigen::VectorXf y;
+	
+		if(this->n <= 6) 
+		{
+			// Solve J'*J*qdot = J'*xdot
+			// Then do QR decomposition on J'*J such that:
+			//      Q*R*qdot = J'*xdot
+			//        R*qdot = Q'*J'*xdot
+			A = Jt*J;
+			ctrl.resize(this->n);
+		}
+		else
+		{
+			// Minimize 0.5*(redundant - qdot)'*W*(redundant - qdot) subject to xdot = J*qdot
+			// Lagrangian:
+			//
+			//     L = 0.5*qdot'*W*qdot - qdot'*W*redundant + (J*qdot - xdot)'*lambda
+			//
+			// Solution exists where derivative is zero:
+			//
+			//    [ dL/dlambda ] = [ 0  J ][ lambda ] - [    xdot     ]  = [ 0 ]
+			//    [  dL/dqdot  ]   [ J' W ][  qdot  ]   [ W*redundant ]    [ 0 ]
+			//                    `-------'            `---------------'
+			//                        A                        y
+			// Then do QR decomp on matrix A. To speed up calcs, we can avoid computing lambda.
+			 
+			A.resize(6+this->n,this->n);
+			A.block(0,0,6,6).setZero();
+			A.block(6,0,this->n,      6) = Jt;
+			A.block(0,6,      6,this->n) = J;
+			A.block(6,6,this->n,this->n) = get_inertia() + W;
+			
+			ctrl.resize(6+this->n);
+		}
+		
+		if(get_qr_decomposition(A,Q,R))
+		{
+			// Since R is upper-triangular, we can solve it with back-substitution
+			
+			if(this->n <= 6) y = Q.transpose()*Jt*vel;
+			else             y = Q.block(0,6,this->n,      6).transpose()*y
+			                   + Q.block(6,6,this->n,this->n).transpose()*W*redundant;
+			                   
+			for(int i = this->n-1; i >= 0; i--)                                         // Use back substitution to solve control
+			{
+				float sum = 0.0;
+				for(int j = i; j < this->n; j < this->n)
+				{
+					sum += R(i,j)*ctrl(j);                                      // Sum up recursive values
+				}
+				
+				if(abs(R(i,i)) < 1E-6) ctrl(i) = 0.9*get_joint_velocity(i);         // Joint causing singularity, slow down
+				else                   ctrl(i) = (y(i) - sum)/R(i,i);               // Solve as normal
+				
+				// Limit the joint velocities
+				float lower, upper;
+				get_speed_limit(lower, upper, i);
+				
+				if     (ctrl(i) < lower) ctrl(i) = lower;
+				else if(ctrl(i) > upper) ctrl(i) = upper;
+			}
+				
+			if(this->n <= 6) return ctrl;
+			else             return ctrl.block(6,0,this->n,1);                          // Only need the last n values
+		}
+		else	return 0.9*get_joint_velocities();
+	}
+}
+
   ////////////////////////////////////////////////////////////////////////////////////////////////////
- //         Limit the joint velocities to obey position, speed, acceleration constraints           //
+ //            Get the joint velocity to move to a given joint position at max. speed              //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-bool SerialKinControl::limit_joint_velocity(float &qdot, const int &i)
+Eigen::VectorXf SerialKinControl::move_to_position(const Eigen::VectorXf &pos)
+{
+	if(pos.size() != this->n)
+	{
+		std::cerr << "[ERROR] [SERIALKINCONTROL] move_to_position(): "
+		          << "Expected a " << this->n << "x1 vector for the input, "
+		          << "but it was " << pos.size() << "x1." << std::endl;
+		
+		return 0.9*get_joint_velocities();                                                  // Slow down joints to avoid problems
+	}
+	else
+	{
+		Eigen::VectorXf ctrl(this->n);                                                      // Value to be returned
+		
+		for(int i = 0; i < this->n; i++)
+		{
+			ctrl(i) = this->k*(pos(i) - this->q[i]);                                    // Use proportional feedback
+			
+			// Limit the speed
+			float lower, upper;
+			get_speed_limit(lower, upper, i);
+			if     (ctrl(i) < lower) ctrl(i) = lower;
+			else if(ctrl(i) > upper) ctrl(i) = upper;
+		}
+		
+		return ctrl;
+	}
+}
+
+  ////////////////////////////////////////////////////////////////////////////////////////////////////
+ //                            Move the robot to a given endpoint pose                             //
+////////////////////////////////////////////////////////////////////////////////////////////////////
+Eigen::VectorXf SerialKinControl::move_to_pose(const Eigen::Isometry3f &pose)
+{
+	Eigen::VectorXf e = get_pose_error(pose, get_endpoint_pose());                              // As it says on the label
+	
+	return move_at_speed(this->k*e);                                                            // Proportional feedback
+}
+
+  ////////////////////////////////////////////////////////////////////////////////////////////////////
+ //                            Move the robot to a given endpoint pose                             //
+////////////////////////////////////////////////////////////////////////////////////////////////////
+Eigen::VectorXf SerialKinControl::move_to_pose(const Eigen::Isometry3f &pose,
+                                               const Eigen::VectorXf &redundant)
+{
+	if(redundant.size() != this->n)
+	{
+		std::cerr << "[ERROR] [SERIALLINK] move_to_pose(): "
+		          << "Expected a " << this->n << "x1 vector for the redundant task, "
+		          << "but it was " << redundant.size() << "x1." << std::endl;
+		
+		return 0.9*get_joint_velocities();                                                  // Slow down to avoid problems
+	}
+	else
+	{
+		Eigen::VectorXf e = get_pose_error(pose, get_endpoint_pose());                      // As it says on the label
+		
+		return move_at_speed(this->k*e, redundant);                                         // Use proportional feedback
+	}
+}
+
+  ////////////////////////////////////////////////////////////////////////////////////////////////////
+ //                                   Track Cartesian trajectory                                   //
+////////////////////////////////////////////////////////////////////////////////////////////////////
+Eigen::VectorXf SerialKinControl::track_cartesian_trajectory(const Eigen::Isometry3f &pose,
+                                                             const Eigen::VectorXf &vel)
+{
+	if(vel.size() != 6)
+	{
+		std::cerr << "[ERROR] [SERIALKINCONTROL] track_cartesian_trajectory(): "
+		          << "Expected a 6x1 vector for the velocity argument, "
+		          << "but it was " << vel.size() << "x1." << std::endl;
+		
+		return 0.9*get_joint_velocities();
+	}
+	else
+	{
+		Eigen::VectorXf e = get_pose_error(pose, get_endpoint_pose());                      // As it says on the label
+		
+		return move_at_speed(vel + this->k*e);                                              // Feedforward + feedback control
+	}
+}
+
+  ////////////////////////////////////////////////////////////////////////////////////////////////////
+ //                                   Track Cartesian trajectory                                   //
+////////////////////////////////////////////////////////////////////////////////////////////////////
+Eigen::VectorXf SerialKinControl::track_cartesian_trajectory(const Eigen::Isometry3f &pose,
+                                                             const Eigen::VectorXf &vel,
+                                                             const Eigen::VectorXf &redundant)
+{
+	if(vel.size() != 6)
+	{
+		std::cerr << "[ERROR] [SERIALKINCONTROL] track_cartesian_trajectory(): "
+		          << "Expected a 6x1 vector for the velocity argument, "
+		          << "but it was " << vel.size() << "x1." << std::endl;
+		
+		return 0.9*get_joint_velocities();
+	}
+	else if(redundant.size() != this->n)
+	{
+		std::cerr << "[ERROR] [SERIALKINCONTROL] track_cartesian_trajectory(): "
+		          << "Expected a " << this->n << "x1 vector for the redundant task, "
+		          << "but it was " << redundant.size() << "x1." << std::endl;
+		
+		return 0.9*get_joint_velocities();
+	}
+	else
+	{
+		Eigen::VectorXf e = get_pose_error(pose, get_endpoint_pose());                      // As it says on the label
+		
+		return move_at_speed(vel + this->k*e, redundant);                                   // Feedforward + feedback control
+	}
+}
+
+  ////////////////////////////////////////////////////////////////////////////////////////////////////
+ //                                   Track a joint trajectory                                     //
+////////////////////////////////////////////////////////////////////////////////////////////////////
+Eigen::VectorXf SerialKinControl::track_joint_trajectory(const Eigen::VectorXf &pos,
+                                                         const Eigen::VectorXf &vel)
+{
+	if(pos.size() != this->n or vel.size() != this->n)
+	{
+		std::cerr << "[ERROR] [SERIALKINCONTROL] track_joint_trajectory(): "
+		          << "This robot has " << this->n << " joints, but "
+		          << "position vector was " << pos.size() << "x1 and "
+		          << "velocity vector was " << vel.size() << "x1." << std::endl;
+		
+		return 0.9*get_joint_velocities();
+	}
+	else
+	{
+		Eigen::VectorXf ctrl(this->n);                                                      // Value to be returned
+		
+		for(int i = 0; i < this->n; i++)
+		{
+			ctrl(i) = vel(i) + this->k*(pos(i) - get_joint_position(i));                // Feedforward + feedback control
+			
+			// Limit the joint speeds
+			float lower, upper;
+			get_speed_limit(lower, upper, i);
+			
+			if     (ctrl(i) < lower) ctrl(i) = lower;
+			else if(ctrl(i) > upper) ctrl(i) = upper;
+		}
+		
+		return ctrl;
+	}
+}
+
+  ////////////////////////////////////////////////////////////////////////////////////////////////////
+ //                 Get the speed limits on a particular joint for the current state               //
+////////////////////////////////////////////////////////////////////////////////////////////////////
+bool SerialKinControl::get_speed_limit(float &lower, float &upper, const int &i)
 {
 	// Flacco, F., De Luca, A., & Khatib, O. (2012, May). Motion control of redundant robots
 	// under joint constraints: Saturation in the null space.
 	// In 2012 IEEE International Conference on Robotics and Automation (pp. 285-292). IEEE.
 	
-	float p = (this->pLim[i][0] - this->q[i])/this->dt;                                         // Velocity constraint to avoid position limit
-	float v = -this->vLim[i];                                                                   // Minimum velocity
-	float a = -sqrt(2*this->aLim[i]*(this->q[i] - this->pLim[i][0]));                           // Velocity constraint based on maximum braking
+	// Compute lowest possible speed
+	float p = (this->pLim[i][0] - this->q[i])/this->dt;                                         // Minimum speed before hitting joint limit
+	float v = -this->vLim[i];                                                                   // Negative of maximum motor speed
+	float a = -2*sqrt(this->aLim[i]*(this->q[i] - this->pLim[i][0]));                           // Minimum speed at maximum braking
 	
-	float lower = std::max(std::max(p,v), std::max(v,a));                                       // Get the maximum of the 3 values
+	lower = std::max(p,std::max(v,a));                                                          // Return largest of the 3
 	
-        p = (this->pLim[i][1] - this->q[i])/this->dt;
-        v = this->vLim[i];
-        a = sqrt(2*this->aLim[i]*(this->pLim[i][1] - this->q[i]));
-        
-        float upper = std::min(std::min(p,v), std::min(v,a));                                       // Get the minimum of the 3 values
-
-	if(qdot < lower)
-	{
-		qdot = lower + 0.001;                                                               // Just above the lower limit
-		
-		std::cout << "[WARNING] [SERIALKINCONTROL] limit_joint_velocity(): "
-			  << "Joint " << i+1 << " hit its lower limit!" << std::endl;
-			  
-		return true;
-	}
-	else if(qdot > upper)
-	{
-		qdot = upper - 0.001;                                                               // Just below the upper limit
-		
-		std::cout << "[WARNING] [SERIALKINCONTROL] limit_joint_velocity(): "
-			  << "Joint " << i+1 << " hit its upper limit!" << std::endl;
-			  
-		return true;
-	}
-	else	return false;                                                                       // Joint was not limited
+	// Compute largest possible speed
+	p = (this->pLim[i][1] - this->q[i])/this->dt;                                               // Maximum speed before hitting joint limit
+	v = this->vLim[i];                                                                          // Maximum motor speed
+	a = 2*sqrt(this->aLim[i]*(this->pLim[i][1] - this->q[i]));                                  // Maximum speed at maximum braking
+	
+	upper = std::min(p,std::min(v,a));                                                          // Return smallest
+	
+	return true;
 }
-
-  ////////////////////////////////////////////////////////////////////////////////////////////////////
- //                       Check that the endpoint velocity vector has 6 dimensions                 //
-////////////////////////////////////////////////////////////////////////////////////////////////////
-bool SerialKinControl::primary_task_is_ok(const Eigen::VectorXf &task)
-{
-	if(task.size() != 6)
-	{
-		std::cerr << "[ERROR] [SERIALKINCONTROL] get_cartesian_control(): "
-			  << "Expected a 6x1 vector for the velocity argument "
-			  << "but it had " << task.size() << " elements." << std::endl;
-		
-		return false;
-	}
-	else	return true;
-}
-
-  ////////////////////////////////////////////////////////////////////////////////////////////////////
- //                        Check that the secondary task is feasible                               //
-////////////////////////////////////////////////////////////////////////////////////////////////////
-bool SerialKinControl::secondary_task_is_ok(const Eigen::VectorXf &task)
-{
-	if(this->n <= 6)
-	{
-		std::cerr << "[ERROR] [SERIALKINCONTROL] get_cartesian_control(): "
-			  << "This robot has no redundancy so a secondary task cannot be applied. "
-			  << "Use the function get_cartesian_control(const std::vector &vel) instead." << std::endl;
-			  
-		return false;
-	}
-	else if(task.size() != this->n)
-	{
-		std::cerr << "[ERROR] [SERIALKINCONTROL] get_cartesian_control(): "
-			  << "Expected a " << this->n << "x1 vector for the secondary task "
-			  << "but it had " << task.size() << " elements." << std::endl;
-		
-		return false;
-	}
-	else	return true;
-}
-
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                       Compute a weighting matrix to avoid joint limits                         //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -328,9 +400,9 @@ Eigen::MatrixXf SerialKinControl::get_joint_weighting()
 		dpdq = (range*range*(2*q - this->pLim[i][1] - this->pLim[i][0]))                    // Partial derivative of penalty function
 		      /(4*upper*upper*lower*lower);
 			
-		if(dpdq*this->qdot[i] > 0)                                                          // If moving toward a limit...
+		if(dpdq*get_joint_velocities()[i] > 0)                                                          // If moving toward a limit...
 		{
-			W(i,i) = range*range/(4*upper*lower);                                       // Penalize joint motion
+			W(i,i) = range*range/(4*upper*lower) - 1;                                   // Penalize joint motion (minimum 0)
 			
 			if(W(i,i) < 1)
 			{
@@ -342,42 +414,6 @@ Eigen::MatrixXf SerialKinControl::get_joint_weighting()
 		}
 	}
 	return W;
-}
-
-  ////////////////////////////////////////////////////////////////////////////////////////////////////
- //                    The full resolved motion rate control (rmrc) algorithm                      //
-////////////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::VectorXf SerialKinControl::rmrc(const Eigen::VectorXf &xdot, const Eigen::VectorXf &qdot_d)
-{
-	// Whitney, D. E. (1969). Resolved motion rate control of manipulators and human prostheses.
-	// IEEE Transactions on man-machine systems, 10(2), 47-53.
-	
-	// Solve the equation: qdot = invJ*xdot + (I - invJ*J)*qdot_d
-	// If not redundant this reduces to qdot = invJ*xdot
-
-	// Variables used in this scope
-	Eigen::VectorXf qdot = Eigen::VectorXf::Zero(this->n);                                      // Value to be returned
-	Eigen::MatrixXf J = get_jacobian();                                                         // xdot = J*qdot
-	Eigen::MatrixXf invJ;                                                                       // J*invJ = I
-	
-	if(this->n <= 6) invJ = get_inverse(J);
-	else		 invJ = get_weighted_inverse(J, this->M + get_joint_weighting());           // Weighted for energy, joint limit avoidance
-	
-	Eigen::MatrixXf N = Eigen::MatrixXf::Identity(this->n, this->n) - invJ*J;                   // For redundant robots, J*N = 0
-	
-	// Solve each individual joint velocity
-	for(int i = 0; i < this->n; i++)
-	{
-		for(int j = 0; j < this->n; j++)
-		{
-			if(j < 6)       qdot(i) += invJ(i,j)*xdot(j);                               // Range space velocities
-			if(this->n > 6) qdot(i) += N(i,j)*qdot_d(j);                                // Null space velocities
-		}
-		
-		limit_joint_velocity(qdot(i), i);                                                   // Ensure kinematic feasibility
-	}
-	
-	return qdot;
 }
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -402,8 +438,8 @@ Eigen::VectorXf SerialKinControl::singularity_avoidance(const float &scalar)
 	}
 	else
 	{
-		Eigen::MatrixXf J = get_jacobian();                                                 // As it says on the label
-		Eigen::MatrixXf JJt = J*J.transpose();                                              // Makes calcs a little simpler
+		Eigen::MatrixXf J    = get_jacobian();                                              // As it says on the label
+		Eigen::MatrixXf JJt  = J*J.transpose();                                             // Makes calcs a little simpler
 		Eigen::MatrixXf invJ = J.transpose()*get_inverse(JJt);                              // Pseudoinverse Jacobian
 		
 		float mu = sqrt(JJt.determinant());                                                 // Actual measure of manipulability
