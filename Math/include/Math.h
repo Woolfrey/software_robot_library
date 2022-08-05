@@ -17,6 +17,11 @@ Eigen::MatrixXf get_cholesky_inverse(const Eigen::MatrixXf &A);                 
 
 Eigen::MatrixXf get_inverse(const Eigen::MatrixXf &A);                                              // Get inverse via LU decomposition
 
+Eigen::MatrixXf get_pseudoinverse(const Eigen::MatrixXf &A);
+
+Eigen::MatrixXf get_pseudoinverse(const Eigen::MatrixXf &A,
+                                  const Eigen::MatrixXf &W);
+
 Eigen::MatrixXf get_triangular_inverse(const Eigen::MatrixXf &T);                                   // Get the inverse of a triangular matrix
 
 Eigen::VectorXf backward_substitution(const Eigen::VectorXf &y,                                     // Solve a system for upper-triangular U
