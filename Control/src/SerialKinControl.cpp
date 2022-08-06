@@ -1,13 +1,14 @@
 #include <SerialKinControl.h>
  
  ////////////////////////////////////////////////////////////////////////////////////////////////////
- //                                        Constructer                                             //
+ //                                        Constructor                                             //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 SerialKinControl::SerialKinControl(const std::vector<RigidBody> links,
                                    const std::vector<Joint> joints,
                                    const float &controlFrequency):
                                    SerialLink(links, joints),
-                                   dt(1/controlFrequency)
+                                   hertz(controlFrequency),
+                                   dt(1/hertz)
 {
 	// Not sure if I should "duplicate" the joint limits here, or just grab them from the Joint class... 
 	// It makes the code a little neater, and the limits in the Control class can be altered
@@ -41,8 +42,8 @@ bool SerialKinControl::set_proportional_gain(const float &gain)
 	else if(gain < 0)
 	{
 		std::cerr << "[WARNING] [SERIALKINCONTROL] set_proportional_gain(): "
-                         << "Gain of " << gain << " cannot be negative. "
-                         << "It has been automatically made positive..." << std::endl;
+		          << "Gain of " << gain << " cannot be negative. "
+		          << "It has been automatically made positive..." << std::endl;
                          
 		this->k = -1*gain;
 		return true;
@@ -87,7 +88,7 @@ Eigen::VectorXf SerialKinControl::move_at_speed(const Eigen::VectorXf &vel)
 		          << "Expected a 6x1 vector for the input, "
 		          << "but it was " << vel.size() << "x1." << std::endl;
 		
-		return 0.9*get_joint_velocities();                                                              // Slow down to avoid problems
+		return 0.9*get_joint_velocities();                                                  // Slow down to avoid problems
 	}
 	else
 	{
@@ -130,77 +131,117 @@ Eigen::VectorXf SerialKinControl::move_at_speed(const Eigen::VectorXf &vel,
 	}
 	else
 	{
-		Eigen::VectorXf ctrl;
-		Eigen::MatrixXf J  = get_jacobian();                                                // As it says on the label
-		Eigen::MatrixXf Jt = J.transpose();                                                 // Makes calcs a little easier
-		Eigen::MatrixXf A, Q, R;
-		Eigen::MatrixXf W = get_joint_weighting();                                          // Penalise joint motion toward limits
-		Eigen::VectorXf y;
-	
-		if(this->n <= 6) 
+		Eigen::MatrixXf J = get_jacobian();                                                 // As it says on the label
+		
+		if(this->n <= 6)
 		{
-			// Solve J'*J*qdot = J'*xdot
-			// Then do QR decomposition on J'*J such that:
-			//      Q*R*qdot = J'*xdot
-			//        R*qdot = Q'*J'*xdot
-			A = Jt*J;
-			ctrl.resize(this->n);
-		}
-		else
-		{
-			// Minimize 0.5*(redundant - qdot)'*W*(redundant - qdot) subject to xdot = J*qdot
-			// Lagrangian:
-			//
-			//     L = 0.5*qdot'*W*qdot - qdot'*W*redundant + (J*qdot - xdot)'*lambda
-			//
-			// Solution exists where derivative is zero:
-			//
-			//    [ dL/dlambda ] = [ 0  J ][ lambda ] - [    xdot     ]  = [ 0 ]
-			//    [  dL/dqdot  ]   [ J' W ][  qdot  ]   [ W*redundant ]    [ 0 ]
-			//                    `-------'            `---------------'
-			//                        A                        y
-			// Then do QR decomp on matrix A. To speed up calcs, we can avoid computing lambda.
-			 
-			A.resize(6+this->n,this->n);
-			A.block(0,0,6,6).setZero();
-			A.block(6,0,this->n,      6) = Jt;
-			A.block(0,6,      6,this->n) = J;
-			A.block(6,6,this->n,this->n) = get_inertia() + W;
+			//    J*qdot = xdot
+			// J'*J*qdot = J'*xdot
+			//  Q*R*qdot = J'*xdot
+			//    R*qdot = Q'*J'*xdot
 			
-			ctrl.resize(6+this->n);
+			Eigen::MatrixXf Q,R;
+			if(get_qr_decomposition(J.transpose()*J,Q,R))
+			{
+				return solve_joint_control(Q.transpose()*J.transpose()*vel, R);
+			}
+			else
+			{
+				std::cerr << "[ERROR] [SERIALKINCONTROL] move_at_speed(): "
+				          << "Something went wrong with QR decomposition. "
+				          << "Could not solve the joint control." << std::endl;
+				
+				return 0.9*get_joint_velocities();                                  // Slow down current joint velocities
+			}
+		}
+		else // this->n > 6
+		{
+			// Solve min 0.5*(qdot_0 - qdot)'*W*(qdot_0 - qdot) s.t. J*qdot = xdot
+			//
+			// Lagrangian L = 0.5*qdot'*W*qdot - qdot'*W*qdot_0 + (J*qdot - xdot)'*lambda
+			//
+			// Solution exists where partial derivative is zero:
+			//
+			// [ dL/dlambda] = [ 0   J ][ lambda ] - [   xdot   ] = [ 0 ]
+			// [ dL/dqdot  ]   [ J'  W ][  qdot  ]   [ W*qdot_0 ]   [ 0 ]
+			//  [ Q11  Q12 ][ R12  R12 ][ lambda ] - [   xdot   ] = [ 0 ]
+			//  [ Q21  Q22 ][ R21  R22 ][  qdot  ]   [ W*qdot_0 ]   [ 0 ]
+			
+			Eigen::MatrixXf W = get_inertia();                                          // Weight by inertia for minimum effort
+			for(int i = 0; i < this->n; i++) W(i,i) += get_joint_penalty(i) - 1;        // Penalise motion toward a joint
+			 
+			Eigen::MatrixXf H(6+this->n,6+this->n);
+			H.block(0,0,      6,      6).setZero();
+			H.block(6,0,this->n,      6) = J.transpose();
+			H.block(0,6,      6,this->n) = J;
+			H.block(6,6,this->n,this->n) = W;
+			
+			Eigen::MatrixXf Q, R;
+			if(get_qr_decomposition(H,Q,R))
+			{
+				// Note: We don't actually need to solve for lambda
+				return solve_joint_control(Q.block(0,6,      6,this->n).transpose()*vel
+				                         + Q.block(6,6,this->n,this->n).transpose()*W*qdot,
+				                           R.block(6,6,this->n,this->n));
+			}
+			else
+			{
+				std::cerr << "[ERROR] [SERIALKINCONTROL] move_at_speed(): "
+				          << "Something went wrong with QR decomposition. "
+				          << "Could not solve the joint control." << std::endl;
+				
+				return 0.9*get_joint_velocities();                                  // Slow down current joint velocities
+			}
+		}
+	}
+}
+
+  ///////////////////////////////////////////////////////////////////////////////////////////////////
+ //                Solve the joint velocities from an upper-triangular matrix                     //
+///////////////////////////////////////////////////////////////////////////////////////////////////
+Eigen::VectorXf SerialKinControl::solve_joint_control(const Eigen::VectorXf &y,
+                                                      const Eigen::MatrixXf &U)
+{
+	if(y.size() != this->n)
+	{
+		std::cerr << "[ERROR] [SERIALKINCONTROL] solve_joint_control(): "
+		          << "Expected a " << this->n << "x1 vector for the input, "
+		          << "but it was " << y.size() << "x1." << std::endl;
+		
+		return 0.9*get_joint_velocities();
+	}
+	else if(U.rows() != this->n or U.cols() != this->n)
+	{
+		std::cerr << "[ERROR] [SERIALKINCONTROL] solve_joint_control(): "
+		          << "Expected a " << this->n << "x" << this->n << " matrix for the input, "
+		          << "but it was " << U.rows() << "x" << U.cols() << "." << std::endl;
+		
+		return 0.9*get_joint_velocities();
+	}
+	else
+	{
+		Eigen::VectorXf qdot(this->n);                                                      // Value to be returned
+		
+		for(int i = this->n-1; i >= 0; i--)                                                 // Start from last joint and solve backwards
+		{
+			float sum = 0.0;
+			for(int j = i+1; j < this->n; j++)
+			{
+				sum += U(i,j)*qdot(j);                                              // Sum up recursive values
+			}
+			
+			if(abs(U(i,i)) < 1E-5) qdot(i) = 0.9*get_joint_velocity(i);                 // Singular; slow down current joint speed
+			else                   qdot(i) = (y(i) - sum)/U(i,i);
+		
+			// Obey joint limits
+			float lower, upper;
+			get_speed_limit(upper, lower, i);
+			
+			if     (qdot(i) < lower) qdot(i) = lower;
+			else if(qdot(i) > upper) qdot(i) = upper;
 		}
 		
-		if(get_qr_decomposition(A,Q,R))
-		{
-			// Since R is upper-triangular, we can solve it with back-substitution
-			
-			if(this->n <= 6) y = Q.transpose()*Jt*vel;
-			else             y = Q.block(0,6,this->n,      6).transpose()*y
-			                   + Q.block(6,6,this->n,this->n).transpose()*W*redundant;
-			                   
-			for(int i = this->n-1; i >= 0; i--)                                         // Use back substitution to solve control
-			{
-				float sum = 0.0;
-				for(int j = i; j < this->n; j < this->n)
-				{
-					sum += R(i,j)*ctrl(j);                                      // Sum up recursive values
-				}
-				
-				if(abs(R(i,i)) < 1E-6) ctrl(i) = 0.9*get_joint_velocity(i);         // Joint causing singularity, slow down
-				else                   ctrl(i) = (y(i) - sum)/R(i,i);               // Solve as normal
-				
-				// Limit the joint velocities
-				float lower, upper;
-				get_speed_limit(lower, upper, i);
-				
-				if     (ctrl(i) < lower) ctrl(i) = lower;
-				else if(ctrl(i) > upper) ctrl(i) = upper;
-			}
-				
-			if(this->n <= 6) return ctrl;
-			else             return ctrl.block(6,0,this->n,1);                          // Only need the last n values
-		}
-		else	return 0.9*get_joint_velocities();
+		return qdot;
 	}
 }
 
@@ -382,38 +423,28 @@ bool SerialKinControl::get_speed_limit(float &lower, float &upper, const int &i)
 	return true;
 }
   ////////////////////////////////////////////////////////////////////////////////////////////////////
- //                       Compute a weighting matrix to avoid joint limits                         //
+ //                           Get penalty term for joint limit avoidance                           //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::MatrixXf SerialKinControl::get_joint_weighting()
+float SerialKinControl::get_joint_penalty(const int &i)
 {
 	// Chan, T. F., & Dubey, R. V. (1995). A weighted least-norm solution based scheme
 	// for avoiding joint limits for redundant joint manipulators.
 	// IEEE Transactions on Robotics and Automation, 11(2), 286-292.
 	
-	Eigen::MatrixXf W(this->n, this->n); W.setIdentity();                                       // Value to be returned
-	float q, dpdq, range, upper, lower;
-	for(int i = 0; i < this->n; i++)
+	// NOTE: Minimum of penalty function is 1, so subtract 1 if you want 0 penalty at midpoint
+	
+	float q     = get_joint_position(i);                                                        // Position of ith joint
+	float lower = q - this->pLim[i][0];                                                         // Distance from lower limit
+	float upper = this->pLim[i][1] - q;                                                         // Distance to upper limit
+	float range = this->pLim[i][1] - this->pLim[i][0];                                          // Distance between upper and lower
+	float dpdq  = (range*range*(2*q - this->pLim[i][1] - this->pLim[i][0]))                     // Partial derivative of penalty function
+	             /(4*upper*upper*lower*lower);
+
+	if(dpdq*get_joint_velocity(i) > 0.0)                                                        // If moving toward a limit...
 	{
-		upper = this->pLim[i][1] - this->q[i];                                              // Distance to upper limit
-		lower = this->q[i] - this->pLim[i][0];                                              // Distance to lower limit
-		range = this->pLim[i][1] - this->pLim[i][0];                                        // Difference between upper and lower
-		dpdq = (range*range*(2*q - this->pLim[i][1] - this->pLim[i][0]))                    // Partial derivative of penalty function
-		      /(4*upper*upper*lower*lower);
-			
-		if(dpdq*get_joint_velocities()[i] > 0)                                                          // If moving toward a limit...
-		{
-			W(i,i) = range*range/(4*upper*lower) - 1;                                   // Penalize joint motion (minimum 0)
-			
-			if(W(i,i) < 1)
-			{
-				std::cout << "[ERROR] [SERIALKINCONTROL] get_joint_limit_weighting() : "
-				          << "Penalty function is less than 1! How did that happen???" << std::endl;
-				std::cout << "qMin: " << this->pLim[i][0] << " q: " << this->q[i] << " qMax: " << this->pLim[i][1] << std::endl;
-				W(i,i) = 1.0;
-			}
-		}
+		return range*range/(4*upper*lower);                                                 // Penalty term
 	}
-	return W;
+	else	return 0.0;                                                                         // Don't penalise if moving away
 }
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -440,7 +471,7 @@ Eigen::VectorXf SerialKinControl::singularity_avoidance(const float &scalar)
 	{
 		Eigen::MatrixXf J    = get_jacobian();                                              // As it says on the label
 		Eigen::MatrixXf JJt  = J*J.transpose();                                             // Makes calcs a little simpler
-		Eigen::MatrixXf invJ = J.transpose()*get_inverse(JJt);                              // Pseudoinverse Jacobian
+		Eigen::MatrixXf invJ = get_pseudoinverse(J);                                        // As it says on the label
 		
 		float mu = sqrt(JJt.determinant());                                                 // Actual measure of manipulability
 		
