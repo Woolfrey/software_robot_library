@@ -66,17 +66,15 @@ bool get_qr_decomposition(const Eigen::MatrixXf &A,
 	{
 		// Schwarz-Rutishauser Algorithm.
 		// A full decomposition of an mxn matrix A (m > n) is:
+		//    [ Qr Qn ][ R ]  = A
+		//             [ 0 ]
 		//
-		// [ Q_r Q_n ][ R ]  = A
-		//            [ 0 ]
+		// where: - Qr is mxn,
+		//        - Qn is mx(m-n)
+		//        - R  is nxn
 		//
-		// where: - Q_r is mxn,
-		//        - Q_n is mx(m-n)
-		//        - R   is nxn
-		//
-		// The null space of A is obtained with N = Q_n*Q_n'.
-		//
-		// This algorithm returns Q_r, and R
+		// The null space of A is obtained with N = Qn*Qn'.
+		// This algorithm returns only Qr, and R for efficiency.
 		
 		Q = A;
 		R = Eigen::MatrixXf::Zero(n,n);
@@ -128,7 +126,7 @@ Eigen::MatrixXf get_cholesky_decomposition(const Eigen::MatrixXf &A)
 					if(temp < 0)
 					{
 						std::cerr << "\n[ERROR] get_cholesky_decomp(): "
-						          << "The input matrix is singular and can't be decomposed!\n" << std::endl;
+						          << "The input matrix is singular and can't be decomposed.\n" << std::endl;
 						
 						return L;
 					}
@@ -160,7 +158,7 @@ Eigen::MatrixXf get_cholesky_inverse(const Eigen::MatrixXf &A)
 	else
 	{
 		Eigen::MatrixXf L = get_cholesky_decomposition(A);                                  // As it says on the label
-		Eigen::MatrixXf I = get_triangular_inverse(L);
+		Eigen::MatrixXf I = get_triangular_inverse(L);                                      // Fast inverse of a triangular matrix
 		
 		return I.transpose()*I;
 	}
@@ -190,6 +188,63 @@ Eigen::MatrixXf get_inverse(const Eigen::MatrixXf &A)
 		}
 		else    return Eigen::MatrixXf::Zero(n,n);
 	}
+}
+
+  ///////////////////////////////////////////////////////////////////////////////////////////////////
+ //                         Get the pseudoinverse of a rectangular matrix                         //
+///////////////////////////////////////////////////////////////////////////////////////////////////
+Eigen::MatrixXf get_pseudoinverse(const Eigen::MatrixXf &A)
+{
+	int m = A.rows();
+	int n = A.cols();
+	
+	if(m > n)      return (A.transpose()*A).inverse()*A.transpose();                            // (A'*A)^-1*A'
+	else if(m < n) return A.transpose()*(A*A.transpose()).inverse();                            // A'*(A*A')^-1
+	else           return A.inverse();                                                          // A^-1
+}
+
+  ///////////////////////////////////////////////////////////////////////////////////////////////////
+ //                  Get the weighted pseudoinverse of a rectangular matrix                       //
+///////////////////////////////////////////////////////////////////////////////////////////////////
+Eigen::MatrixXf get_pseudoinverse(const Eigen::MatrixXf &A, const Eigen::MatrixXf &W)
+{
+	// Variables in this scope
+	int m = A.rows();
+	int n = A.cols();
+	
+	if(m > n)
+	{
+		if(W.rows() != m or W.cols() != n)
+		{
+			std::cerr << "[ERROR] get_pseudoinverse(): "
+			          << "Expected a " << m << "x" << m << "weighting matrix, "
+			          << "but it was " << W.rows() << "x" << W.cols() << "." << std::endl;
+			
+			return Eigen::MatrixXf::Zero(n,m);
+		}
+		else
+		{
+			Eigen::MatrixXf invW = W.inverse();
+			return (A.transpose()*invW*A).inverse()*A.transpose()*invW;
+		}
+	}
+	else if(m < n)
+	{
+		if(W.rows() != n or W.cols() != n)
+		{
+			std::cerr << "[ERROR] get_pseudoinverse(): "
+			          << "Expected a " << n << "x" << n << "weighting matrix, "
+			          << "but it was " << W.rows() << "x" << W.cols() << "." << std::endl;
+			
+			return Eigen::MatrixXf::Zero(n,m);
+		}
+		else
+		{
+			Eigen::MatrixXf invW = W.inverse();
+			return invW*A.transpose()*(A*A.transpose()).inverse();
+		}
+	}
+	else return A.inverse();
 }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
