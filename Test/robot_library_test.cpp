@@ -1,7 +1,8 @@
 #include <iostream>
 #include <SerialLink.h>
 #include <SerialKinControl.h>
-#include <CartesianTrajectory.h>
+#include <time.h>
+
 
 /******************** Forward Declarations ********************/
 bool test_serial_link();
@@ -36,6 +37,10 @@ bool test_serial_link()
 	float positionLimits[2];
 	float velocityLimit;
 	float torqueLimit;
+	
+	clock_t timer;
+	float   time1;
+	float   time2;
 
 //	<link name="right_arm_base_link">
 //		<inertial>
@@ -310,8 +315,15 @@ bool test_serial_link()
 		// Set a random state for the robot
 		srand((unsigned int) time(0));					// Random seed generator
 		Eigen::VectorXf q = Eigen::VectorXf::Random(n);			// Create random joint positions
+		
 		Eigen::VectorXf qdot = Eigen::VectorXf::Random(n);			// Create random joint velocities
+		timer = clock();
 		robot.set_joint_state(q,qdot);					// Compute new joint state
+		timer = clock() - timer;
+		time1 = (float)timer/CLOCKS_PER_SEC;
+		
+		std::cout << "\nIt took " << time1*1000 << " ms to solve the dynamics ("
+		          << 1/time1 << " Hz)." << std::endl;
 		
 		// Check the endpoint pose and Jacobian
 		std::cout << "\nHere is the end-effector pose:\n" << std::endl;
@@ -322,12 +334,22 @@ bool test_serial_link()
 		std::cout << J << std::endl;
 		
 		// Check the derivatives of the Jacobian
-		Eigen::MatrixXf Jdot_slow; Jdot_slow.setZero(6,n);
-		for(int i = 0; i < n; i++) Jdot_slow += qdot[i]*robot.get_partial_derivative(J,i);
+		Eigen::MatrixXf Jdot_long; 
+		timer = clock();
+		Jdot_long.setZero(6,n);
+		for(int i = 0; i < n; i++) Jdot_long += qdot[i]*robot.get_partial_derivative(J,i);
+		timer = clock() - timer;
+		time1  = (float)timer/CLOCKS_PER_SEC;
 		
-		Eigen::MatrixXf Jdot_fast = robot.get_time_derivative(J);
-		std::cout << "\nHere is the difference in the time derivative of the Jacobian using the slow and fast method:\n" << std::endl;
-		std::cout << (Jdot_fast - Jdot_slow) << std::endl;
+		timer = clock();
+		Eigen::MatrixXf Jdot_short = robot.get_time_derivative(J);
+		timer = clock() - timer;
+		time2 = (float)timer/CLOCKS_PER_SEC;
+		std::cout << "\nHere is the difference in the time derivative of the Jacobian using the long and short method:\n" << std::endl;
+		std::cout << (Jdot_long - Jdot_short) << std::endl;
+		
+		std::cout << "\nThe long method took " << time1*1000 << " ms (" << 1/time1 << " Hz) "
+		          << "and the short method took " << time2*1000 << "ms (" << 1/time2 << " Hz)." << std::endl;
 		
 		// Check the Dynamics
 		std::cout << "\nHere is the gravity torque vector:\n" << std::endl;
@@ -341,18 +363,6 @@ bool test_serial_link()
 
 		std::cout << "\nHere is the Coriolis vector:\n" << std::endl;
 		std::cout << robot.get_coriolis()*qdot << std::endl;
-		
-		// Test the control functions
-		Eigen::MatrixXf invJ = robot.get_weighted_inverse(J,robot.get_inertia());	// Get the weighted pseudoinverse
-		std::cout << "\nHere is the weighted pseudoinverse Jacobian:\n" << std::endl;
-		std::cout << invJ << std::endl;
-		std::cout << "\nHere is the Jacobian by the weighted pseudoinverse:\n" << std::endl;
-		std::cout << J*invJ << std::endl;
-		std::cout << "\nHere is the null space projection matrix:\n" << std::endl;
-		Eigen::MatrixXf N = Eigen::MatrixXf::Identity(n,n) - invJ*J;
-		std::cout << N << std::endl;
-		std::cout << "\nHere is J*N:\n" << std::endl;
-		std::cout << J*N << std::endl;
 
 		return true;
 	}
