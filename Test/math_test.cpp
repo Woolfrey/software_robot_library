@@ -57,6 +57,14 @@ int main(int argc, char *argv[])
 	
 	std::cout << "\nIt took " << time*1000 << " ms to compute (" << 1/time << " Hz)." << std::endl;
 	
+	Eigen::MatrixXf temp = Eigen::MatrixXf::Random(m,n);
+        timer = clock();
+	Eigen::MatrixXf blah = temp.inverse();
+	timer = clock() - timer;
+	time  = (float)timer/CLOCKS_PER_SEC;
+	std::cout << "\nFor comparison, the inverse() function in Eigen takes about "
+	          << time*1000 << " ms. (" << 1/time << " Hz)." << std::endl;
+	
 	std::cout << "\nHere is A times its inverse:\n" << std::endl;
 	std::cout << A*invA << std::endl;
 	
@@ -105,7 +113,7 @@ int main(int argc, char *argv[])
 	std::cout << A << std::endl;
 	
 	timer = clock();
-	L = get_cholesky_decomposition(A);
+	     L = get_cholesky_decomposition(A);
 	timer = clock() - timer;
 	time  = (float)timer/CLOCKS_PER_SEC;
 	
@@ -113,7 +121,7 @@ int main(int argc, char *argv[])
 	std::cout << L << std::endl;
 	std::cout << "\nIt took " << time*1000 << "ms to solve (" << 1/time << " Hz)." << std::endl;
 	std::cout << "\nThe error norm ||A - L*L'|| is: " << (A - L*L.transpose()).norm() << ".\n" << std::endl;
-	          
+	   
 	//////////////////// Solving linear systems with a positive-definite matrix ////////////////////
 	std::cout << "\nIf A is part of a linear system y = A*x, give y we can solve for x.\n" << std::endl;
 	std::cout << "\nHere is the vector x:\n" << std::endl;
@@ -136,18 +144,24 @@ int main(int argc, char *argv[])
 	std::cout << comparison << std::endl;
 	
 	std::cout << "\nThe error norm ||x - x'|| is " << (x-xHat).norm() << ", "
-	          << "and it took " << time*1000 << " ms to solve (" << 1/time << " Hz)." << std::endl;
-	
-	          
+	          << "and it took " << time*1000 << " ms to solve (" << 1/time << " Hz).\n" << std::endl;
+		          
 	std::cout << "\nWe can also use the triangular property to compute the inverse of A.\n" << std::endl;
 	timer = clock();
-	invA = get_cholesky_inverse(A);
+	invA  = get_cholesky_inverse(A);
 	timer = clock() - timer;
 	
 	std::cout << "\nHere is the inverse of A:\n" << std::endl;
 	std::cout << invA << std::endl;
 	
 	std::cout << "\nIt took " << time*1000 << " ms to solve (" << 1/time << " Hz)." << std::endl;
+	
+        timer = clock();
+	invA = A.inverse();
+	timer = clock() - timer;
+	time  = (float)timer/CLOCKS_PER_SEC;
+	std::cout << "\nFor comparison, the inverse() function in Eigen takes about "
+	          << time*1000 << " ms. (" << 1/time << " Hz)." << std::endl;
 	
 	std::cout << "\nHere is A*inv(A):\n" << std::endl;
 	std::cout << A*invA << std::endl;
