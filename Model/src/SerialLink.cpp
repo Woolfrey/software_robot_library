@@ -396,8 +396,8 @@ Eigen::MatrixXf SerialLink::get_partial_derivative(const Eigen::MatrixXf &J, con
 				}
 			}
 			else if(this->joint[i].is_prismatic()                                       // J_i = [a_i ; 0]
-				&& this->joint[jointNum].is_revolute()                              // J_j = [a_j x r_j; a_j]
-				&& jointNum < i)
+                               and this->joint[jointNum].is_revolute()                             // J_j = [a_j x r_j; a_j]
+                               and jointNum < i)
 			{
 				// a_j x a_i
 				dJ(0,i) = J(4,jointNum)*J(2,i) - J(5,jointNum)*J(1,i);
