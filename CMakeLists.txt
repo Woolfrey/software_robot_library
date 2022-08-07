@@ -2,16 +2,24 @@ cmake_minimum_required(VERSION 3.8)					                               # Minimum
 
 project(RobotLibrary VERSION 1.0.0 LANGUAGES CXX)                                                   # Can use ${PROJECT_NAME} as a reference
 
-# Other directories to add to the build
+if(NOT CMAKE_BUILD_TYPE)
+  # Options are:
+  #  - Debug (Information, not optimised)
+  #  - Release (No information, optimised code)
+  #  - RelWithDebInfo (Information and optimised)
+  #  - MinSizeRel (Same as Release, but optimised for size)
+  set(CMAKE_BUILD_TYPE Release)
+endif()
 
 add_library(RobotLibrary INTERFACE)                                                                 # Declaration of RobotLibrary
 
+########## Other directories to add to the build ##########
 add_subdirectory(Control)
 add_subdirectory(Math)
 add_subdirectory(Model)
 add_subdirectory(Trajectory)
 
-target_link_libraries(RobotLibrary INTERFACE Control Math Model Trajectory)                         # Add these to the library
+target_link_libraries(RobotLibrary INTERFACE Control Math Model Trajectory)                         # Link the subdirectories
 
 ##############################################
 # Installation instructions
@@ -64,7 +72,6 @@ export(EXPORT RobotLibrary-targets
 	NAMESPACE RobotLibrary::
 )
 
-#Register package in the User Package Registry
-export(PACKAGE RobotLibrary)
+export(PACKAGE RobotLibrary)                                                                        # Register package so otherr projects can find it
 
-add_subdirectory(Test)
+add_subdirectory(Test)                                                                              # Should this be here?
