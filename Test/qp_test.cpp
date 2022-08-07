@@ -51,14 +51,21 @@ int main(int argc, char *argv[])
 	          <<   "*                    CONSTRAINED SYSTEM                    *\n"
 	          <<   "************************************************************\n" << std::endl;
 	
-	m = 7;
-	n = 7;
+	m = 8;
+	n = 8;
+	
 	A = Eigen::MatrixXf::Random(m,n);
-	x = 1.5*Eigen::VectorXf::Random(n);
-	y = 1.5*A*x;
+	x.resize(n);
+	x << 1, 2, 3, 4, 5, 3, 2, 1;
+	
+	y = A*x;
 	W = Eigen::MatrixXf::Identity(m,m);
-	xMin = -5*Eigen::VectorXf::Ones(n);
-	xMax =  5*Eigen::VectorXf::Ones(n);
+	
+	xMin = -6*Eigen::VectorXf::Ones(n);
+	xMax =  6*Eigen::VectorXf::Ones(n);
+	xMax(2) = 0.9*x(2);
+	xMax(3) = 0.9*x(3);
+	
 	x0   = 0.5*(xMin + xMax);
 	
 	std::cout << "\nConsider the problem to minimize ||y-A*x|| for xMin <= x <= xMax.\n" << std::endl;
@@ -70,7 +77,7 @@ int main(int argc, char *argv[])
 	std::cout << y << std::endl;
 	
 	timer = clock();
-	xHat  = solver.least_squares(y,A,W,xMin,xMax,x);
+	xHat  = solver.least_squares(y,A,W,xMin,xMax,x0);
 	timer = clock() - timer;
 	time  = (float)timer/CLOCKS_PER_SEC;
 	
@@ -83,46 +90,7 @@ int main(int argc, char *argv[])
 	std::cout << comparison << std::endl;
 	
 	std::cout << "\nThe error norm ||y-A*x|| is " << (y-A*xHat).norm() << ". "
-	          << "It took " << time*1000 << " ms to solve ("
-	          << 1/time << " Hz)." << std::endl;
-	
-	std::cout << "\n************************************************************\n"
-	          <<   "*                 OVERDETERMINED SYSTEMS                   *\n"
-	          <<   "************************************************************\n" << std::endl;
-	
-	m = 6;
-	n = 7;
-	
-	A = Eigen::MatrixXf::Random(m,n);
-	y = 1.5*A*Eigen::VectorXf::Random(n);
-	W = Eigen::MatrixXf::Identity(n,n);
-	xMin = -Eigen::VectorXf::Ones(n);
-	xMax =  Eigen::VectorXf::Ones(n);
-	x0   = 0.5*(xMin + xMax);
-	xd   = Eigen::VectorXf::Ones(n);
-	
-	std::cout << "\nWe can solve over-determined systems. Here is the matrix A, "
-	          << "which has more columns than rows:\n" << std::endl;
-	std::cout <<  A << std::endl;
-	
-	std::cout << "\nAnd here is the y vector:\n" << std::endl;
-	std::cout << y << std::endl;
-	
-	timer = clock();
-	xHat  = solver.least_squares(xd,W,y,A,xMin,xMax,x0);
-	timer = clock() - timer;
-	time  = (float)timer/CLOCKS_PER_SEC;
-	
-	std::cout << "\nHere is xMin, the estimate for x, and xMax side-by-side:\n" << std::endl;
-	comparison.resize(n,3);
-	comparison.col(0) = xMin;
-	comparison.col(1) = xHat;
-	comparison.col(2) = xMax;
-	std::cout << comparison << std::endl;
-	
-	std::cout << "\nThe error norm ||y-A*x|| is " << (y-A*xHat).norm() << ". "
-	          << "It took " << time*1000 << " ms to solve ("
-	          << 1/time << " Hz)." << std::endl;
+	          << "It took " << time*1000 << " ms to solve (" << 1/time << " Hz)." << std::endl;
 	
 	return 0;
 }
