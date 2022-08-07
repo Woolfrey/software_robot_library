@@ -64,150 +64,78 @@ Eigen::VectorXf QPSolver::solve(const Eigen::MatrixXf &H,                       
 		//    I(x) = H + u*sum((1/(d_i^2))*b_i'*b_i)
 		
 		// Local variables
-		Eigen::VectorXf  x = x0;
-		Eigen::VectorXf  x_prev = x;
-		Eigen::VectorXf g(n);
-		Eigen::MatrixXf I;
-		Eigen::VectorXf dx;
+		bool violation;                                                                     // Flags a constraint violation
 		
-		float u = 0.1;
-		float alpha = 1.0;
-		float beta = 0.01;
+		Eigen::MatrixXf I;                                                                  // Hessian matrix
+		Eigen::VectorXf g(n);                                                               // Gradient vector
+		Eigen::VectorXf dx = Eigen::VectorXf::Zero(n);                                      // Newton step = -I\g
+		Eigen::VectorXf x      = x0;                                                        // Assign initial state variable
+		Eigen::VectorXf x_prev = x0;                                                        // For saving previous solution
 		
-		int count;
+		float alpha = this->alpha0;                                                         // Scalar for Newton step
+		float beta  = this->beta0;                                                          // Shrinks barrier function
+		float d;                                                                            // Distance to constraint
+		float u     = this->u0;                                                             // Scalar for barrier function
 		
-		for(int i = 0; i < 10; i++)
-		{
-			// (Re)set values for new loop
-			bool violation = false;
-			I = H;
-			g = Eigen::VectorXf::Zero(n);
-			
-			// Calculate distance to each constraint
-			for(int j = 0; j < B.rows(); j++)
-			{
-				float d = B.row(j).dot(x) - c(j);
-				
-				if(d <= 0)
-				{
-					violation = true;
-					d = 1E-4;
-					u *= 10;
-				}
-				
-				g -= u/d*B.row(j).transpose();
-				I += u/(d*d)*B.row(j).transpose()*B.row(j);
-			}
-			
-			if(violation)
-			{
-				x = x_prev;
-				alpha *= 0.1;
-				beta += 0.1*(1-beta);
-			}
-			
-			g += H*x - f;
-			
-			dx = solve_linear_system(-g,I,Eigen::VectorXf::Zero(n));
-			
-			count = i;
-			
-			if(dx.norm() < 1E-2) break;
-			
-			x += alpha*dx;
-			u *= beta;
-		}
-		
+		// Do some pre-processing
+		std::vector<Eigen::VectorXf> bt(B.rows());
+		std::vector<Eigen::MatrixXf> btb(B.rows());
 		for(int j = 0; j < B.rows(); j++)
 		{
-			float d = B.row(j).dot(x) - c(j);
-			
-			if(d <= 0)
-			{
-				x = x_prev;
-				break;
-			}
+			bt[j]  = B.row(j).transpose();                                              // Row vectors of B transposed
+			btb[j] = B.row(j).transpose()*B.row(j);                                     // Inner product of row vectors
 		}
 		
-		return x;
-	}
-}
-					
-			
-
-/*		
-		float u     = this->u0;                                                             // Scalar for barrier function
-		float alpha = this->alpha0;                                                         // Scalar for Newton Step
-		float beta  = this->beta0;                                                          // Shrinks barrier function scalar each loop
-		
-		int numConstraints = B.rows();
-		
-		Eigen::MatrixXf I(n,n);                                                             // Hessian matrix for barrier function
-		
-		Eigen::VectorXf dx;                                                                 // Newton step
-		Eigen::VectorXf g(n);		                                                    // Gradient vector
-		Eigen::VectorXf x      = x0;                                                        // Set initial state vector
-		Eigen::VectorXf x_prev = x;                                                        // Used to save last solution
-		
-		// Run interior point method
+		// Run the interior point method
 		for(int i = 0; i < this->steps; i++)
 		{
-			//(Re)set values for new loop
-			bool violation = false;
-			I = H;
-			g.setZero();
+			// (Re)set values for new loop
+			violation = false;                                                          // Reset flag
+			g.setZero();                                                                // Reset gradient vector
+			I = H;                                                                      // Reset Hessian matrix
 			
-			// Check the constraints
-			for(int j = 0; j < numConstraints; j++)
+			for(int j = 0; j < B.rows(); j++)
 			{
-				float d = B.row(j).dot(x) - c(j);
-
+				d = bt[j].dot(x) - c(j);                                            // Distance = b_j*x - c_j
+				
 				if(d <= 0)
 				{
-					violation = true;                                           // Flag constraint violation for later
-					u        *= this->uMod;                                     // Increase barrier function scalar
-					d         = 1E-3;                                           // Set a very small, non-zero value
+					violation = true;                                           // Flag violation
+					d         = 1e-03;                                          // Set a small, not non-zero value
+					u        *= this->uMod;                                     // Increase barrier function
 				}
-				
-				g -= (u/d)*B.row(j).transpose();                                    // Add up gradient vector
-				I += (u/(d*d))*B.row(j).transpose()*B.row(j);                       // Add up Hessian matrix
+	
+				g += (-u/d)*bt[j];                                                  // Add up gradient vector
+				I += u/(d*d)*btb[j];                                                // Add up Hessian matrix
 			}
 			
-			if(violation)
+			if(violation)                                                               // If constraint violated...
 			{
-				x      = x_prev;                                                    // Go back to last solution
-				alpha *= this->alphaMod;                                            // Decrease the step size
-				beta  += this->betaMod*(1 - beta);                                  // Slow decrease of barrier function
+				alpha *= this->alphaMod;                                            // ... Decrease step size
+				beta  += this->betaMod*(1 - beta);                                  // ... Decrease rate for barrier function
+				x      = x_prev;                                                    // ... Go back to last solution
 			}
-					
-			g += H*x - f;                                                               // Add final part of gradient
-
-//			dx = -I.inverse()*g;                                                        // Too slow!
-			dx = solve_linear_system(-g,I,Eigen::VectorXf::Zero(n));                    // Using LU decomposition
-//			dx = solve_cholesky_system(-g,I);                                           // Doesn't work for singular matrices!
-						
-			if(dx.norm() < this->tol) break;                                            // Step size is small, end algorithm
 			
-			x_prev   = x;                                                               // Save last value for next loop
-			x       += alpha*dx;                                                        // Increment the solution
-			u       *= beta;                                                            // Decrement barrier function
+			g += H*x - f;                                                               // Finish off barrier function
+			
+			dx = solve_linear_system(-g,I,0.9*dx);                                      // Solve Newton step
+			
+			if(dx.norm() <= this->tol) break;                                           // Step size very small, break loop
+			
+			x_prev = x;                                                                 // Save last result for next loop
+			x     += alpha*dx;                                                          // Increment state
+			u     *= beta;                                                              // Shrink barrier function
 		}
 		
-		// Do one last check on the constraint
-		for(int j = 0; j < numConstraints; j++)
+		// Do one last check of constraints
+		for(int  j = 0; j < B.rows(); j++)
 		{
-			float d = B.row(j).dot(x) - c(j);                                           // Distance to constraint
-			
-			if(d <= 0)
-			{
-				x = x_prev;
-				break;
-			}
+			d = bt[j].dot(x) - c(j);                                                    // Distance to constraint
+			if(d <= 0) return x_prev;                                                   // If violated, return second-last result
 		}
-		
-		return x;
+		return x;                                                                           // Return solution
 	}
-} */
+}	
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //          Solve an unconstrained least squares problem: min 0.5(y-*Ax)'*W*(y-A*x)              //
@@ -287,8 +215,8 @@ Eigen::VectorXf QPSolver::least_squares(const Eigen::VectorXf &y,
 		B.block(n,0,n,n) =    Eigen::MatrixXf::Identity(n,n);
 		
 		Eigen::VectorXf c(2*n);
-		c.block(0,0,n,1) = -1*xMax;
-		c.block(n,0,n,1) =    xMin;
+		c.head(n) = -1*xMax;
+		c.tail(n) =    xMin;
 		
 		Eigen::MatrixXf AtW = A.transpose()*W;
 		
@@ -348,11 +276,10 @@ Eigen::VectorXf QPSolver::least_squares(const Eigen::VectorXf &xd,
 		Eigen::MatrixXf Q, R;
 		if(get_qr_decomposition(H,Q,R))
 		{
-			Eigen::MatrixXf R22 = R.block(m,m,n,n);
-			Eigen::MatrixXf Q12 = Q.block(0,m,m,n);
-			Eigen::MatrixXf Q22 = Q.block(m,m,n,n);
-			
-			return backward_substitution(Q12.transpose()*y + Q22.transpose()*W*xd, R22, x0);
+			return backward_substitution(Q.block(0,m,m,n).transpose()*y                 //   Q12'*y
+			                           + Q.block(m,m,n,n).transpose()*W*xd,             // + Q22*W*xd 
+			                             R.block(m,m,n,n),                              //   R22
+			                             x0);
 		}
 		else    return x0;
 	}
@@ -404,41 +331,45 @@ Eigen::VectorXf QPSolver::least_squares(const Eigen::VectorXf &xd,
 		
 		// Set up QP problem in standard form
 		
-		// H = [ W A'
-		//       A 0 ]
+		// H = [ 0  A ]
+		//     [ A' W ]
 		
-		Eigen::MatrixXf H = Eigen::MatrixXf::Zero(m+n,m+n);
-		H.block(0,0,n,n) = W;
-		H.block(0,n,n,m) = A.transpose();
-		H.block(n,0,m,n) = A;
-//		H.block(n,n,m,m) = Eigen::MatrixXf::Zero(m,n);
+		Eigen::MatrixXf H(m+n,m+n);
+		H.block(0,0,m,m).setZero();
+		H.block(m,0,n,m) = A.transpose();
+		H.block(0,m,m,n) = A;
+		H.block(m,m,n,n) = W;
 		
-		// f = [  W*xd  ]
-		//     [   y    ]
+		// f = [   y  ]
+		//     [ W*xd ]
+		
 		Eigen::VectorXf f(m+n);
-		f.block(0,0,n,1) = W*xd;
-		f.block(n,0,m,1) = y;
+		f.head(m) = y;
+		f.tail(n) = W*xd;
 		
 		// B = [ -I 0 ]
 		//     [  I 0 ]
-		Eigen::MatrixXf B =    Eigen::MatrixXf::Zero(2*n,n+m);
-		B.block(0,0,n,n)  = -1*Eigen::MatrixXf::Identity(n,n);
-		B.block(n,0,n,n)  =    Eigen::MatrixXf::Identity(n,n);
+		Eigen::MatrixXf B(2*n,n+m);
+		B.block(0,0,n,n) = -Eigen::MatrixXf::Identity(n,n);
+		B.block(n,0,n,n) =  Eigen::MatrixXf::Identity(n,n);
+		B.block(0,n,n,m).setZero();
+		B.block(n,n,n,m).setZero();
 		
 		// c = [ -xMax ]
 		//     [  xMin ]
 		Eigen::VectorXf c(2*n);
-		c.block(0,0,n,1) = -1*xMax;
-		c.block(n,0,n,1) =    xMin;
+		c.head(n) = -xMax;
+		c.tail(n) =  xMin;
 		
-		// start = [ x0 ]
-		//         [ 0  ]
+		// start = [ lambda ]
+		//         [   x0   ]
 		// NOTE: TRY A'*lambda = f - H*x
-		Eigen::VectorXf start = Eigen::VectorXf::Zero(m+n);
-		start.block(0,0,n,1)  = x0;
+		Eigen::VectorXf start(m+n);
+		start.head(m).setZero();
+		start.tail(n) = x0;
 		
-		Eigen::VectorXf temp = solve(H,f,B,c,start);                                         // Solution is [ x' lambda']'
+		Eigen::VectorXf temp = solve(H,f,B,c,start);                                        // Solution is [ lambda' x' ]'
 
-		return temp.block(0,0,n,1);                                                         // Return only the x vector
+		return temp.tail(n);                                                                // Return only the x vector
 	}
 }                  
