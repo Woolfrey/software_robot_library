@@ -292,7 +292,7 @@ Eigen::MatrixXf get_triangular_inverse(const Eigen::MatrixXf &T)
 				{
 					if(i == j)
 					{
-						if(abs(T(i,i)) < 1E-6) I(i,i) = 0.0;
+						if(abs(T(i,i)) < 1E-5) I(i,i) = 0.0;
 						else                   I(i,i) = 1/T(i,i);
 					}
 					else
@@ -300,7 +300,7 @@ Eigen::MatrixXf get_triangular_inverse(const Eigen::MatrixXf &T)
 						float sum = 0.0;
 						for(int k = i+1; k <= j; k++) sum += T(i,k)*I(k,j);
 						
-						if(abs(T(i,i)) < 1E-6) I(i,j) = 0.0;
+						if(abs(T(i,i)) < 1E-5) I(i,j) = 0.0;
 						else                   I(i,j) = -sum/T(i,i);
 					}
 				}
@@ -310,7 +310,7 @@ Eigen::MatrixXf get_triangular_inverse(const Eigen::MatrixXf &T)
 		else
 		{
 			std::cerr << "[ERROR] triangular_inverse(): "
-			          << "The input matrix does not appear to be diagonal "
+			          << "The input matrix does not appear to be triangular "
 			          << "as neither of the corner elements are zero!" << std::endl; 
 		}
 
@@ -475,6 +475,7 @@ Eigen::VectorXf solve_linear_system(const Eigen::VectorXf &y,
 			Eigen::MatrixXf R22 = R.block(m,m,n,n);
 			Eigen::MatrixXf Q12 = Q.block(0,m,m,n);
 			return backward_substitution(Q12.transpose()*y,R22,x0);
+			
 		}
 	}
 }
