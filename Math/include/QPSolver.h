@@ -19,7 +19,7 @@ class QPSolver
 		                                     const Eigen::MatrixXf &W,
 		                                     const Eigen::VectorXf &x0);
 		                                     
-		static Eigen::VectorXf least_squares(const Eigen::VectorXf &xd,                     // Solve a least squares with equality constraints
+		static Eigen::VectorXf least_squares(const Eigen::VectorXf &xd,                     // Solve least squares with equality constraints
 		                                     const Eigen::MatrixXf &W,
 		                                     const Eigen::VectorXf &y,
 		                                     const Eigen::MatrixXf &A,
@@ -54,9 +54,9 @@ class QPSolver
 		float alphaMod  = 0.1;                                                              // Modify step size when constraint violated
 		float beta0     = 0.1;                                                              // Rate of decreasing barrier function
 		float betaMod   = 0.2;                                                              // Increase of rate of barrier function
-		float tol       = 1e-2;                                                             // Tolerance on step size
+		float tol       = 1e-01;                                                            // Tolerance on step size
 		float u0        = 1.0;                                                              // Scalar on barrier function
-		float uMod      = 10.0;                                                             // Value to increase barrier function
+		float uMod      = 50.0;                                                             // Value to increase barrier function
 		int   steps     = 30;                                                               // No. of steps to run interior point method
 		                         
 };                                                                                                  // Semicolon needed after class declaration

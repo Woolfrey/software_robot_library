@@ -118,7 +118,8 @@ Eigen::VectorXf QPSolver::solve(const Eigen::MatrixXf &H,                       
 			
 			g += H*x - f;                                                               // Finish off barrier function
 			
-			dx = solve_linear_system(-g,I,0.9*dx);                                      // Solve Newton step
+			dx = I.colPivHouseholderQr().solve(-g);
+//			dx = solve_linear_system(-g,I,dx);
 			
 			if(dx.norm() <= this->tol) break;                                           // Step size very small, break loop
 			
@@ -262,8 +263,8 @@ Eigen::VectorXf QPSolver::least_squares(const Eigen::VectorXf &xd,
 		// Lagrangian L = 0.5*x'*W*x - x'*W*xd + (A*x - y)'*lambda,
 		// Solution exists for:
 		//
-		// [ dL/dlambda ]    =  [ 0   A ][ lambda ]  = [ 0 ]
-		// [ dL/dx      ]       [ A'  W ][   x    ]    [ 0 ]
+		// [ dL/dlambda ]  =  [ 0   A ][ lambda ] - [   y  ] = [ 0 ]
+		// [   dL/dx    ]     [ A'  W ][   x    ]   [ W*xd ]   [ 0 ]
 		//
 		// but we can speed up calcs and skip solving lambda if we are clever.
 		
@@ -324,20 +325,13 @@ Eigen::VectorXf QPSolver::least_squares(const Eigen::VectorXf &xd,
 	}
 	else
 	{
-		// NOTE: MAYBE WE CAN DO A 2-STAGE QP TO IMPROVE RESULTS?
-		// min || y - A*x || s.t. xMin <= x <= xMax to ensure x is feasible
-		// then override y = A*x with solution for x, then solve:
-		// min || xd - x || s.t. Ax = y, xMin <= x <= xMax
-		
-		// Set up QP problem in standard form
-		
 		// H = [ 0  A ]
 		//     [ A' W ]
 		
 		Eigen::MatrixXf H(m+n,m+n);
 		H.block(0,0,m,m).setZero();
-		H.block(m,0,n,m) = A.transpose();
 		H.block(0,m,m,n) = A;
+		H.block(m,0,n,m) = A.transpose();
 		H.block(m,m,n,n) = W;
 		
 		// f = [   y  ]
@@ -347,29 +341,29 @@ Eigen::VectorXf QPSolver::least_squares(const Eigen::VectorXf &xd,
 		f.head(m) = y;
 		f.tail(n) = W*xd;
 		
-		// B = [ -I 0 ]
-		//     [  I 0 ]
-		Eigen::MatrixXf B(2*n,n+m);
-		B.block(0,0,n,n) = -Eigen::MatrixXf::Identity(n,n);
-		B.block(n,0,n,n) =  Eigen::MatrixXf::Identity(n,n);
-		B.block(0,n,n,m).setZero();
-		B.block(n,n,n,m).setZero();
+		// B = [ 0 -I ]
+		//     [ 0  I ]
+		
+		Eigen::MatrixXf B(2*n,m+n);
+		B.block(0,0,2*n,m).setZero();
+		B.block(0,m,n,n) = -Eigen::MatrixXf::Identity(n,n);
+		B.block(n,m,n,n) =  Eigen::MatrixXf::Identity(n,n);
 		
 		// c = [ -xMax ]
 		//     [  xMin ]
+		
 		Eigen::VectorXf c(2*n);
 		c.head(n) = -xMax;
 		c.tail(n) =  xMin;
 		
-		// start = [ lambda ]
-		//         [   x0   ]
-		// NOTE: TRY A'*lambda = f - H*x
-		Eigen::VectorXf start(m+n);
-		start.head(m).setZero();
-		start.tail(n) = x0;
-		
-		Eigen::VectorXf temp = solve(H,f,B,c,start);                                        // Solution is [ lambda' x' ]'
+		Eigen::VectorXf state(m+n);
+		// W*x - W*xd + A'*lambda = 0 ---> Solve W*(x - xd) = A'*lambda
+		state.head(m) = solve_linear_system(W*(x0 - xd), A.transpose(), Eigen::VectorXf::Zero(m));
+		state.tail(n) = x0;
+	
+		state = solve(H,f,B,c,state);
 
-		return temp.tail(n);                                                                // Return only the x vector
+		
+		return state.tail(n);
 	}
 }                  
