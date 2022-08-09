@@ -96,6 +96,15 @@ int main(int argc, char *argv[])
 	          
 	std::cout << "\nNotice that A is singular, hence A*inv(A) =/= I, but "
 	          << "solve_linear_system(y,A) is robust and can still find a solution.\n" << std::endl;
+	          
+	
+	std::cout << "\nConsider this matrix:\n" << std::endl;
+	A = Eigen::MatrixXf::Random(5,5);
+	A(0,0) = 0;
+	A(1,1) = 0;
+	std::cout << A << std::endl;
+	
+	get_lu_decomposition(A,L,U);
 	
 	std::cout << "\n************************************************************"   << std::endl;
 	std::cout <<   "*                 CHOLESKY DECOMPOSITION                   *"   << std::endl;

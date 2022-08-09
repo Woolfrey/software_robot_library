@@ -12,7 +12,7 @@ bool get_lu_decomposition(const Eigen::MatrixXf &A,
 	
 	if(A.rows() != A.cols())
 	{
-		std::cerr << "[ERROR] lu_decomp() "
+		std::cerr << "[ERROR] get_lu_decomposition(): "
                           << "Expected a square matrix for A, but "
                           << "it was " << A.rows() << "x" << A.cols() << "." << std::endl;
                 
@@ -24,10 +24,19 @@ bool get_lu_decomposition(const Eigen::MatrixXf &A,
         	L = Eigen::MatrixXf::Identity(n,n);
         	U = Eigen::MatrixXf::Zero(n,n);
         	
+        	
 		for(int i = 0; i < n; i++)
 		{
 			for(int j = 0; j < n; j++)
 			{
+				if(i == j and abs(A(i,j)) <= 1E-6)
+				{
+					std::cerr << "[ERROR] get_lu_decomposition(): "
+					          << "A diagonal element of matrix A is close to zero! "
+					          << "LU decomposition will fail (we need to program in pivoting)." << std::endl;
+					
+					return false;
+				}
 				float sum = 0.0;			
 				for(int k = 0; k < std::min(i,j); k++) sum += L(i,k)*U(k,j);
 				
@@ -36,7 +45,7 @@ bool get_lu_decomposition(const Eigen::MatrixXf &A,
 					if(abs(U(j,j)) < 1E-6) L(i,j) = 0.0;
 					else                   L(i,j) = (A(i,j) - sum)/U(j,j);
 				}
-				else   U(i,j) = (A(i,j) - sum)/L(i,i);
+				else U(i,j) = (A(i,j) - sum)/L(i,i);
 			}
         	}
         	
