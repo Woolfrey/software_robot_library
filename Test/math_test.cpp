@@ -94,17 +94,17 @@ int main(int argc, char *argv[])
 	std::cout << "\nThe error norm ||y-A*x'|| is " << (y-A*xHat).norm() << ". "
 	          << "It took " << time*1000 << " ms to solve (" << 1/time << " Hz)." << std::endl;
 	          
+	
+	timer = clock();
+	xHat  = A.partialPivLu().solve(y);
+	timer = clock() - timer;
+	time  = (float)timer/CLOCKS_PER_SEC;
+	          
+	std::cout << "\nFor comparison, partialPivLu() in Eigen took " << time*1000 << " ms ("
+	          << 1/time << " Hz)." << std::endl;
+	          
 	std::cout << "\nNotice that A is singular, hence A*inv(A) =/= I, but "
 	          << "solve_linear_system(y,A) is robust and can still find a solution.\n" << std::endl;
-	          
-	
-	std::cout << "\nConsider this matrix:\n" << std::endl;
-	A = Eigen::MatrixXf::Random(5,5);
-	A(0,0) = 0;
-	A(1,1) = 0;
-	std::cout << A << std::endl;
-	
-	get_lu_decomposition(A,L,U);
 	
 	std::cout << "\n************************************************************"   << std::endl;
 	std::cout <<   "*                 CHOLESKY DECOMPOSITION                   *"   << std::endl;
