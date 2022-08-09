@@ -76,14 +76,16 @@ Eigen::VectorXf QPSolver::solve(const Eigen::MatrixXf &H,                       
 		float beta  = this->beta0;                                                          // Shrinks barrier function
 		float d;                                                                            // Distance to constraint
 		float u     = this->u0;                                                             // Scalar for barrier function
+	
+		int numConstraints = B.rows();
 		
 		// Do some pre-processing
-		std::vector<Eigen::VectorXf> bt(B.rows());
-		std::vector<Eigen::MatrixXf> btb(B.rows());
+		std::vector<Eigen::VectorXf> bt(numConstraints);
+		std::vector<Eigen::MatrixXf> btb(numConstraints);
 		for(int j = 0; j < B.rows(); j++)
 		{
 			bt[j]  = B.row(j).transpose();                                              // Row vectors of B transposed
-			btb[j] = B.row(j).transpose()*B.row(j);                                     // Inner product of row vectors
+			btb[j] = bt[j]*bt[j].transpose();                                           // Outer product of row vectors
 		}
 		
 		// Run the interior point method
@@ -94,14 +96,14 @@ Eigen::VectorXf QPSolver::solve(const Eigen::MatrixXf &H,                       
 			g.setZero();                                                                // Reset gradient vector
 			I = H;                                                                      // Reset Hessian matrix
 			
-			for(int j = 0; j < B.rows(); j++)
+			for(int j = 0; j < numConstraints; j++)
 			{
 				d = bt[j].dot(x) - c(j);                                            // Distance = b_j*x - c_j
 				
 				if(d <= 0)
 				{
 					violation = true;                                           // Flag violation
-					d         = 1e-03;                                          // Set a small, not non-zero value
+					d         = 1e-2;                                          // Set a small, not non-zero value
 					u        *= this->uMod;                                     // Increase barrier function
 				}
 	
@@ -118,8 +120,7 @@ Eigen::VectorXf QPSolver::solve(const Eigen::MatrixXf &H,                       
 			
 			g += H*x - f;                                                               // Finish off barrier function
 			
-			dx = I.colPivHouseholderQr().solve(-g);
-//			dx = solve_linear_system(-g,I,dx);
+			dx = I.partialPivLu().solve(-g);
 			
 			if(dx.norm() <= this->tol) break;                                           // Step size very small, break loop
 			
@@ -129,7 +130,7 @@ Eigen::VectorXf QPSolver::solve(const Eigen::MatrixXf &H,                       
 		}
 		
 		// Do one last check of constraints
-		for(int  j = 0; j < B.rows(); j++)
+		for(int  j = 0; j < numConstraints; j++)
 		{
 			d = bt[j].dot(x) - c(j);                                                    // Distance to constraint
 			if(d <= 0) return x_prev;                                                   // If violated, return second-last result
@@ -327,7 +328,6 @@ Eigen::VectorXf QPSolver::least_squares(const Eigen::VectorXf &xd,
 	{
 		// H = [ 0  A ]
 		//     [ A' W ]
-		
 		Eigen::MatrixXf H(m+n,m+n);
 		H.block(0,0,m,m).setZero();
 		H.block(0,m,m,n) = A;
@@ -336,33 +336,30 @@ Eigen::VectorXf QPSolver::least_squares(const Eigen::VectorXf &xd,
 		
 		// f = [   y  ]
 		//     [ W*xd ]
-		
 		Eigen::VectorXf f(m+n);
 		f.head(m) = y;
 		f.tail(n) = W*xd;
 		
 		// B = [ 0 -I ]
 		//     [ 0  I ]
-		
 		Eigen::MatrixXf B(2*n,m+n);
 		B.block(0,0,2*n,m).setZero();
-		B.block(0,m,n,n) = -Eigen::MatrixXf::Identity(n,n);
-		B.block(n,m,n,n) =  Eigen::MatrixXf::Identity(n,n);
+		B.block(n,m,n,n).setIdentity();
+		B.block(0,m,n,n) = -B.block(n,m,n,n);
+		//B.block(0,m,n,n) = -Eigen::MatrixXf::Identity(n,n);
+		//B.block(n,m,n,n) =  Eigen::MatrixXf::Identity(n,n);
 		
 		// c = [ -xMax ]
 		//     [  xMin ]
-		
 		Eigen::VectorXf c(2*n);
 		c.head(n) = -xMax;
 		c.tail(n) =  xMin;
 		
 		Eigen::VectorXf state(m+n);
-		// W*x - W*xd + A'*lambda = 0 ---> Solve W*(x - xd) = A'*lambda
-		state.head(m) = solve_linear_system(W*(x0 - xd), A.transpose(), Eigen::VectorXf::Zero(m));
+		state.head(m).setZero(); // NOTE: Try solving A'*lambda = W*(x-xd) as an initial guess
 		state.tail(n) = x0;
 	
 		state = solve(H,f,B,c,state);
-
 		
 		return state.tail(n);
 	}
