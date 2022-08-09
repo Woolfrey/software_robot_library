@@ -9,16 +9,17 @@
 
 #include <algorithm>                                                                                // std::min, std::max
 #include <array>                                                                                    // std::array
-#include <Math.h>                                                                                   // Custom math functions
+#include <QPSolver.h>
 #include <SerialLink.h>                                                                             // Custom robot class
 #include <vector>                                                                                   // std::vector
 
-class SerialKinControl : public SerialLink
+class SerialKinControl : public SerialLink,
+                         public QPSolver
 {
 	public:
 		SerialKinControl(const std::vector<RigidBody> links,
-                                const std::vector<Joint> joints,
-                                const float &controlFrequency);                                     // Constructor
+                                 const std::vector<Joint> joints,
+                                 const float &controlFrequency);                                    // Constructor
 		
 		// Set Functions
 		bool set_proportional_gain(const float &gain);                                      // Set the gain used in feedback control
@@ -47,7 +48,7 @@ class SerialKinControl : public SerialLink
 		                                           const Eigen::VectorXf &redundancy);      // specify redundant task
 		                                           
 		Eigen::VectorXf track_joint_trajectory(const Eigen::VectorXf &pos,                  // Track trajectory defined by position...
-		                                       const Eigen::VectorXf &vel);		       // and instantaneous joint velocity	
+		                                       const Eigen::VectorXf &vel);		    // and instantaneous joint velocity	
 		
 	private:
 		// Functions

@@ -133,13 +133,18 @@ Eigen::VectorXf SerialKinControl::move_at_speed(const Eigen::VectorXf &vel,
 	{
 		Eigen::MatrixXf J = get_jacobian();                                                 // As it says on the label
 		
+		Eigen::VectorXf xMin(this->n), xMax(this->n);
+		for(int i = 0; i < this->n; i++) get_speed_limit(xMin(i),xMax(i),i);                // Compute instantaneous speed limits
+		
 		if(this->n <= 6)
 		{
+			return least_squares(vel,J,xMin,xMax,get_joint_velocities());               // Too easy, lol
+/*
 			//    J*qdot = xdot
 			// J'*J*qdot = J'*xdot
 			//  Q*R*qdot = J'*xdot
 			//    R*qdot = Q'*J'*xdot
-			
+	
 			Eigen::MatrixXf Q,R;
 			if(get_qr_decomposition(J.transpose()*J,Q,R))
 			{
@@ -153,9 +158,15 @@ Eigen::VectorXf SerialKinControl::move_at_speed(const Eigen::VectorXf &vel,
 				
 				return 0.9*get_joint_velocities();                                  // Slow down current joint velocities
 			}
+*/
 		}
 		else // this->n > 6
 		{
+			Eigen::MatrixXf W = get_inertia();                                          // Weight by inertia for minimum energy
+			for(int i = 0; i < this->n; i++) W(i,i) += get_joint_penalty(i) - 1;        // Penalise motion toward joints
+			
+			return least_squares(redundant,W,vel,J,xMin,xMax,get_joint_velocities());   // Solve with constrained QP
+/*
 			// Solve min 0.5*(qdot_0 - qdot)'*W*(qdot_0 - qdot) s.t. J*qdot = xdot
 			//
 			// Lagrangian L = 0.5*qdot'*W*qdot - qdot'*W*qdot_0 + (J*qdot - xdot)'*lambda
@@ -192,6 +203,7 @@ Eigen::VectorXf SerialKinControl::move_at_speed(const Eigen::VectorXf &vel,
 				
 				return 0.9*get_joint_velocities();                                  // Slow down current joint velocities
 			}
+*/
 		}
 	}
 }
