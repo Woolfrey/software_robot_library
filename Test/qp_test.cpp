@@ -82,17 +82,15 @@ int main(int argc, char *argv[])
 	time  = (float)timer/CLOCKS_PER_SEC;
 	
 	std::cout << "\nHere is xMin, the estimate for x, and xMax side-by-side:\n" << std::endl;
-	comparison.resize(n,4);
+	comparison.resize(n,3);
 	comparison.col(0) = xMin;
-	comparison.col(1) = x;
-	comparison.col(2) = xHat;
-	comparison.col(3) = xMax;
+	comparison.col(1) = xHat;
+	comparison.col(2) = xMax;
 	std::cout << comparison << std::endl;
 	
 	std::cout << "\nThe error norm ||y-A*x|| is " << (y-A*xHat).norm() << ". "
 	          << "It took " << time*1000 << " ms to solve (" << 1/time << " Hz)." << std::endl;
-
-	          
+        
 	std::cout << "\n************************************************************\n"
 	          <<   "*                 OVERDETERMINED SYSTEMS                   *\n"
 	          <<   "************************************************************\n" << std::endl;
@@ -101,9 +99,9 @@ int main(int argc, char *argv[])
 	n = 17;
 	
 	x = 3*Eigen::VectorXf::Random(n);
-//	x(3) = 3;
-//	x(4) = 4;
-//	x(5) = 5;
+	x(3) = 3;
+	x(4) = 4;
+	x(5) = 5;
 	A = Eigen::MatrixXf::Random(m,n);
 	A.col(8) = A.col(3);
 	y = A*x;
@@ -112,29 +110,26 @@ int main(int argc, char *argv[])
 	std::cout << y << std::endl;
 	
 	xMax = 6*Eigen::VectorXf::Ones(n);
-//	xMax(4) = 3;
-//	xMax(5) = 4;
+	xMax(4) = 3;
+	xMax(5) = 4;
 	xMin =-6*Eigen::VectorXf::Ones(n);
 	
 	x0 = 0.5*(xMin + xMax);
 	xd = Eigen::VectorXf::Zero(n);
 	
 	timer = clock();
-	//xHat = solver.least_squares(xd, Eigen::MatrixXf::Identity(n,n),y,A,x0);
 	xHat  = solver.least_squares(xd,Eigen::MatrixXf::Identity(n,n),y,A,xMin,xMax,x0);
 	timer = clock() - timer;
 	time  = (float)timer/CLOCKS_PER_SEC;
 	
 	std::cout << "\nHere is xMin, x, and xMax:\n" << std::endl;
-	comparison.resize(n,4);
+	comparison.resize(n,3);
 	comparison.col(0) = xMin;
-	comparison.col(1) = x;
-	comparison.col(2) = xHat;
-	comparison.col(3) = xMax;
+	comparison.col(1) = xHat;
+	comparison.col(2) = xMax;
 	std::cout << comparison << std::endl;
 
 	std::cout << "\nThe error norm ||y - A*x|| is " << (y-A*xHat).norm() << ". "
 	          << "It took " << time*1000 << " ms to solve (" << 1/time << " Hz)." << std::endl;
-
-	return 0;
+	return 0; 
 }

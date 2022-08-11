@@ -1,4 +1,5 @@
 #include <iostream>                                                                                 // std::cerr
+#include <math.h>
 #include <QPSolver.h>                                                                               // Declaration of functions
 #include <vector>                                                                                   // std::vector
 
@@ -72,12 +73,13 @@ Eigen::VectorXf QPSolver::solve(const Eigen::MatrixXf &H,                       
 		Eigen::VectorXf x      = x0;                                                        // Assign initial state variable
 		Eigen::VectorXf x_prev = x0;                                                        // For saving previous solution
 		
-		float alpha = this->alpha0;                                                         // Scalar for Newton step
+		float alpha;                                                                        // Scalar for Newton step
 		float beta  = this->beta0;                                                          // Shrinks barrier function
-		float d;                                                                            // Distance to constraint
 		float u     = this->u0;                                                             // Scalar for barrier function
 	
 		int numConstraints = B.rows();
+		
+		std::vector<float> d; d.resize(numConstraints);
 		
 		// Do some pre-processing
 		std::vector<Eigen::VectorXf> bt(numConstraints);
@@ -87,55 +89,57 @@ Eigen::VectorXf QPSolver::solve(const Eigen::MatrixXf &H,                       
 			bt[j]  = B.row(j).transpose();                                              // Row vectors of B transposed
 			btb[j] = bt[j]*bt[j].transpose();                                           // Outer product of row vectors
 		}
-		
+
 		// Run the interior point method
 		for(int i = 0; i < this->steps; i++)
 		{
 			// (Re)set values for new loop
-			violation = false;                                                          // Reset flag
-			g.setZero();                                                                // Reset gradient vector
-			I = H;                                                                      // Reset Hessian matrix
+			violation = false;
+			g.setZero();                                                                // Gradient vector
+			I = H;                                                                      // Hessian for log-barrier function
 			
+			// Compute distance to each constraint
 			for(int j = 0; j < numConstraints; j++)
 			{
-				d = bt[j].dot(x) - c(j);                                            // Distance = b_j*x - c_j
+				d[j] = bt[j].dot(x) - c(j);                                         // Distance to jth constraint
 				
-				if(d <= 0)
+				if(d[j] < 0)
 				{
-					violation = true;                                           // Flag violation
-					d         = 1e-2;                                          // Set a small, not non-zero value
-					u        *= this->uMod;                                     // Increase barrier function
+					violation = true;                                           // Flag constraint violation
+					d[j] = 1E-02;                                               // Set a small, non-zero value
+					u *= this->uMod;                                            // Increase barrier function
 				}
-	
-				g += (-u/d)*bt[j];                                                  // Add up gradient vector
-				I += u/(d*d)*btb[j];                                                // Add up Hessian matrix
+				
+				g += -(u/d[j])*bt[j];                                               // Add up gradient vector
+				I +=  (u/(d[j]*d[j]))*btb[j];                                       // Add up Hessian
 			}
 			
-			if(violation)                                                               // If constraint violated...
+			if(violation)
 			{
-				alpha *= this->alphaMod;                                            // ... Decrease step size
-				beta  += this->betaMod*(1 - beta);                                  // ... Decrease rate for barrier function
-				x      = x_prev;                                                    // ... Go back to last solution
+				x = x_prev;                                                         // Go back to last solution
+				beta += this->betaMod*(1.0 - beta);                                 // Slow decrease in barrier function
 			}
 			
-			g += H*x - f;                                                               // Finish off barrier function
+			g += H*x - f;                                                               // Finish summation of gradient vector
 			
-			dx = I.partialPivLu().solve(-g);
+			dx = I.partialPivLu().solve(-g);                                            // Solve Newton step
 			
-			if(dx.norm() <= this->tol) break;                                           // Step size very small, break loop
+			// Compute optimal step size
+			alpha = this->alpha0;
+			for(int j = 0; j < numConstraints; j++)
+			{
+				while( d[j] + alpha*bt[j].dot(dx) < 0) alpha *= this->alphaMod;     // Shrink step size until constraint is OK
+			}
+
+			if(alpha*dx.norm() < this->tol) break;                                      // Step size is miniscule, exit solver
 			
-			x_prev = x;                                                                 // Save last result for next loop
+			// Update values for next loop
+			x_prev = x;                                                                 // Save value for next round
 			x     += alpha*dx;                                                          // Increment state
-			u     *= beta;                                                              // Shrink barrier function
+			u     *= beta;                                                              // Decrease barrier function
 		}
 		
-		// Do one last check of constraints
-		for(int  j = 0; j < numConstraints; j++)
-		{
-			d = bt[j].dot(x) - c(j);                                                    // Distance to constraint
-			if(d <= 0) return x_prev;                                                   // If violated, return second-last result
-		}
-		return x;                                                                           // Return solution
+		return x;
 	}
 }	
 
