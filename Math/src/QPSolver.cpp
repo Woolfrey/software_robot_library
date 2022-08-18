@@ -106,7 +106,7 @@ Eigen::VectorXf QPSolver::solve(const Eigen::MatrixXf &H,                       
 				if(d[j] < 0)
 				{
 					violation = true;                                           // Flag constraint violation
-					d[j] = 1E-02;                                               // Set a small, non-zero value
+					d[j] = 1E-04;                                               // Set a small, non-zero value
 					u *= this->uMod;                                            // Increase barrier function
 				}
 				
@@ -124,14 +124,14 @@ Eigen::VectorXf QPSolver::solve(const Eigen::MatrixXf &H,                       
 			
 			dx = I.partialPivLu().solve(-g);                                            // Solve Newton step
 			
-			// Compute optimal step size
+			// Shrink step size until within the constraint
 			alpha = this->alpha0;
 			for(int j = 0; j < numConstraints; j++)
 			{
-				while( d[j] + alpha*bt[j].dot(dx) < 0) alpha *= this->alphaMod;     // Shrink step size until constraint is OK
+				while( d[j] + alpha*bt[j].dot(dx) < 0) alpha *= this->alphaMod;
 			}
 
-			if(alpha*dx.norm() < this->tol) break;                                      // Step size is miniscule, exit solver
+			if(alpha*dx.norm() < this->tol) break;
 			
 			// Update values for next loop
 			x_prev = x;                                                                 // Save value for next round

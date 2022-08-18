@@ -74,4 +74,5 @@ export(EXPORT RobotLibrary-targets
 
 export(PACKAGE RobotLibrary)                                                                        # Register package so otherr projects can find it
 
+########## Location of Other CMakeLists.txt files ##########
 add_subdirectory(Test)                                                                              # Should this be here?
