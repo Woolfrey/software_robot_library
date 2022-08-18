@@ -65,13 +65,11 @@ Eigen::VectorXf QPSolver::solve(const Eigen::MatrixXf &H,                       
 		//    I(x) = H + u*sum((1/(d_i^2))*b_i'*b_i)
 		
 		// Local variables
-		bool violation;                                                                     // Flags a constraint violation
-		
+			
 		Eigen::MatrixXf I;                                                                  // Hessian matrix
 		Eigen::VectorXf g(n);                                                               // Gradient vector
 		Eigen::VectorXf dx = Eigen::VectorXf::Zero(n);                                      // Newton step = -I\g
 		Eigen::VectorXf x      = x0;                                                        // Assign initial state variable
-		Eigen::VectorXf x_prev = x0;                                                        // For saving previous solution
 		
 		float alpha;                                                                        // Scalar for Newton step
 		float beta  = this->beta0;                                                          // Shrinks barrier function
@@ -94,7 +92,6 @@ Eigen::VectorXf QPSolver::solve(const Eigen::MatrixXf &H,                       
 		for(int i = 0; i < this->steps; i++)
 		{
 			// (Re)set values for new loop
-			violation = false;
 			g.setZero();                                                                // Gradient vector
 			I = H;                                                                      // Hessian for log-barrier function
 			
@@ -103,21 +100,21 @@ Eigen::VectorXf QPSolver::solve(const Eigen::MatrixXf &H,                       
 			{
 				d[j] = bt[j].dot(x) - c(j);                                         // Distance to jth constraint
 				
-				if(d[j] < 0)
+				if(d[j] <= 0)
 				{
-					violation = true;                                           // Flag constraint violation
+					if(i == 0)
+					{
+						std::cerr << "[ERROR] [QPSOLVER] solve(): "
+						          << "Start point x0 is outside the constraints!" << std::endl;
+						return x0;
+					}
+					
 					d[j] = 1E-04;                                               // Set a small, non-zero value
 					u *= this->uMod;                                            // Increase barrier function
 				}
 				
 				g += -(u/d[j])*bt[j];                                               // Add up gradient vector
 				I +=  (u/(d[j]*d[j]))*btb[j];                                       // Add up Hessian
-			}
-			
-			if(violation)
-			{
-				x = x_prev;                                                         // Go back to last solution
-				beta += this->betaMod*(1.0 - beta);                                 // Slow decrease in barrier function
 			}
 			
 			g += H*x - f;                                                               // Finish summation of gradient vector
@@ -134,7 +131,6 @@ Eigen::VectorXf QPSolver::solve(const Eigen::MatrixXf &H,                       
 			if(alpha*dx.norm() < this->tol) break;
 			
 			// Update values for next loop
-			x_prev = x;                                                                 // Save value for next round
 			x     += alpha*dx;                                                          // Increment state
 			u     *= beta;                                                              // Decrease barrier function
 		}

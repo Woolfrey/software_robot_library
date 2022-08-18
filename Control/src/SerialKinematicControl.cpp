@@ -3,7 +3,7 @@
  ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                                        Constructor                                             //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-SerialKinControl::SerialKinControl(const std::vector<RigidBody> links,
+SerialKinematicControl::SerialKinematicControl(const std::vector<RigidBody> links,
                                    const std::vector<Joint> joints,
                                    const float &controlFrequency):
                                    SerialLink(links, joints),
@@ -30,18 +30,18 @@ SerialKinControl::SerialKinControl(const std::vector<RigidBody> links,
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                        Set the gain used for proportional feedback control                     //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-bool SerialKinControl::set_proportional_gain(const float &gain)
+bool SerialKinematicControl::set_proportional_gain(const float &gain)
 {
 	if(gain == 0)
 	{
-		std::cerr << "[ERROR] [SERIALKINCONTROL] set_proportional_gain(): "
+		std::cerr << "[ERROR] [SerialKinematicControl] set_proportional_gain(): "
 		          << "Value cannot be zero. Gain not set." << std::endl;
 		          
 		return false;
 	}
 	else if(gain < 0)
 	{
-		std::cerr << "[WARNING] [SERIALKINCONTROL] set_proportional_gain(): "
+		std::cerr << "[WARNING] [SerialKinematicControl] set_proportional_gain(): "
 		          << "Gain of " << gain << " cannot be negative. "
 		          << "It has been automatically made positive..." << std::endl;
                          
@@ -58,7 +58,7 @@ bool SerialKinControl::set_proportional_gain(const float &gain)
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                       Get the error between two poses for feedback control                     //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::VectorXf SerialKinControl::get_pose_error(const Eigen::Isometry3f &desired, const Eigen::Isometry3f &actual)
+Eigen::VectorXf SerialKinematicControl::get_pose_error(const Eigen::Isometry3f &desired, const Eigen::Isometry3f &actual)
 {
 	// Yuan, J. S. (1988). Closed-loop manipulator control using quaternion feedback.
 	// IEEE Journal on Robotics and Automation, 4(4), 434-440.
@@ -80,11 +80,11 @@ Eigen::VectorXf SerialKinControl::get_pose_error(const Eigen::Isometry3f &desire
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //                               Move the endpoint at a given speed                              //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::VectorXf SerialKinControl::move_at_speed(const Eigen::VectorXf &vel)
+Eigen::VectorXf SerialKinematicControl::move_at_speed(const Eigen::VectorXf &vel)
 {
 	if(vel.size() != 6)
 	{
-		std::cerr << "[ERROR] [SERIALKINCONTROL] move_at_speed(): "
+		std::cerr << "[ERROR] [SerialKinematicControl] move_at_speed(): "
 		          << "Expected a 6x1 vector for the input, "
 		          << "but it was " << vel.size() << "x1." << std::endl;
 		
@@ -100,7 +100,7 @@ Eigen::VectorXf SerialKinControl::move_at_speed(const Eigen::VectorXf &vel)
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //                             Move the endpoint at a given speed                                //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::VectorXf SerialKinControl::move_at_speed(const Eigen::VectorXf &vel,
+Eigen::VectorXf SerialKinematicControl::move_at_speed(const Eigen::VectorXf &vel,
                                                 const Eigen::VectorXf &redundant)
 {
 	// Whitney, D. E. (1969). Resolved motion rate control of manipulators and human prostheses.
@@ -116,14 +116,14 @@ Eigen::VectorXf SerialKinControl::move_at_speed(const Eigen::VectorXf &vel,
 	
 	if(vel.size() != 6)
 	{
-		std::cerr << "[ERROR] [SERIALKINCONTROL] move_at_speed(): "
+		std::cerr << "[ERROR] [SerialKinematicControl] move_at_speed(): "
 		          << "Expected a 6x1 vector for the input, but it was " << vel.size() << "x1." << std::endl;
 		
 		return 0.9*get_joint_velocities();
 	}
 	else if(redundant.size() != this->n)
 	{
-		std::cerr << "[ERROR] [SERIALKINCONTROL] move_at_speed(): "
+		std::cerr << "[ERROR] [SerialKinematicControl] move_at_speed(): "
 		          << "Expected a " << this->n << "x1 vector for the redundant task, "
 		          << "but it was " << redundant.size() << "x1." << std::endl;
 		
@@ -152,7 +152,7 @@ Eigen::VectorXf SerialKinControl::move_at_speed(const Eigen::VectorXf &vel,
 			}
 			else
 			{
-				std::cerr << "[ERROR] [SERIALKINCONTROL] move_at_speed(): "
+				std::cerr << "[ERROR] [SerialKinematicControl] move_at_speed(): "
 				          << "Something went wrong with QR decomposition. "
 				          << "Could not solve the joint control." << std::endl;
 				
@@ -197,7 +197,7 @@ Eigen::VectorXf SerialKinControl::move_at_speed(const Eigen::VectorXf &vel,
 			}
 			else
 			{
-				std::cerr << "[ERROR] [SERIALKINCONTROL] move_at_speed(): "
+				std::cerr << "[ERROR] [SerialKinematicControl] move_at_speed(): "
 				          << "Something went wrong with QR decomposition. "
 				          << "Could not solve the joint control." << std::endl;
 				
@@ -211,12 +211,12 @@ Eigen::VectorXf SerialKinControl::move_at_speed(const Eigen::VectorXf &vel,
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //                Solve the joint velocities from an upper-triangular matrix                     //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::VectorXf SerialKinControl::solve_joint_control(const Eigen::VectorXf &y,
+Eigen::VectorXf SerialKinematicControl::solve_joint_control(const Eigen::VectorXf &y,
                                                       const Eigen::MatrixXf &U)
 {
 	if(y.size() != this->n)
 	{
-		std::cerr << "[ERROR] [SERIALKINCONTROL] solve_joint_control(): "
+		std::cerr << "[ERROR] [SerialKinematicControl] solve_joint_control(): "
 		          << "Expected a " << this->n << "x1 vector for the input, "
 		          << "but it was " << y.size() << "x1." << std::endl;
 		
@@ -224,7 +224,7 @@ Eigen::VectorXf SerialKinControl::solve_joint_control(const Eigen::VectorXf &y,
 	}
 	else if(U.rows() != this->n or U.cols() != this->n)
 	{
-		std::cerr << "[ERROR] [SERIALKINCONTROL] solve_joint_control(): "
+		std::cerr << "[ERROR] [SerialKinematicControl] solve_joint_control(): "
 		          << "Expected a " << this->n << "x" << this->n << " matrix for the input, "
 		          << "but it was " << U.rows() << "x" << U.cols() << "." << std::endl;
 		
@@ -260,11 +260,11 @@ Eigen::VectorXf SerialKinControl::solve_joint_control(const Eigen::VectorXf &y,
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //            Get the joint velocity to move to a given joint position at max. speed              //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::VectorXf SerialKinControl::move_to_position(const Eigen::VectorXf &pos)
+Eigen::VectorXf SerialKinematicControl::move_to_position(const Eigen::VectorXf &pos)
 {
 	if(pos.size() != this->n)
 	{
-		std::cerr << "[ERROR] [SERIALKINCONTROL] move_to_position(): "
+		std::cerr << "[ERROR] [SerialKinematicControl] move_to_position(): "
 		          << "Expected a " << this->n << "x1 vector for the input, "
 		          << "but it was " << pos.size() << "x1." << std::endl;
 		
@@ -292,7 +292,7 @@ Eigen::VectorXf SerialKinControl::move_to_position(const Eigen::VectorXf &pos)
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                            Move the robot to a given endpoint pose                             //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::VectorXf SerialKinControl::move_to_pose(const Eigen::Isometry3f &pose)
+Eigen::VectorXf SerialKinematicControl::move_to_pose(const Eigen::Isometry3f &pose)
 {
 	Eigen::VectorXf e = get_pose_error(pose, get_endpoint_pose());                              // As it says on the label
 	
@@ -302,7 +302,7 @@ Eigen::VectorXf SerialKinControl::move_to_pose(const Eigen::Isometry3f &pose)
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                            Move the robot to a given endpoint pose                             //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::VectorXf SerialKinControl::move_to_pose(const Eigen::Isometry3f &pose,
+Eigen::VectorXf SerialKinematicControl::move_to_pose(const Eigen::Isometry3f &pose,
                                                const Eigen::VectorXf &redundant)
 {
 	if(redundant.size() != this->n)
@@ -324,12 +324,12 @@ Eigen::VectorXf SerialKinControl::move_to_pose(const Eigen::Isometry3f &pose,
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                                   Track Cartesian trajectory                                   //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::VectorXf SerialKinControl::track_cartesian_trajectory(const Eigen::Isometry3f &pose,
+Eigen::VectorXf SerialKinematicControl::track_cartesian_trajectory(const Eigen::Isometry3f &pose,
                                                              const Eigen::VectorXf &vel)
 {
 	if(vel.size() != 6)
 	{
-		std::cerr << "[ERROR] [SERIALKINCONTROL] track_cartesian_trajectory(): "
+		std::cerr << "[ERROR] [SerialKinematicControl] track_cartesian_trajectory(): "
 		          << "Expected a 6x1 vector for the velocity argument, "
 		          << "but it was " << vel.size() << "x1." << std::endl;
 		
@@ -346,13 +346,13 @@ Eigen::VectorXf SerialKinControl::track_cartesian_trajectory(const Eigen::Isomet
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                                   Track Cartesian trajectory                                   //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::VectorXf SerialKinControl::track_cartesian_trajectory(const Eigen::Isometry3f &pose,
+Eigen::VectorXf SerialKinematicControl::track_cartesian_trajectory(const Eigen::Isometry3f &pose,
                                                              const Eigen::VectorXf &vel,
                                                              const Eigen::VectorXf &redundant)
 {
 	if(vel.size() != 6)
 	{
-		std::cerr << "[ERROR] [SERIALKINCONTROL] track_cartesian_trajectory(): "
+		std::cerr << "[ERROR] [SerialKinematicControl] track_cartesian_trajectory(): "
 		          << "Expected a 6x1 vector for the velocity argument, "
 		          << "but it was " << vel.size() << "x1." << std::endl;
 		
@@ -360,7 +360,7 @@ Eigen::VectorXf SerialKinControl::track_cartesian_trajectory(const Eigen::Isomet
 	}
 	else if(redundant.size() != this->n)
 	{
-		std::cerr << "[ERROR] [SERIALKINCONTROL] track_cartesian_trajectory(): "
+		std::cerr << "[ERROR] [SerialKinematicControl] track_cartesian_trajectory(): "
 		          << "Expected a " << this->n << "x1 vector for the redundant task, "
 		          << "but it was " << redundant.size() << "x1." << std::endl;
 		
@@ -377,12 +377,12 @@ Eigen::VectorXf SerialKinControl::track_cartesian_trajectory(const Eigen::Isomet
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                                   Track a joint trajectory                                     //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::VectorXf SerialKinControl::track_joint_trajectory(const Eigen::VectorXf &pos,
+Eigen::VectorXf SerialKinematicControl::track_joint_trajectory(const Eigen::VectorXf &pos,
                                                          const Eigen::VectorXf &vel)
 {
 	if(pos.size() != this->n or vel.size() != this->n)
 	{
-		std::cerr << "[ERROR] [SERIALKINCONTROL] track_joint_trajectory(): "
+		std::cerr << "[ERROR] [SerialKinematicControl] track_joint_trajectory(): "
 		          << "This robot has " << this->n << " joints, but "
 		          << "position vector was " << pos.size() << "x1 and "
 		          << "velocity vector was " << vel.size() << "x1." << std::endl;
@@ -412,7 +412,7 @@ Eigen::VectorXf SerialKinControl::track_joint_trajectory(const Eigen::VectorXf &
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                 Get the speed limits on a particular joint for the current state               //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-bool SerialKinControl::get_speed_limit(float &lower, float &upper, const int &i)
+bool SerialKinematicControl::get_speed_limit(float &lower, float &upper, const int &i)
 {
 	// Flacco, F., De Luca, A., & Khatib, O. (2012, May). Motion control of redundant robots
 	// under joint constraints: Saturation in the null space.
@@ -437,7 +437,7 @@ bool SerialKinControl::get_speed_limit(float &lower, float &upper, const int &i)
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                           Get penalty term for joint limit avoidance                           //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-float SerialKinControl::get_joint_penalty(const int &i)
+float SerialKinematicControl::get_joint_penalty(const int &i)
 {
 	// Chan, T. F., & Dubey, R. V. (1995). A weighted least-norm solution based scheme
 	// for avoiding joint limits for redundant joint manipulators.
@@ -462,7 +462,7 @@ float SerialKinControl::get_joint_penalty(const int &i)
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //               Compute the gradient of manipulability to avoid singularities                    //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::VectorXf SerialKinControl::singularity_avoidance(const float &scalar)
+Eigen::VectorXf SerialKinematicControl::singularity_avoidance(const float &scalar)
 {
 	// Yoshikawa, T. (1985). Manipulability of robotic mechanisms.
 	// The international journal of Robotics Research, 4(2), 3-9.
@@ -474,7 +474,7 @@ Eigen::VectorXf SerialKinControl::singularity_avoidance(const float &scalar)
 	
 	if(scalar <= 0)
 	{
-		std::cerr << "[ERROR] [SERIALKINCONTROL] singularity_avoidance(): "
+		std::cerr << "[ERROR] [SerialKinematicControl] singularity_avoidance(): "
 			  << "Input argument was " << scalar << " but it must be positive!" << std::endl;
 	
 		return Eigen::VectorXf::Zero(this->n);

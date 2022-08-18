@@ -13,13 +13,13 @@
 #include <SerialLink.h>                                                                             // Custom robot class
 #include <vector>                                                                                   // std::vector
 
-class SerialKinControl : public SerialLink,
-                         public QPSolver
+class SerialKinematicControl : public SerialLink,
+                               public QPSolver
 {
 	public:
-		SerialKinControl(const std::vector<RigidBody> links,
-                                 const std::vector<Joint> joints,
-                                 const float &controlFrequency);                                    // Constructor
+		SerialKinematicControl(const std::vector<RigidBody> links,
+                                       const std::vector<Joint> joints,
+                                       const float &controlFrequency);                              // Constructor
 		
 		// Set Functions
 		bool set_proportional_gain(const float &gain);                                      // Set the gain used in feedback control

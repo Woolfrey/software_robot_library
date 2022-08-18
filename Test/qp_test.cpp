@@ -110,8 +110,8 @@ int main(int argc, char *argv[])
 	std::cout << y << std::endl;
 	
 	xMax = 6*Eigen::VectorXf::Ones(n);
-//	xMax(4) = 3;
-//	xMax(5) = 4;
+	xMax(4) = 3;
+	xMax(5) = 4;
 	xMin =-6*Eigen::VectorXf::Ones(n);
 	
 	x0 = 0.5*(xMin + xMax);

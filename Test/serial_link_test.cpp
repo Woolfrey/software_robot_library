@@ -1,6 +1,6 @@
 #include <iostream>
 #include <SerialLink.h>
-#include <SerialKinControl.h>
+#include <SerialKinematicControl.h>
 #include <time.h>
 
 
@@ -305,7 +305,7 @@ bool test_serial_link()
 	links.push_back(RigidBody(translation*rotation, centreOfMass, mass, momentOfInertia));
 
 	// Create the object
-	SerialKinControl robot(links, joints, 100);					// SerialLink object is generated inside this object
+	SerialKinematicControl robot(links, joints, 100);		// SerialLink object is generated inside this object
 	int n = robot.get_number_of_joints();
 	if(robot.is_valid())
 	{
