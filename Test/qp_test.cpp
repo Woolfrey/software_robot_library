@@ -15,7 +15,7 @@ int main(int argc, char *argv[])
 	float time;
 	
 	std::cout << "\n************************************************************\n"
-	          <<   "*                  UNDERDETERMINED SYSTEMS	             *\n"
+	          <<   "*                  UNDERDETERMINED SYSTEMS	           *\n"
 	          <<   "************************************************************\n" << std::endl;
 	          
 	m = 6;
@@ -44,7 +44,7 @@ int main(int argc, char *argv[])
 	std::cout << "\nHere is the estimate for x:\n" << std::endl;
 	std::cout << xHat << std::endl;
 	
-	std::cout << "\n The error ||y-A*x|| is " << (y-A*xHat).norm() << ". "
+	std::cout << "\nThe error ||y-A*x|| is " << (y-A*xHat).norm() << ". "
 	          << "It took " << time*1000 << " ms to solve (" << 1/time << " Hz).\n" << std::endl;
 	          
 	std::cout << "\n************************************************************\n"
