@@ -4,11 +4,11 @@
  //                                        Constructor                                             //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 SerialKinematicControl::SerialKinematicControl(const std::vector<RigidBody> links,
-                                   const std::vector<Joint> joints,
-                                   const float &controlFrequency):
-                                   SerialLink(links, joints),
-                                   hertz(controlFrequency),
-                                   dt(1/hertz)
+                                               const std::vector<Joint> joints,
+                                               const float &controlFrequency):
+                                               SerialLink(links, joints),
+                                               hertz(controlFrequency),
+                                               dt(1/hertz)
 {
 	// Not sure if I should "duplicate" the joint limits here, or just grab them from the Joint class... 
 	// It makes the code a little neater, and the limits in the Control class can be altered
@@ -58,7 +58,8 @@ bool SerialKinematicControl::set_proportional_gain(const float &gain)
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                       Get the error between two poses for feedback control                     //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::VectorXf SerialKinematicControl::get_pose_error(const Eigen::Isometry3f &desired, const Eigen::Isometry3f &actual)
+Eigen::VectorXf SerialKinematicControl::get_pose_error(const Eigen::Isometry3f &desired,
+                                                       const Eigen::Isometry3f &actual)
 {
 	// Yuan, J. S. (1988). Closed-loop manipulator control using quaternion feedback.
 	// IEEE Journal on Robotics and Automation, 4(4), 434-440.
@@ -101,7 +102,7 @@ Eigen::VectorXf SerialKinematicControl::move_at_speed(const Eigen::VectorXf &vel
  //                             Move the endpoint at a given speed                                //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 Eigen::VectorXf SerialKinematicControl::move_at_speed(const Eigen::VectorXf &vel,
-                                                const Eigen::VectorXf &redundant)
+                                                      const Eigen::VectorXf &redundant)
 {
 	// Whitney, D. E. (1969). Resolved motion rate control of manipulators and human prostheses.
 	// IEEE Transactions on man-machine systems, 10(2), 47-53.
@@ -212,7 +213,7 @@ Eigen::VectorXf SerialKinematicControl::move_at_speed(const Eigen::VectorXf &vel
  //                Solve the joint velocities from an upper-triangular matrix                     //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 Eigen::VectorXf SerialKinematicControl::solve_joint_control(const Eigen::VectorXf &y,
-                                                      const Eigen::MatrixXf &U)
+                                                            const Eigen::MatrixXf &U)
 {
 	if(y.size() != this->n)
 	{
@@ -303,7 +304,7 @@ Eigen::VectorXf SerialKinematicControl::move_to_pose(const Eigen::Isometry3f &po
  //                            Move the robot to a given endpoint pose                             //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 Eigen::VectorXf SerialKinematicControl::move_to_pose(const Eigen::Isometry3f &pose,
-                                               const Eigen::VectorXf &redundant)
+                                                     const Eigen::VectorXf &redundant)
 {
 	if(redundant.size() != this->n)
 	{
@@ -325,7 +326,7 @@ Eigen::VectorXf SerialKinematicControl::move_to_pose(const Eigen::Isometry3f &po
  //                                   Track Cartesian trajectory                                   //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 Eigen::VectorXf SerialKinematicControl::track_cartesian_trajectory(const Eigen::Isometry3f &pose,
-                                                             const Eigen::VectorXf &vel)
+                                                                   const Eigen::VectorXf   &vel)
 {
 	if(vel.size() != 6)
 	{
@@ -347,8 +348,8 @@ Eigen::VectorXf SerialKinematicControl::track_cartesian_trajectory(const Eigen::
  //                                   Track Cartesian trajectory                                   //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 Eigen::VectorXf SerialKinematicControl::track_cartesian_trajectory(const Eigen::Isometry3f &pose,
-                                                             const Eigen::VectorXf &vel,
-                                                             const Eigen::VectorXf &redundant)
+                                                                   const Eigen::VectorXf   &vel,
+                                                                   const Eigen::VectorXf   &redundant)
 {
 	if(vel.size() != 6)
 	{
@@ -378,7 +379,7 @@ Eigen::VectorXf SerialKinematicControl::track_cartesian_trajectory(const Eigen::
  //                                   Track a joint trajectory                                     //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 Eigen::VectorXf SerialKinematicControl::track_joint_trajectory(const Eigen::VectorXf &pos,
-                                                         const Eigen::VectorXf &vel)
+                                                               const Eigen::VectorXf &vel)
 {
 	if(pos.size() != this->n or vel.size() != this->n)
 	{
