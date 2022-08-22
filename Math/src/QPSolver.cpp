@@ -68,8 +68,8 @@ Eigen::VectorXf QPSolver::solve(const Eigen::MatrixXf &H,                       
 			
 		Eigen::MatrixXf I;                                                                  // Hessian matrix
 		Eigen::VectorXf g(n);                                                               // Gradient vector
-		Eigen::VectorXf dx = Eigen::VectorXf::Zero(n);                                      // Newton step = -I\g
-		Eigen::VectorXf x      = x0;                                                        // Assign initial state variable
+		Eigen::VectorXf dx = Eigen::VectorXf::Zero(n);                                      // Newton step = -I^-1*g
+		Eigen::VectorXf x = x0;                                                             // Assign initial state variable
 		
 		float alpha;                                                                        // Scalar for Newton step
 		float beta  = this->beta0;                                                          // Shrinks barrier function
@@ -128,7 +128,7 @@ Eigen::VectorXf QPSolver::solve(const Eigen::MatrixXf &H,                       
 				while( d[j] + alpha*bt[j].dot(dx) < 0) alpha *= this->alphaMod;
 			}
 
-			if(alpha*dx.norm() < this->tol) break;
+			if(alpha*dx.norm() < this->tol) break;                                      // Exit solver if step is small
 			
 			// Update values for next loop
 			x     += alpha*dx;                                                          // Increment state

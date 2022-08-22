@@ -50,7 +50,7 @@ class QPSolver
 		                         
 	private:
 		// These are variables used by the interior point method:
-		float alpha0    = 1.0;                                                              // Modify size of Newton Step
+		float alpha0    = 1.0;                                                              // Scalar for Newton step
 		float alphaMod  = 0.5;                                                              // Modify step size when constraint violated
 		float beta0     = 0.01;                                                             // Rate of decreasing barrier function
 		float tol       = 1e-02;                                                            // Tolerance on step size
