@@ -70,7 +70,6 @@ Eigen::VectorXf QPSolver::solve(const Eigen::MatrixXf &H,                       
 		Eigen::VectorXf g(n);                                                               // Gradient vector
 		Eigen::VectorXf dx = Eigen::VectorXf::Zero(n);                                      // Newton step = -I^-1*g
 		Eigen::VectorXf x = x0;                                                             // Assign initial state variable
-		Eigen::VectorXf x_prev = x;
 		
 		float alpha;                                                                        // Scalar for Newton step
 		float beta  = this->beta0;                                                          // Shrinks barrier function
@@ -93,7 +92,6 @@ Eigen::VectorXf QPSolver::solve(const Eigen::MatrixXf &H,                       
 		for(int i = 0; i < this->steps; i++)
 		{
 			// (Re)set values for new loop
-			bool violation = false;
 			g.setZero();                                                                // Gradient vector
 			I = H;                                                                      // Hessian for log-barrier function
 			
@@ -110,18 +108,15 @@ Eigen::VectorXf QPSolver::solve(const Eigen::MatrixXf &H,                       
 						          << "Start point x0 is outside the constraints!" << std::endl;
 						return x0;
 					}
-					
-					violation = true;
-					d[j] = 1e-06;                                               // Set a small, non-zero value
-					u *= 1e10;
+			
+					d[j] = 1e-03;                                               // Set a small, non-zero value
+					u *= 100;
 				}
 						
 				g += -(u/d[j])*bt[j];                                               // Add up gradient vector
 				I +=  (u/(d[j]*d[j]))*btb[j];                                       // Add up Hessian
 				
 			}
-			
-			if(violation) x = x_prev;
 			
 			g += H*x + f;                                                               // Finish summation of gradient vector
 
@@ -134,10 +129,9 @@ Eigen::VectorXf QPSolver::solve(const Eigen::MatrixXf &H,                       
 				while( d[j] + alpha*bt[j].dot(dx) < 0) alpha *= this->alphaMod;
 			}
 
-			if(dx.norm() < this->tol) break;
+			if(alpha*dx.norm() < this->tol) break;
 			
 			// Update values for next loop
-			x_prev = x;
 			x += alpha*dx;                                                              // Increment state
 			u *= beta;                                                                  // Decrease barrier function
 		}
@@ -361,20 +355,17 @@ Eigen::VectorXf QPSolver::least_squares(const Eigen::VectorXf &xd,
 		// NOTE TO FUTURE SELF: I think this method fails of b*xd = 0.
 		// xd needs to be perturbed, and not simply scaled.
 		float alpha = 1.0;
-		
+		float d, temp;
 		for(int i = 0; i < B.rows(); i++)
 		{
-			float d = xd.dot( B.col(i).segment(m,n) );
+			d = xd.dot( B.col(i).segment(m,n) );
 			
-			if( d - z(i) <= 0 and d != 0.0)
+			if(d - z(i) <= 0)
 			{
-				float temp = (z(i) + 0.01)/d;
-				
+				temp = (z(i) + 1e-02)/d;
 				if(temp < alpha) alpha = temp;
 			}
 		}
-		
-//		std::cout << "alpha: " << alpha << std::endl;
 
 		// f = [   y  ]
 		//     [ W*xd ]

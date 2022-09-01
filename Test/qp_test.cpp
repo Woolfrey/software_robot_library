@@ -100,16 +100,15 @@ int main(int argc, char *argv[])
 	
 	x = 3*Eigen::VectorXf::Random(n);
 	A = Eigen::MatrixXf::Random(m,n);
-	A.col(2) = A.col(7);
+	A.col(2) = A.col(7);                                                                        // Force a singularity
 	y = A*x;
-	
-	
+
 	xMax = 10*Eigen::VectorXf::Ones(n);
 	xMin =-10*Eigen::VectorXf::Ones(n);
 	
 	x0 = 0.5*(xMin + xMax);
 //	x0 = x + 0.1*Eigen::VectorXf::Random(n);
-	xd = 13*Eigen::VectorXf::Random(n);
+	xd = 15*Eigen::VectorXf::Random(n);
 	
 	timer = clock();
 	xHat  = solver.least_squares(xd,Eigen::MatrixXf::Identity(n,n),y,A,xMin,xMax,x0);
