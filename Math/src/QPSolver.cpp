@@ -374,7 +374,7 @@ Eigen::VectorXf QPSolver::least_squares(const Eigen::VectorXf &xd,
 			}
 		}
 		
-		std::cout << "alpha: " << alpha << std::endl;
+//		std::cout << "alpha: " << alpha << std::endl;
 
 		// f = [   y  ]
 		//     [ W*xd ]
