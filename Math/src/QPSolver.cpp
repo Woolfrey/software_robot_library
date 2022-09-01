@@ -5,7 +5,7 @@
 
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
- //                        Solve a generic QP problem min 0.5*x'*H*x - x'*f                       //
+ //                        Solve a generic QP problem min 0.5*x'*H*x + x'*f                       //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 Eigen::VectorXf QPSolver::solve(const Eigen::MatrixXf &H,
                                 const Eigen::VectorXf &f,
@@ -23,12 +23,12 @@ Eigen::VectorXf QPSolver::solve(const Eigen::MatrixXf &H,
 		
 		return x0;
 	}
-	else	return solve_linear_system(f,H,x0);                                                 // Too easy, lol
+	else	return solve_linear_system(-f,H,x0);                                                // Too easy, lol
 }
 
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
- //          Solve a constrained QP problem: min 0.5*x'*H*x - x'*f subject to: B*x >= c           //
+ //          Solve a constrained QP problem: min 0.5*x'*H*x + x'*f subject to: B*x >= c           //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 Eigen::VectorXf QPSolver::solve(const Eigen::MatrixXf &H,                                          // Solve a QP problem with inequality constraints
                                 const Eigen::VectorXf &f,
@@ -54,22 +54,23 @@ Eigen::VectorXf QPSolver::solve(const Eigen::MatrixXf &H,                       
 	{
 		// Solve the following optimization problem with Guass-Newton method:
 		//
-		//    min f(x) = 0.5*x'*H*x - x'*f - u*sum(log(d_i))
+		//    min f(x) = 0.5*x'*H*x + x'*f - u*sum(log(d_i))
 		//
 		// where d_i = b_i*x - c_i is the distance to the constraint
 		//
 		// Then the gradient and Hessian are:
 		//
-		//    g(x) = H*x - f - u*sum((1/d_i)*b_i')
+		//    g(x) = H*x + f - u*sum((1/d_i)*b_i')
 		//
 		//    I(x) = H + u*sum((1/(d_i^2))*b_i'*b_i)
 		
 		// Local variables
-			
+	
 		Eigen::MatrixXf I;                                                                  // Hessian matrix
 		Eigen::VectorXf g(n);                                                               // Gradient vector
 		Eigen::VectorXf dx = Eigen::VectorXf::Zero(n);                                      // Newton step = -I^-1*g
 		Eigen::VectorXf x = x0;                                                             // Assign initial state variable
+		Eigen::VectorXf x_prev = x;
 		
 		float alpha;                                                                        // Scalar for Newton step
 		float beta  = this->beta0;                                                          // Shrinks barrier function
@@ -82,7 +83,7 @@ Eigen::VectorXf QPSolver::solve(const Eigen::MatrixXf &H,                       
 		// Do some pre-processing
 		std::vector<Eigen::VectorXf> bt(numConstraints);
 		std::vector<Eigen::MatrixXf> btb(numConstraints);
-		for(int j = 0; j < B.rows(); j++)
+		for(int j = 0; j < numConstraints; j++)
 		{
 			bt[j]  = B.row(j).transpose();                                              // Row vectors of B transposed
 			btb[j] = bt[j]*bt[j].transpose();                                           // Outer product of row vectors
@@ -92,6 +93,7 @@ Eigen::VectorXf QPSolver::solve(const Eigen::MatrixXf &H,                       
 		for(int i = 0; i < this->steps; i++)
 		{
 			// (Re)set values for new loop
+			bool violation = false;
 			g.setZero();                                                                // Gradient vector
 			I = H;                                                                      // Hessian for log-barrier function
 			
@@ -109,17 +111,21 @@ Eigen::VectorXf QPSolver::solve(const Eigen::MatrixXf &H,                       
 						return x0;
 					}
 					
-					d[j] = 1E-04;                                               // Set a small, non-zero value
-					u *= this->uMod;                                            // Increase barrier function
+					violation = true;
+					d[j] = 1e-06;                                               // Set a small, non-zero value
+					u *= 1e10;
 				}
-				
+						
 				g += -(u/d[j])*bt[j];                                               // Add up gradient vector
 				I +=  (u/(d[j]*d[j]))*btb[j];                                       // Add up Hessian
+				
 			}
 			
-			g += H*x - f;                                                               // Finish summation of gradient vector
+			if(violation) x = x_prev;
 			
-			dx = I.partialPivLu().solve(-g);                                            // Solve Newton step
+			g += H*x + f;                                                               // Finish summation of gradient vector
+
+			dx = I.partialPivLu().solve(-g);
 			
 			// Shrink step size until within the constraint
 			alpha = this->alpha0;
@@ -128,11 +134,12 @@ Eigen::VectorXf QPSolver::solve(const Eigen::MatrixXf &H,                       
 				while( d[j] + alpha*bt[j].dot(dx) < 0) alpha *= this->alphaMod;
 			}
 
-			if(alpha*dx.norm() < this->tol) break;                                      // Exit solver if step is small
+			if(dx.norm() < this->tol) break;
 			
 			// Update values for next loop
-			x     += alpha*dx;                                                          // Increment state
-			u     *= beta;                                                              // Decrease barrier function
+			x_prev = x;
+			x += alpha*dx;                                                              // Increment state
+			u *= beta;                                                                  // Decrease barrier function
 		}
 		
 		return x;
@@ -171,7 +178,7 @@ Eigen::VectorXf QPSolver::least_squares(const Eigen::VectorXf &y,
 	else
 	{
 		Eigen::MatrixXf AtW = A.transpose()*W;
-		return solve(AtW*A,AtW*y,x0);
+		return solve(AtW*A,-AtW*y,x0);                                                      // Convert to standard form and solve
 	}
 }
   
@@ -216,13 +223,13 @@ Eigen::VectorXf QPSolver::least_squares(const Eigen::VectorXf &y,
 		B.block(0,0,n,n) = -1*Eigen::MatrixXf::Identity(n,n);
 		B.block(n,0,n,n) =    Eigen::MatrixXf::Identity(n,n);
 		
-		Eigen::VectorXf c(2*n);
-		c.head(n) = -1*xMax;
-		c.tail(n) =    xMin;
+		Eigen::VectorXf z(2*n);
+		z.head(n) = -xMax;
+		z.tail(n) =  xMin;
 		
-		Eigen::MatrixXf AtW = A.transpose()*W;
+		Eigen::MatrixXf AtW = A.transpose()*W;                                              // Makes calcs a little simpler
 		
-		return solve(AtW*A, AtW*y, B, c, x0);
+		return solve(AtW*A,-AtW*y, B, z, x0);                                               // Convert to standard form and solve
 	}
 }
 
@@ -290,7 +297,6 @@ Eigen::VectorXf QPSolver::least_squares(const Eigen::VectorXf &xd,
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //     Solve a problem of the form min 0.5*(xd-x)'*W*(xd-x)  s.t. A*x = y, xMin <= x <= xMax     //
 ///////////////////////////////////////////////////////////////////////////////////////////////////  
-                              
 Eigen::VectorXf QPSolver::least_squares(const Eigen::VectorXf &xd,
                                         const Eigen::MatrixXf &W,
                                         const Eigen::VectorXf &y,
@@ -326,40 +332,61 @@ Eigen::VectorXf QPSolver::least_squares(const Eigen::VectorXf &xd,
 	}
 	else
 	{
+		// Convert to standard form 0.5*x'*H*x + x'*f subject to B*x >= z
+		// where "x" is now [lambda' x' ]'
+		
 		// H = [ 0  A ]
 		//     [ A' W ]
 		Eigen::MatrixXf H(m+n,m+n);
-		H.block(0,0,m,m).setZero();
+		H.block(0,0,m,m) = Eigen::MatrixXf::Zero(m,m);
 		H.block(0,m,m,n) = A;
 		H.block(m,0,n,m) = A.transpose();
 		H.block(m,m,n,n) = W;
 		
-		// f = [   y  ]
-		//     [ W*xd ]
-		Eigen::VectorXf f(m+n);
-		f.head(m) = y;
-		f.tail(n) = W*xd;
-		
 		// B = [ 0 -I ]
 		//     [ 0  I ]
 		Eigen::MatrixXf B(2*n,m+n);
-		B.block(0,0,2*n,m).setZero();
-		B.block(n,m,n,n).setIdentity();
-		B.block(0,m,n,n) = -B.block(n,m,n,n);
-		//B.block(0,m,n,n) = -Eigen::MatrixXf::Identity(n,n);
-		//B.block(n,m,n,n) =  Eigen::MatrixXf::Identity(n,n);
-		
-		// c = [ -xMax ]
+		B.block(0,0,2*n,m) = Eigen::MatrixXf::Zero(2*n,m);
+		B.block(0,m,  n,n) =-Eigen::MatrixXf::Identity(n,n);
+		B.block(n,m,  n,n) = Eigen::MatrixXf::Identity(n,n);
+
+		// z = [ -xMax ]
 		//     [  xMin ]
-		Eigen::VectorXf c(2*n);
-		c.head(n) = -xMax;
-		c.tail(n) =  xMin;
+		Eigen::VectorXf z(2*n);
+		z.head(n) = -xMax;
+		z.tail(n) =  xMin;
+		
+		// Interior point method fails if desired point is outside constraints,
+		// so scale the vector
+		// NOTE TO FUTURE SELF: I think this method fails of b*xd = 0.
+		// xd needs to be perturbed, and not simply scaled.
+		float alpha = 1.0;
+		
+		for(int i = 0; i < B.rows(); i++)
+		{
+			float d = xd.dot( B.col(i).segment(m,n) );
+			
+			if( d - z(i) <= 0 and d != 0.0)
+			{
+				float temp = (z(i) + 0.01)/d;
+				
+				if(temp < alpha) alpha = temp;
+			}
+		}
+		
+		std::cout << "alpha: " << alpha << std::endl;
+
+		// f = [   y  ]
+		//     [ W*xd ]
+		Eigen::VectorXf f(m+n);
+		f.head(m) = -y;
+		f.tail(n) = -alpha*W*xd;
 		
 		Eigen::VectorXf state(m+n);
-		state.head(m).setZero(); // NOTE: Try solving A'*lambda = W*(x-xd) as an initial guess
+		state.head(m) = Eigen::VectorXf::Zero(m);
 		state.tail(n) = x0;
-	
-		state = solve(H,f,B,c,state);
+		
+		state = solve(H,f,B,z,state);                                                       // Convert to standard form and solve
 		
 		return state.tail(n);
 	}

@@ -99,23 +99,17 @@ int main(int argc, char *argv[])
 	n = 17;
 	
 	x = 3*Eigen::VectorXf::Random(n);
-	x(3) = 3;
-	x(4) = 4;
-	x(5) = 5;
 	A = Eigen::MatrixXf::Random(m,n);
-	A.col(8) = A.col(3);
+	A.col(2) = A.col(7);
 	y = A*x;
 	
-	std::cout << "\ny:\n" << std::endl;
-	std::cout << y << std::endl;
 	
-	xMax = 6*Eigen::VectorXf::Ones(n);
-	xMax(4) = 3;
-	xMax(5) = 4;
-	xMin =-6*Eigen::VectorXf::Ones(n);
+	xMax = 10*Eigen::VectorXf::Ones(n);
+	xMin =-10*Eigen::VectorXf::Ones(n);
 	
 	x0 = 0.5*(xMin + xMax);
-	xd = Eigen::VectorXf::Zero(n);
+//	x0 = x + 0.1*Eigen::VectorXf::Random(n);
+	xd = 13*Eigen::VectorXf::Random(n);
 	
 	timer = clock();
 	xHat  = solver.least_squares(xd,Eigen::MatrixXf::Identity(n,n),y,A,xMin,xMax,x0);
