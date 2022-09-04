@@ -94,21 +94,37 @@ int main(int argc, char *argv[])
 	std::cout << "\n************************************************************\n"
 	          <<   "*                 OVERDETERMINED SYSTEMS                   *\n"
 	          <<   "************************************************************\n" << std::endl;
-	          
+/*	          
+	m = 1;
+	n = 2;
+	
+	A.resize(m,n); A << 1, -1;
+	y.resize(m); y << -2;
+	
+	xMin.resize(2); xMin << -3, -3;
+	xMax.resize(2); xMax <<  3 , 3;
+	
+	xd.resize(2); xd << 0, 0;
+	
+	x0 = 0.5*(xMin+xMax);
+	
+	std::cout << "xd1: " << xd(0) << " xd2: " << xd(1) << " y: " << y(0) << std::endl;
+*/	
+
 	m = 12;
 	n = 17;
 	
-	x = 3*Eigen::VectorXf::Random(n);
+	x = 2*Eigen::VectorXf::Random(n);
 	A = Eigen::MatrixXf::Random(m,n);
-	A.col(2) = A.col(7);                                                                        // Force a singularity
 	y = A*x;
-
-	xMax = 10*Eigen::VectorXf::Ones(n);
-	xMin =-10*Eigen::VectorXf::Ones(n);
 	
-	x0 = 0.5*(xMin + xMax);
-//	x0 = x + 0.1*Eigen::VectorXf::Random(n);
-	xd = 15*Eigen::VectorXf::Random(n);
+	xMin = -5*Eigen::VectorXf::Ones(n);
+	xMax =  5*Eigen::VectorXf::Ones(n);
+	
+	x0 = x + 0.1*Eigen::VectorXf::Random(n);
+//	x0 = 0.5*(xMin + xMax);
+	
+	xd = 100*Eigen::VectorXf::Ones(n);	
 	
 	timer = clock();
 	xHat  = solver.least_squares(xd,Eigen::MatrixXf::Identity(n,n),y,A,xMin,xMax,x0);
