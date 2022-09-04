@@ -350,28 +350,19 @@ Eigen::VectorXf QPSolver::least_squares(const Eigen::VectorXf &xd,
 		z.head(n) = -xMax;
 		z.tail(n) =  xMin;
 		
-		// Interior point method fails if desired point is outside constraints,
-		// so scale the vector
-		// NOTE TO FUTURE SELF: I think this method fails of b*xd = 0.
-		// xd needs to be perturbed, and not simply scaled.
-		float alpha = 1.0;
-		float d, temp;
-		for(int i = 0; i < B.rows(); i++)
+		// Interior point method sometimes fails if desired point is outside constraints
+		Eigen::VectorXf temp = xd;
+		for(int i = 0; i < n; i++)
 		{
-			d = xd.dot( B.col(i).segment(m,n) );
-			
-			if(d - z(i) <= 0)
-			{
-				temp = (z(i) + 1e-02)/d;
-				if(temp < alpha) alpha = temp;
-			}
+			if     (xd(i) < xMin(i)) temp(i) = xMin(i) + 0.001;
+			else if(xd(i) > xMax(i)) temp(i) = xMax(i) - 0.001;
 		}
 
 		// f = [   y  ]
 		//     [ W*xd ]
 		Eigen::VectorXf f(m+n);
 		f.head(m) = -y;
-		f.tail(n) = -alpha*W*xd;
+		f.tail(n) = -W*temp;
 		
 		Eigen::VectorXf state(m+n);
 		state.head(m) = Eigen::VectorXf::Zero(m);
