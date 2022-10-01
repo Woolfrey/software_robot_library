@@ -110,8 +110,8 @@ int main(int argc, char *argv[])
 	std::cout <<   "*                 CHOLESKY DECOMPOSITION                   *"   << std::endl;
 	std::cout <<   "************************************************************\n" << std::endl;
 	
-	m = 5;
-	n = 5;
+	m = 10;
+	n = 10;
 	A = Eigen::MatrixXf::Random(m,n);
 	A = A*A.transpose();
 	
@@ -175,6 +175,19 @@ int main(int argc, char *argv[])
 	std::cout << "\nHere is A*inv(A):\n" << std::endl;
 	std::cout << A*invA << std::endl;
 	
+	
+	timer = clock();
+	xHat = A.partialPivLu().solve(y);
+	timer = clock() - timer;
+	float luTime = (float)timer/CLOCKS_PER_SEC;
+	
+	timer = clock();
+	xHat = A.ldlt().solve(y);
+	timer = clock() - timer;
+	float ldltTime = (float)timer/CLOCKS_PER_SEC;
+	
+	std::cout << "\nLU decomposition took " << luTime*1000 << " ms to solve (" << 1/luTime << " Hz), "
+	          << "\nLDLT decomposition took " << ldltTime*1000 << " ms to solve (" << 1/ldltTime << " Hz)." << std::endl;
 	
 	std::cout << "\n************************************************************" << std::endl;
 	std::cout <<   "*                      QR DECOMPOSITION                    *" << std::endl;
