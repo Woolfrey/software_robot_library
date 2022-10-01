@@ -348,8 +348,8 @@ bool test_serial_link()
 		std::cout << "\nHere is the difference in the time derivative of the Jacobian using the long and short method:\n" << std::endl;
 		std::cout << (Jdot_long - Jdot_short) << std::endl;
 		
-		std::cout << "\nThe long method took " << time1*1000 << " ms (" << 1/time1 << " Hz) "
-		          << "and the short method took " << time2*1000 << "ms (" << 1/time2 << " Hz)." << std::endl;
+		std::cout << "\nThe slow method took " << time1*1000 << " ms (" << 1/time1 << " Hz) "
+		          << "and the fast method took " << time2*1000 << "ms (" << 1/time2 << " Hz)." << std::endl;
 		
 		// Check the Dynamics
 		std::cout << "\nHere is the gravity torque vector:\n" << std::endl;
