@@ -25,31 +25,30 @@ class SerialKinematicControl : public SerialLink,
 		bool set_proportional_gain(const float &gain);                                      // Set the gain used in feedback control
 		
 		// Get Functions
-		Eigen::VectorXf get_pose_error(const Eigen::Isometry3f &desired,                    // Get pose error as a 6x1 vector
-		                               const Eigen::Isometry3f &actual);
-		
-		Eigen::VectorXf move_at_speed(const Eigen::VectorXf &vel);                          // Move endpoint at a given speed
-		
-		Eigen::VectorXf move_at_speed(const Eigen::VectorXf &vel,                           // Move endpoint at given speed...
-		                              const Eigen::VectorXf &redundant);                    // ... specify the redundant task
-		
-		Eigen::VectorXf move_to_position(const Eigen::VectorXf &pos);                       // Move joints toward a desired position
-		
-		Eigen::VectorXf move_to_pose(const Eigen::Isometry3f &pose);                        // Move endpoint toward a desired pose
+		Eigen::Matrix<float,6,1> get_pose_error(const Eigen::Isometry3f &desired,           // Get the error between two poses
+                                                        const Eigen::Isometry3f &actual);
+                                                        
+                Eigen::VectorXf move_at_speed(const Eigen::Matrix<float,6,1> &vel);                 // Move endpoint at given speed
+                
+                Eigen::VectorXf move_at_speed(const Eigen::Matrix<float,6,1> &vel,                  // Move endpoint at given speed
+                                              const Eigen::VectorXf &redundancy);                   // with additional redundant task
+                
+                Eigen::VectorXf move_to_position(const Eigen::VectorXf &pos);                       // Move to desired joint position
+                
+                Eigen::VectorXf move_to_pose(const Eigen::Isometry3f&pose);                         // Move to endpoint 
 		
 		Eigen::VectorXf move_to_pose(const Eigen::Isometry3f &pose,                         // Move endpoint toward a desired pose
 		                             const Eigen::VectorXf &redundancy);                    // Specify redundant joint velocities
 		                             
-		Eigen::VectorXf track_cartesian_trajectory(const Eigen::Isometry3f &pose,           // Track Cartesian trajectory defined by pose...
-		                                           const Eigen::VectorXf &vel);             // and instantaneous velocity
+		Eigen::VectorXf track_cartesian_trajectory(const Eigen::Isometry3f        &pose,    // Track Cartesian trajectory defined by pose...
+		                                           const Eigen::Matrix<float,6,1> &vel);    // and instantaneous velocity
 		
-		Eigen::VectorXf track_cartesian_trajectory(const Eigen::Isometry3f &pose,           // Track Cartesian trajectory defined by pose...
-		                                           const Eigen::VectorXf &vel,              // instantaneous velocity, and ...
-		                                           const Eigen::VectorXf &redundancy);      // specify redundant task
+		Eigen::VectorXf track_cartesian_trajectory(const Eigen::Isometry3f        &pose,    // Track Cartesian trajectory defined by pose...
+		                                           const Eigen::Matrix<float,6,1> &vel,     // instantaneous velocity, and ...
+		                                           const Eigen::VectorXf          &redundancy); // specify redundant task
 		                                           
 		Eigen::VectorXf track_joint_trajectory(const Eigen::VectorXf &pos,                  // Track trajectory defined by position...
-		                                       const Eigen::VectorXf &vel);		    // and instantaneous joint velocity	
-		
+		                                       const Eigen::VectorXf &vel);		    // and instantaneous joint velocity			
 	private:
 		// Functions
 		bool get_speed_limit(float &lower, float &upper, const int &i);                     // Get instantaneous speed limit of a joint
