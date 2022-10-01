@@ -120,7 +120,8 @@ Eigen::VectorXf QPSolver::solve(const Eigen::MatrixXf &H,                       
 			
 			g += H*x + f;                                                               // Finish summation of gradient vector
 
-			dx = I.partialPivLu().solve(-g);
+//			dx = I.ldlt().solve(-g);                                                    // I = L*D*L'
+			dx = I.partialPivLu().solve(-g);                                            // I = L*U
 			
 			// Shrink step size until within the constraint
 			alpha = this->alpha0;
