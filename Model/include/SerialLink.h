@@ -77,14 +77,14 @@ class SerialLink
 		// Kinematic properties
 		int n;                                                                              // Number of joints
 		Eigen::Vector3f gravityVector = {0.0, 0.0, -9.81};                                  // Gravitational acceleration
-		Eigen::VectorXf q, qdot;                                                            // Joint positions, velocities
-		Eigen::Isometry3f baseTF;                                                           // Transform from global frame to origin of robot
-		Eigen::Isometry3f endpointTF;                                                       // New endpoint offset (default identity)
-		RigidBody base;                                                                     // The base "link"
+		Eigen::VectorXf                q, qdot;                                             // Joint positions, velocities
+		Eigen::Isometry3f              baseTF;                                              // Transform from global frame to origin of robot
+		Eigen::Isometry3f              endpointTF;                                          // New endpoint offset (default identity)
+		RigidBody                      base;                                                // The base "link"
 		std::vector<Eigen::Isometry3f> fkChain;                                             // Transforms for each link
-		std::vector<Eigen::Vector3f> axis;                                                  // Axis of actuation for each joint in base frame
-		std::vector<Joint> joint;                                                           // Vector of joints connecting the links
-		std::vector<RigidBody> link;                                                        // Vector of links on the robot which move
+		std::vector<Eigen::Vector3f>   axis;                                                // Axis of actuation for each joint in base frame
+		std::vector<Joint>             joint;                                               // Vector of joints connecting the links
+		std::vector<RigidBody>         link;                                                // Vector of links on the robot which move
 
 		// Dynamic properties
 		Eigen::MatrixXf C;                                                                  // Coriolis matrix (nxn)
@@ -93,12 +93,7 @@ class SerialLink
 		Eigen::VectorXf g;                                                                  // Gravitational torque (nx1)
 
 		// Get Functions
-		Eigen::MatrixXf get_jacobian(const Eigen::Vector3f &point, const int &numJoints);
-		
-		// Update internal state
-		// Note: MUST update kinematics first
-		void update_forward_kinematics();                                                   // Compute forward kinematics for current state
-		void update_inverse_dynamics();                                                     // Compute dynamics for current state
+		Eigen::MatrixXf get_jacobian(const Eigen::Vector3f &point, const int &numJoints);   // Get a Jacobian to a point on the robot
 		
 };                                                                                                  // Semicolon needed after a class declaration
 

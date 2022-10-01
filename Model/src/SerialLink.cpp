@@ -53,10 +53,8 @@ bool SerialLink::set_joint_state(const Eigen::VectorXf &pos, const Eigen::Vector
 	}
 	else
 	{
-		this->q = pos;                                                                      // Assign new joint positions
+		this->q    = pos;                                                                   // Assign new joint positions
 		this->qdot = vel;                                                                   // Assign new joint velocities		
-//		update_forward_kinematics();                                                        // Compute new transform chain
-//		update_inverse_dynamics();                                                          // Compute inertia, coriolis, gravity
 
 		// Variables used in this scope
 		Eigen::Matrix3f A     = Eigen::Matrix3f::Identity();                                // Cartesian mass-inertia matrix
@@ -210,8 +208,7 @@ Eigen::MatrixXf SerialLink::get_time_derivative(const Eigen::MatrixXf &J)
 	}
 	else
 	{
-		Eigen::MatrixXf Jdot;                                                               // Value to be returned
-		Jdot.setZero(6,J.cols());
+		Eigen::MatrixXf Jdot = Eigen::MatrixXf::Zero(6,J.cols());                           // Value to be returned
 
 		for(int i = 0; i < J.cols(); i++)
 		{
@@ -270,21 +267,22 @@ Eigen::MatrixXf SerialLink::get_partial_derivative(const Eigen::MatrixXf &J, con
 	
 	if(J.rows() != 6)
 	{
-		std::cerr << "[ERROR] [SERIALLINK] get_partial_derivative() : Expected a 6xn Jacobian, "
-			<< "but your input only had " << J.rows() << " rows." << std::endl;
+		std::cerr << "[ERROR] [SERIALLINK] get_partial_derivative(): "
+		          << "Expected a 6xn Jacobian, but your input only had " 
+		          << J.rows() << " rows." << std::endl;
 		return Eigen::MatrixXf::Zero(J.rows(), J.cols());
 	}
 	else if(jointNum > J.cols())
 	{
-		std::cerr << "[ERROR] [SERIALLINK] get_partial_derivative() : Cannot compute the partial derivative with respect to "
-			<< "joint " << jointNum << " because the Jacobian only has " << J.cols() << " columns." << std::endl;
+		std::cerr << "[ERROR] [SERIALLINK] get_partial_derivative(): "
+		          << "Cannot compute the partial derivative with respect to joint " 
+		          << jointNum << " because the Jacobian only has " << J.cols() << " columns." << std::endl;
 		
 		return Eigen::MatrixXf::Zero(J.rows(), J.cols());
 	}
 	else
 	{ 
-		Eigen::MatrixXf dJ(6,J.cols());                                                     // Value to be returned
-		dJ.setZero();
+		Eigen::MatrixXf dJ = Eigen::MatrixXf::Zero(6,J.cols());                             // Value to be returned
 		
 		for(int i = 0; i < J.cols(); i++)
 		{
@@ -321,8 +319,8 @@ Eigen::MatrixXf SerialLink::get_partial_derivative(const Eigen::MatrixXf &J, con
 				}
 			}
 			else if(this->joint[i].is_prismatic()                                       // J_i = [a_i ; 0]
-                               and this->joint[jointNum].is_revolute()                             // J_j = [a_j x r_j; a_j]
-                               and jointNum < i)
+                                and this->joint[jointNum].is_revolute()                             // J_j = [a_j x r_j; a_j]
+                                and jointNum < i)
 			{
 				// a_j x a_i
 				dJ(0,i) = J(4,jointNum)*J(2,i) - J(5,jointNum)*J(1,i);
