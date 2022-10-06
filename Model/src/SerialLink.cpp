@@ -15,7 +15,8 @@ SerialLink::SerialLink(const std::vector<RigidBody> &links,
                        M(Eigen::MatrixXf::Identity(this->n, this->n)),                              // Inertia matrix
                        g(Eigen::VectorXf::Zero(this->n)),                                           // Gravity torque vectors
                        baseTF(Eigen::Isometry3f::Identity()),                                       // Transform of base w.r.t world frame
-                       endpointTF(Eigen::Isometry3f::Identity())                                    // Additional offset for the endpoint
+                       endpointTF(Eigen::Isometry3f::Identity()),                                   // Additional offset for the endpoint
+                       J(Eigen::MatrixXf::Zero(6,this->n))                                          // Jacobian to endpoint
 {
 	if(links.size() != joints.size() + 1)
 	{
@@ -73,11 +74,11 @@ bool SerialLink::set_joint_state(const Eigen::VectorXf &pos, const Eigen::Vector
 		for(int i = 0; i < this->n; i++)
 		{
 			////////////////////////////// KINEMATICS //////////////////////////////////
-			if(i == 0) this->fkChain[i] = this->base.get_pose()*this->joint[i].get_pose(this->q[i]);
-			else       this->fkChain[i] = this->fkChain[i-1]*this->joint[i].get_pose(this->q[i]);
+			if(i == 0) this->fkChain[i] = this->base.get_pose()*this->joint[i].get_pose(this->q[i]); // First joint
+			else       this->fkChain[i] = this->fkChain[i-1]*this->joint[i].get_pose(this->q[i]);    // ith joint
 	
-			this->axis[i] = this->fkChain[i].rotation()*this->joint[i].get_axis();
-			
+			this->axis[i] = this->fkChain[i].rotation()*this->joint[i].get_axis();      // Store the axes in a vector object
+					
 			////////////////////////////// DYNAMICS ////////////////////////////////////
 		 	// A (convoluted) derivation can be found here:
         		// Angeles, J. (Ed.). (2014). Fundamentals of robotic mechanical systems:
@@ -120,6 +121,8 @@ bool SerialLink::set_joint_state(const Eigen::VectorXf &pos, const Eigen::Vector
 		this->fkChain[this->n] = this->fkChain[this->n-1]
                                        * this->link[this->n-1].get_pose()
                                        * this->endpointTF;
+                                       
+                this->J = get_jacobian(this->fkChain[this->n].translation(),this->n);               // Compute Jacobian to new endpoint
 	
 		return true;
 	}

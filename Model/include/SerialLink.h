@@ -48,7 +48,7 @@ class SerialLink
 		
 		Eigen::MatrixXf get_inertia() const {return this->M;}                               // Get inerita matrix in joint space
 		
-		Eigen::MatrixXf get_jacobian() {return get_jacobian(this->fkChain[this->n].translation(), this->n);}
+		Eigen::MatrixXf get_jacobian() {return this->J;}                                    // Get Jacobian to the endpoint
 		
 		Eigen::MatrixXf get_partial_derivative(const Eigen::MatrixXf &J,                    // Get partial derivative w.r.t a single joint
 		                                       const int &jointNum);
@@ -59,7 +59,7 @@ class SerialLink
 		
 		Eigen::VectorXf get_joint_positions() const {return this->q;}                       // As it says on the label
 		
-		Eigen::VectorXf get_joint_velocities() const {return this->qdot;}
+		Eigen::VectorXf get_joint_velocities() const {return this->qdot;}                   // Return vector of n joint velocities
 		
 		float get_joint_position(const int &i) const {return this->q[i];}                   // Query a single joint position
 		
@@ -85,6 +85,7 @@ class SerialLink
 		std::vector<Eigen::Vector3f>   axis;                                                // Axis of actuation for each joint in base frame
 		std::vector<Joint>             joint;                                               // Vector of joints connecting the links
 		std::vector<RigidBody>         link;                                                // Vector of links on the robot which move
+		Eigen::MatrixXf                J;                                                   // Jacobian to the endpoint
 
 		// Dynamic properties
 		Eigen::MatrixXf C;                                                                  // Coriolis matrix (nxn)
