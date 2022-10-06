@@ -38,7 +38,7 @@ class SerialKinematicControl : public SerialLink,
                 Eigen::VectorXf move_to_pose(const Eigen::Isometry3f&pose);                         // Move to endpoint 
 		
 		Eigen::VectorXf move_to_pose(const Eigen::Isometry3f &pose,                         // Move endpoint toward a desired pose
-		                             const Eigen::VectorXf &redundancy);                    // Specify redundant joint velocities
+		                             const Eigen::VectorXf   &redundancy);                  // Specify redundant joint velocities
 		                             
 		Eigen::VectorXf track_cartesian_trajectory(const Eigen::Isometry3f        &pose,    // Track Cartesian trajectory defined by pose...
 		                                           const Eigen::Matrix<float,6,1> &vel);    // and instantaneous velocity

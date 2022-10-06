@@ -63,18 +63,18 @@ Eigen::Matrix<float,6,1> SerialKinematicControl::get_pose_error(const Eigen::Iso
 {
 	// Yuan, J. S. (1988). Closed-loop manipulator control using quaternion feedback.
 	// IEEE Journal on Robotics and Automation, 4(4), 434-440.
-
-	Eigen::VectorXf error(6);                                                                   // Value to be returned
 	
-	error.head(3) = desired.translation() - actual.translation();                               // Position error
+	Eigen::Matrix<float,6,1> error;
+	error.head(3) = desired.translation() - actual.translation();                               // Difference in translation
 	
-	Eigen::Quaternionf temp(desired.rotation()*actual.rotation().inverse());                    // Orientation error as quaternion
+	// Convert rotation components to quaternion
+	Eigen::Quaternionf qd(desired.rotation());
+	Eigen::Quaternionf qa(actual.rotation());
+	Eigen::Quaternionf qe = qd*qa.conjugate();
 	
-	float angle = 2*asin(temp.vec().norm());                                                    // Get the angle error
+	if(qd.dot(qa) <= 0) error.tail(3) = qe.vec();                                               // Angle between quaternions <= 90 degrees
+	else                error.tail(3) =-qe.vec();                                               // Angle greater than 90 degrees, go other direction 
 	
-	if(angle < M_PI) error.tail(3) =  temp.vec();
-	else             error.tail(3) = -temp.vec();                                               // Angle > 180 degrees, so reverse direction
-
 	return error;
 }
 
@@ -277,30 +277,26 @@ Eigen::VectorXf SerialKinematicControl::move_to_position(const Eigen::VectorXf &
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 Eigen::VectorXf SerialKinematicControl::move_to_pose(const Eigen::Isometry3f &pose)
 {
-	Eigen::VectorXf e = get_pose_error(pose, get_endpoint_pose());                              // As it says on the label
-	
-	return move_at_speed(this->k*e);                                                            // Proportional feedback
+	return move_at_speed(this->k*get_pose_error(pose,get_endpoint_pose()));                     // Proportional feedback
 }
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                            Move the robot to a given endpoint pose                             //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 Eigen::VectorXf SerialKinematicControl::move_to_pose(const Eigen::Isometry3f &pose,
-                                                     const Eigen::VectorXf &redundant)
+                                                     const Eigen::VectorXf   &redundancy)
 {
-	if(redundant.size() != this->n)
+	if(redundancy.size() != this->n)
 	{
 		std::cerr << "[ERROR] [SERIALKINEMATICCONTROL] move_to_pose(): "
 		          << "Expected a " << this->n << "x1 vector for the redundant task, "
-		          << "but it was " << redundant.size() << "x1." << std::endl;
+		          << "but it was " << redundancy.size() << "x1." << std::endl;
 		
 		return 0.9*get_joint_velocities();                                                  // Slow down to avoid problems
 	}
 	else
 	{
-		Eigen::VectorXf e = get_pose_error(pose, get_endpoint_pose());                      // As it says on the label
-		
-		return move_at_speed(this->k*e, redundant);                                         // Use proportional feedback
+		return move_at_speed(this->k*get_pose_error(pose,get_endpoint_pose()),redundancy);
 	}
 }
 
@@ -310,7 +306,7 @@ Eigen::VectorXf SerialKinematicControl::move_to_pose(const Eigen::Isometry3f &po
 Eigen::VectorXf SerialKinematicControl::track_cartesian_trajectory(const Eigen::Isometry3f        &pose,
                                                                    const Eigen::Matrix<float,6,1> &vel)
 {
-	return move_at_speed(vel + this->k*get_pose_error(pose,get_endpoint_pose()));
+	return move_at_speed(vel + this->k*get_pose_error(pose,get_endpoint_pose()));               // Feedforward + feedback control
 }
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -330,8 +326,7 @@ Eigen::VectorXf SerialKinematicControl::track_cartesian_trajectory(const Eigen::
 	}
 	else
 	{
-		return move_at_speed(vel + this->k*(get_pose_error(pose,get_endpoint_pose())),
-		                     redundant);
+		return move_at_speed(vel + this->k*(get_pose_error(pose,get_endpoint_pose())), redundant);
 	}
 }
 
@@ -443,10 +438,9 @@ Eigen::VectorXf SerialKinematicControl::singularity_avoidance(const float &scala
 	else
 	{
 		Eigen::MatrixXf J    = get_jacobian();                                              // As it says on the label
-		Eigen::MatrixXf JJt  = J*J.transpose();                                             // Makes calcs a little simpler
 		Eigen::MatrixXf invJ = get_pseudoinverse(J);                                        // As it says on the label
 		
-		float mu = sqrt(JJt.determinant());                                                 // Actual measure of manipulability
+		float mu = sqrt((J*J.transpose()).determinant());                                   // Actual measure of manipulability
 		
 		Eigen::MatrixXf dJ;                                                                 // Placeholder for partial derivative
 		
