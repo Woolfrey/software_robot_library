@@ -412,7 +412,7 @@ float SerialKinematicControl::get_joint_penalty(const int &i)
 	{
 		return range*range/(4*upper*lower);                                                 // Penalty term
 	}
-	else	return 0.0;                                                                         // Don't penalise if moving away
+	else	return 1.0;                                                                         // Don't penalise if moving away
 }
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
