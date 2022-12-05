@@ -194,9 +194,9 @@ int main(int argc, char *argv[])
 	std::cout <<   "************************************************************\n" << std::endl;
 	
 	m = 7;
-	n = 6;
+	n = 7;
 	A = Eigen::MatrixXf::Random(m,n);
-	A.col(0) = A.col(n-2);                                                                      // Force a singularity
+	A.col(1) = A.col(n-2);                                                                      // Force a singularity
 	
 	/*************************** Demonstration of QR decomposition ***************************/
 	std::cout << "\nHere is a random " << m << "x" << n << " matrix:\n" << std::endl;
@@ -241,6 +241,54 @@ int main(int argc, char *argv[])
 		std::cout << "\nHere is A*N:\n" << std::endl;
 		std::cout << A*N << std::endl;
 	}
+	
+	std::cout << "\n************************************************************" << std::endl;
+	std::cout <<   "*                POSITIVE, SEMIDEFINITE MATRICES           *" << std::endl;
+	std::cout <<   "************************************************************\n" << std::endl;
+	
+	m = 7;
+	n = 7;
+	A = Eigen::MatrixXf::Random(m,n);
+	A = A*A.transpose();
+	A.col(1) = A.col(n-2);
+	
+	std::cout << "\nHere is a random positive, semidefinite matrix:\n" << std::endl;
+	std::cout << A << std::endl;
+	
+	x = Eigen::VectorXf::Random(n);
+	y = A*x;
+	
+	std::cout << "\nHere is the vector y = A*x:\n" << std::endl;
+	std::cout << y << std::endl;
+	
+	std::cout << "\nHere is the result when we try to solve with Cholesky decomposition.\n" << std::endl;
+
+	timer = clock();
+	xHat  = A.llt().solve(y);
+	timer = clock() - timer;
+	time  = (float)timer/CLOCKS_PER_SEC;
+	
+	std::cout << "\nWe solve for the estimate of x and compare ||y - A*xhat|| = " << (y - A*xHat).norm() << ". "
+	          << "It took " << time*1000 << " ms to solve (" << 1/time << " Hz).\n" << std::endl;
+	
+	
+	timer = clock();
+	xHat  = A.partialPivLu().solve(y);
+	timer = clock() - timer;
+	time  = (float)timer/CLOCKS_PER_SEC;
+	
+	std::cout << "\nUsing LU decomposition we get ||y - A*xhat|| = " << (y-A*xHat).norm() << ". "
+	          << "It took " << time*1000 << " ms to solve (" << 1/time << " Hz).\n" << std::endl;
+	
+	
+	timer = clock();
+	xHat  = A.ldlt().solve(y);
+	timer = clock() - timer;
+	time  = (float)timer/CLOCKS_PER_SEC;
+	
+	std::cout << "Conversely, the robust Cholesky method gives ||y - A*xhat|| = " << (y-A*xHat).norm() << ". "
+	          << "It took " << time*1000 << " ms to solve (" << 1/time << " Hz).\n" << std::endl;
+	
 
 	return 0;                                                                                   // No problems with main()
 }
