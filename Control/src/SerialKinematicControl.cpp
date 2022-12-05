@@ -121,7 +121,12 @@ Eigen::VectorXf SerialKinematicControl::move_at_speed(const Eigen::Matrix<float,
 		
 		if(this->n <= 6)
 		{
-			return least_squares(vel,J,xMin,xMax,get_joint_velocities());               // Too easy, lol
+			return least_squares(vel,
+			                     J,
+			                     Eigen::MatrixXf::Identity(this->n,this->n),
+			                     xMin,
+			                     xMax,
+			                     0.5*(xMin + xMax));                                    // Too easy, lol
 /*
 			//    J*qdot = xdot
 			// J'*J*qdot = J'*xdot
