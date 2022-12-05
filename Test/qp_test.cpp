@@ -24,7 +24,6 @@ int main(int argc, char *argv[])
 	x  = Eigen::VectorXf::Random(n);
 	y  = A*x;
 	W  = Eigen::MatrixXf::Identity(m,m);
-	x0 = Eigen::VectorXf::Zero(n);
 	
 	std::cout << "\nHere is an underdetermined system y = A*x.\n" << std::endl;
 	
@@ -37,7 +36,7 @@ int main(int argc, char *argv[])
 	std::cout << "\nWe can use quadratic programming (QP) to get the best estimate of x.\n" << std::endl;
 	
 	timer = clock();
-	xHat  = QPSolver::least_squares(y,A,W,x0);
+	xHat  = QPSolver::least_squares(y,A,W);
 	timer = clock() - timer;
 	time  = (float)timer/CLOCKS_PER_SEC;
 	
