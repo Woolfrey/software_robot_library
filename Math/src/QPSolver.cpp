@@ -304,15 +304,14 @@ Eigen::VectorXf QPSolver::least_squares(const Eigen::VectorXf &xd,
 		H.block(m,0,n,m) = A.transpose();
 		H.block(m,m,n,n) = W;
 		
-		Eigen::MatrixXf Q, R;
-		if(get_qr_decomposition(H,Q,R))
-		{
-			return backward_substitution(Q.block(0,m,m,n).transpose()*y                 //   Q12'*y
-			                           + Q.block(m,m,n,n).transpose()*W*xd,             // + Q22*W*xd 
-			                             R.block(m,m,n,n),                              //   R22
-			                             xd);
-		}
-		else    return Eigen::VectorXf::Zero(xd.size());
+		Eigen::VectorXf f(m+n);
+		f.head(m) = y;
+		f.tail(n) = W*xd;
+		
+		// NOTE: We could be smarter here and skip solving the Lagrange multipliers using
+		// QR decomposition...
+		
+		return (H.partialPivLu().solve(f)).tail(n);
 	}
 }
 
