@@ -1,15 +1,16 @@
 #include <SerialKinematicControl.h>
  
- ////////////////////////////////////////////////////////////////////////////////////////////////////
+  ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                                        Constructor                                             //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-SerialKinematicControl::SerialKinematicControl(const std::vector<RigidBody> links,
-                                               const std::vector<Joint> joints,
+SerialKinematicControl::SerialKinematicControl(const std::vector<RigidBody> &links,
+                                               const std::vector<Joint>     &joints,
                                                const float &controlFrequency):
-                                               SerialLink(links, joints),
-                                               hertz(controlFrequency),
-                                               dt(1/hertz)
+                                               SerialControlBase(links,joints,controlFrequency)
 {
+
+/* NOTE: This should be all in the SerialControlBase class.
+
 	// Not sure if I should "duplicate" the joint limits here, or just grab them from the Joint class... 
 	// It makes the code a little neater, and the limits in the Control class can be altered
 	
@@ -25,6 +26,7 @@ SerialKinematicControl::SerialKinematicControl(const std::vector<RigidBody> link
 		this->vLim[i] = this->joint[i].get_velocity_limit();
 		this->aLim[i] = 5.0;
 	}
+*/
 }
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -460,5 +462,97 @@ Eigen::VectorXf SerialKinematicControl::singularity_avoidance(const float &scala
 		}
 		
 		return grad;
+	}
+}
+
+
+  //////////////////////////////////////////////////////////////////////////////////////////////////////
+ //                           Move the endpoint at the given velocity                                //
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+Eigen::VectorXf move_endpoint(const Eigen::Matrix<float,6,1> &speed)
+{
+	Eigen::VectorXf vel(this->n);                                                               // Value to be returned
+	Eigen::VectorXf startPoint(this->n);
+	
+	// Compute instantaneous lower and upper bound on joint velocity
+	Eigen::VectorXf lowerBound(this->n), upperBound(this->n);
+	for(int i = 0; i < this->n; i++)
+	{
+		get_velocity_bounds(lowerBound[i], upperBound[i],i);
+		startPoint(i) = 0.5*(lowerBound[i], upperBound[i]);                                 // Halfway point
+	}
+	
+	if(this->n <= 6)
+	{
+		return least_squares(speed, this->J, Eigen::MatrixXf::Identity(this->n,this->n), lowerBound, upperBound, startPoint);
+	}
+	else
+	{
+		// Solve the redundant task
+		Eigen::VectorXf redundancy;
+		if(this->redundantTaskSet) redundancy = this->redundantTask;
+		else                       redundancy = this->kd*(avoid_singularities() - this->qdot);
+		this->redundantTaskSet = false;                                                             // User must reset the task
+		
+		Eigen::MatrixXf M = get_inertia_matrix();
+		
+		return least_squares(redundancy, M, J, speed, lowerBound, upperBound, startPoint);          // Too easy lol
+	}
+}
+
+  ///////////////////////////////////////////////////////////////////////////////////////////////////
+ //                                  Track a Cartesian trajectory                                 //
+///////////////////////////////////////////////////////////////////////////////////////////////////
+Eigen::VectorXf track_cartesian_trajectory(const Eigen::Isometry3f        &pose,
+                                           const Eigen::Matrix<float,6,1> &vel,
+										   const Eigen::Matrix<float,6,1> &acc)
+{
+	return move_endpoint(vel + this->Kc*get_pose_error(pose,get_endpoint_pose()));                  // Feedforward + feedback control
+}
+
+  ///////////////////////////////////////////////////////////////////////////////////////////////////
+ //                                  Track a joint trajectory                                     //
+///////////////////////////////////////////////////////////////////////////////////////////////////
+Eigen::VectorXf SerialKinematicControl::track_joint_trajectory(const Eigen::VectorXf &pos,
+                                                               const Eigen::VectorXf &vel,
+															   const Eigen::VectorXf &acc)
+{
+	if(pos.size() != this->n or vel.size() != this->n or acc.size() != this->n)
+	{
+		std::cerr << "[ERROR] [SERIAL KINEMATIC CONTROL] track_joint_trajectory(): "
+		          << "This robot has " << this->n << " joints, but "
+				  << "the position argument had " << pos.size() << " elements, "
+				  << "the velocity argument had " << vel.size() << " elements, "
+				  << "and the acceleration argument had " << acc.size() << " elements." << std::endl;
+				  
+		return Eigen::VectorXf::Zero(this->n);                                                      // Don't move
+	}
+	else return move_joints(vel + this->kp*(pos - this->q));                                        // Feedforward + feedback control
+}
+
+  ///////////////////////////////////////////////////////////////////////////////////////////////////
+ //            Compute the instantaneous acceleration bounds for joint limit avoidance            //
+///////////////////////////////////////////////////////////////////////////////////////////////////
+bool compute_velocity_bounds(float &lower, float &upper, const unsigned int &jointNumber)
+{
+	if(jointNumber >= this->n)
+	{
+		std::cerr << "[ERROR] [SERIAL KINEMATIC CONTROL] compute_velocity_bounds(): "
+		          << "You called for " << jointNumber << ", but this robot only has "
+				  << this->n << " joints." << std::endl;
+				  
+		return false;
+	}
+	else
+	{
+		lower = std::max( (this->posLimit[i][0] - this->q[i])*this->hertz,                          // Position limit
+		        std::max( -this->velLimit[i],                                                       // Velocity limit
+		                  -2*sqrt(this->maxAccel*(this->q[i] - this->posLimit[i][0]))));            // Acceleration limit
+
+		upper = std::min( (this->posLimit[i][1] - this->q[i])*this->hertz,
+		        std::min(  this->veLimit[i],
+						   2*sqrt(this->maxAccel*(this->posLimit[i][1] - this->q[i]))));
+		
+		return true;
 	}
 }

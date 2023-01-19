@@ -16,9 +16,9 @@ class RigidBody
 		RigidBody() {}                                                                      // Empty constructory
 		
 		RigidBody(const Eigen::Isometry3f &origin,                                          // Origin relative to some other frame
-                         const Eigen::Vector3f &centreOfMass,                                       // Center of mass rleative to origin
-                         const float &_mass,                                                        // Mass (kg)
-                         const Eigen::VectorXf &momentOfInertia);                                   // Inertia (Nm^2)
+                          const Eigen::Vector3f &centreOfMass,                                      // Center of mass rleative to origin
+                          const float &_mass,                                                       // Mass (kg)
+                          const Eigen::VectorXf &momentOfInertia);                                  // Inertia (Nm^2)
 			
 		// Set Functions
 		bool set_state(const Eigen::Isometry3f &origin,

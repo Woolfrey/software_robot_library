@@ -12,8 +12,8 @@
 #include <iostream>
 #include <vector>                                                                                   // std::vector
 
-#include "Joint.h"                                                                                  // Custom class representing moveable joints
-#include "RigidBody.h"                                                                              // Custom class
+#include <Joint.h>                                                                                  // Custom class representing moveable joints
+#include <RigidBody.h>                                                                              // Custom class
 
 class SerialLink
 {

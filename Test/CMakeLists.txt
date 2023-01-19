@@ -19,3 +19,7 @@ target_link_libraries(math_test RobotLibrary)
 add_executable(qp_test qp_test.cpp)
 add_dependencies(qp_test RobotLibrary)
 target_link_libraries(qp_test RobotLibrary)
+
+add_executable(urdf_test urdf_test.cpp)
+add_dependencies(urdf_test RobotLibrary)
+target_link_libraries(urdf_test RobotLibrary)
