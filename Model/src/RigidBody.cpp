@@ -20,9 +20,9 @@ RigidBody::RigidBody(const Pose            &origin,
 	{
 		std::cerr << "[WARNING] [RIGID BODY] Constructor: "
                           << "Mass of object was " << this->_mass << ", "
-                          << "but cannot be negative." << std::endl;
+                          << "but value cannot be negative." << std::endl;
 			  
-		this->_mass *= -1;
+		this->_mass *= -1;                                                                  // Ensure positive
 	}
 }
   ///////////////////////////////////////////////////////////////////////////////////////////////////
