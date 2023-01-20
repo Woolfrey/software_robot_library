@@ -2,7 +2,7 @@ find_package(Eigen3 REQUIRED)
 
 include_directories(include SHARED ${EIGEN3_INCLUDE_DIRS})
 
-add_library(Control SHARED src/SerialControlBase.cpp)
+add_library(Control SHARED)
 
 target_include_directories(Control
     PUBLIC 
