@@ -24,12 +24,17 @@ class Branch : public RigidBody
 		
 		bool set_stem(const std::vector<unsigned int> &number);                             // Assign reference(s) to child branch(es)
 	
+		std::string name() const {return this->_name;}                                      // Get the name
+		
 		// Properties
 		Joint joint;                                                                        // Obvious
 		
 		unsigned int root = 0;                                                              // Reference to a parent Branch object
 		
 		std::vector<unsigned int> stem;                                                     // Reference to child Branch objects
+	
+	private:
+		std::string _name = "branch";                                                       // Unique identifier
 		
 };                                                                                                  // Semicolon needed at the end of class declaration
 
