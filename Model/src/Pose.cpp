@@ -3,42 +3,56 @@
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //                                         Constructor                                           //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-Pose::Pose(const Eigen::Vector3f &position,
+Pose::Pose(const Eigen::Vector3f    &position,
            const Eigen::Quaternionf &quaternion):
-           pos(position),
-           quat(quaternion)
+           _pos(position),
+           _quat(quaternion)
 {
-	this->quat.normalize();                                                                     // Ensure unit norm for good measure
+	this->_quat.normalize();                                                                    // Ensure unit norm for good measure
 }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //                     Get the error between this pose and another one                           //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::Matrix<float,6,1> Pose::get_pose_error(const Pose &desired)
+Eigen::Matrix<float,6,1> Pose::error(const Pose &desired)
 {
 	Eigen::Matrix<float,6,1> error;                                                             // Value to be returned
-	
-//	if(acos(desired.quat.dot(this->quat)) > M_PI) this->quat *= -1;                             // Ensure angle < 180 degrees
 
-	error.head(3) = desired.pos - this->pos;
+	float angle = acos(desired.quat().dot(this->_quat));
+
+	if(angle > M_PI)
+	{
+		std::cout << "[WARNING] [POSE] error(): "
+		          << "Angle between quaternions is " << angle*180/M_PI << "!" << std::endl;
+	}
+
+	error.head(3) = desired.pos() - this->_pos;
 	
-	error.tail(3) = this->quat.w()*desired.quat.vec()
-                      - desired.quat.w()*this->quat.vec()
-                      - desired.quat.vec().cross(this->quat.vec());
+	error.tail(3) = this->_quat.w()*desired.quat().vec()
+                      - desired.quat().w()*this->_quat.vec()
+                      - desired.quat().vec().cross(this->_quat.vec());
 	
 	return error;
 }
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //               Get the pose as a 4x4 homogeneous transformation matrix                          //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::Matrix<float,4,4> Pose::get_matrix()
+Eigen::Matrix<float,4,4> Pose::as_matrix()
 {
-	Eigen::Matrix<float,4,4> T; T.setIdentity();                                                    // Value to be returned
+	Eigen::Matrix<float,4,4> T; T.setIdentity();                                                // Value to be returned
 	
-	T.block(0,0,3,3) = this->quat.toRotationMatrix();                                               // Convert to SO(3) and insert
-	T.block(0,3,3,1) = this->pos;                                                                   // Insert translation component
+	T.block(0,0,3,3) = this->_quat.toRotationMatrix();                                           // Convert to SO(3) and insert
+	T.block(0,3,3,1) = this->_pos;                                                               // Insert translation component
 	
 	return T;
+}
+
+  ///////////////////////////////////////////////////////////////////////////////////////////////////
+ //                      Get the inverse that "undoes" a rotation                                 //
+///////////////////////////////////////////////////////////////////////////////////////////////////
+Pose Pose::inverse()
+{
+	return Pose(-this->_pos, this->_quat.inverse());
 }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -46,6 +60,6 @@ Eigen::Matrix<float,4,4> Pose::get_matrix()
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 Pose Pose::operator* (const Pose &other)
 {
-	return Pose(this->pos + this->quat.toRotationMatrix()*other.pos,
-	            this->quat*other.quat);
+	return Pose(this->_pos + this->_quat.toRotationMatrix()*other.pos(),
+	            this->_quat*other.quat());
 }
