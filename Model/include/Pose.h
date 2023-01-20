@@ -31,6 +31,8 @@ class Pose
 		
 		Pose operator*(const Pose &other);
 		
+		Eigen::Vector3f operator*(const Eigen::Vector3f &other);
+		
 	private:
 	
 		Eigen::Vector3f _pos;

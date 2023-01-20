@@ -63,3 +63,11 @@ Pose Pose::operator* (const Pose &other)
 	return Pose(this->_pos + this->_quat.toRotationMatrix()*other.pos(),
 	            this->_quat*other.quat());
 }
+
+  ///////////////////////////////////////////////////////////////////////////////////////////////////
+ //                                    Transform a vector                                         //
+///////////////////////////////////////////////////////////////////////////////////////////////////
+Eigen::Vector3f Pose::operator* (const Eigen::Vector3f &other)
+{
+	return this->_pos + this->_quat.toRotationMatrix()*other;
+}
