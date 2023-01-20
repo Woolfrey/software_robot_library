@@ -3,20 +3,20 @@
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                                          Constructor                                           //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-Joint::Joint(const Eigen::Isometry3f &origin,
+Joint::Joint(const Pose &origin,
              const Eigen::Vector3f &axisOfActuation,
              const float positionLimits[2],
              const float &velocityLimit,
              const float &torqueLimit,
              const bool &revolute):
-             pose(origin),
-             axis(axisOfActuation),
+             _pose(origin),
+             _axis(axisOfActuation),
              pLim{positionLimits[0], positionLimits[1]},
              vLim(velocityLimit),
              tLim(torqueLimit),
              isRevolute(revolute)
 {
-	this->axis.normalize();                                                                    // Ensure unit norm
+	this->_axis.normalize();                                                                    // Ensure unit norm
 	
 	if(this->pLim[0] > this->pLim[1])
 	{
@@ -47,10 +47,19 @@ Joint::Joint(const Eigen::Isometry3f &origin,
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                            Compute the transform from the joint displacement                   //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::Isometry3f Joint::get_pose(const float &pos)
+Pose Joint::pose(const float &jointPosition)
 {
-	if(this->isRevolute) 	return this->pose*Eigen::AngleAxisf(pos, this->axis);
-	else			return this->pose*Eigen::Translation3f(pos*this->axis);
+	// NOTE: NEED TO PROGRAM A CASE FOR "FIXED" JOINTS
+	
+	if(this->isRevolute)
+	{
+		return this->_pose * Pose(Eigen::Vector3f::Zero(),
+		                          Eigen::Quaternionf(Eigen::AngleAxisf(jointPosition,this->_axis)));
+	}
+	else // this->isPrismatic
+	{
+		return this->_pose * Pose(this->_axis*jointPosition,Eigen::Quaternionf(1,0,0,0));
+	}
 }
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
