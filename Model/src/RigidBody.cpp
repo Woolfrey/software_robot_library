@@ -5,45 +5,47 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 RigidBody::RigidBody(const Pose            &origin,
                      const Eigen::Vector3f &centreOfMass,
-                     const float           &_mass,
+                     const float           &weight,
                      const Eigen::Matrix3f &momentOfInertia):
-                     P(origin),
-                     c(centreOfMass),
-                     m(_mass),
-                     H(momentOfInertia)
+                     _pose(origin),
+                     _com(centreOfMass),
+                     _mass(weight),
+                     localInertia(momentOfInertia)
 {		
-	Eigen::Matrix3f R = this->P.quat.toRotationMatrix();                                        // Get rotation matrix
-	this->I = R*this->H*R.transpose();                                                          // Rotate to global frame
+	Eigen::Matrix3f R = this->_pose.quat().toRotationMatrix();                                  // Convert to SO(3)
 	
-	if(this->m < 0)
+	this->globalInertia = R*this->localInertia*R.transpose();                                   // Rotate to global frame
+
+	if(this->_mass < 0)
 	{
 		std::cerr << "[WARNING] [RIGID BODY] Constructor: "
-                          << "Mass argument of " << _mass << " cannot be negative." << std::endl;
+                          << "Mass of object was " << this->_mass << ", "
+                          << "but cannot be negative." << std::endl;
 			  
-		this->m *= -1;
+		this->_mass *= -1;
 	}
 }
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //                    Set new kinematic properties and update the dynamics                       //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-void RigidBody::update_state(const Pose            &pose,
-                             const Eigen::Vector3f &linearVelocity,
-                             const Eigen::Vector3f &angularVelocity)
+void RigidBody::update_state(const Pose            &origin,
+                             const Eigen::Vector3f &linearVel,
+                             const Eigen::Vector3f &angularVel)
 {
-	// Set new values
-	this->P = pose;
-	this->v = linearVelocity;
-	this->w = angularVelocity;
+	// Set new state values
+	this->_pose = origin;
+	this->linearVelocity = linearVel;
+	this->angularVelocity = angularVel;
 	
 	// Rotate inertia to new global reference frame
-	Eigen::Matrix3f R = this->P.quat.toRotationMatrix();                                 
-	this->I = R*this->H*R.transpose();
+	Eigen::Matrix3f R = this->_pose.quat().toRotationMatrix();
+	this->globalInertia = R*this->localInertia*R.transpose();
 	
 	// Compute time-derivative of the inertia
 	Eigen::Matrix3f skew;
-	skew <<          0.0, -this->w(2),  this->w(1),
-	          this->w(2),         0.0, -this->w(0),
-	         -this->w(1),  this->w(0),         0.0;
+	skew <<                      0.0, -this->angularVelocity(2),  this->angularVelocity(1),
+	        this->angularVelocity(2),                       0.0, -this->angularVelocity(0),
+	       -this->angularVelocity(1),  this->angularVelocity(0),                       0.0;
 	
-	this->Idot = skew*this->I;                                                                  // d/dt(I) = s(w)*I
+	this->inertiaDerivative = skew*this->globalInertia;                                         // d/dt(I) = s(w)*I
 }
