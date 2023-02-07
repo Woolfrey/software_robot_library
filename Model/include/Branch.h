@@ -9,6 +9,7 @@
 
 #include <Joint.h>
 #include <RigidBody.h>
+#include <vector>                                                                                   // std::vector
 
 class Branch : public RigidBody
 {
