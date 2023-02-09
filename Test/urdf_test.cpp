@@ -8,7 +8,6 @@
 #include "RigidBody.h"
 #include "SerialLink.h"
 #include "tinyxml2.h"
-#include "Parent.h"
 
 const char *extractAttribute(tinyxml2::XMLElement *xml_object, const char *element_name, const char *attribute_name)
 {

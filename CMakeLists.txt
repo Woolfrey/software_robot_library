@@ -17,7 +17,7 @@ endif()
 add_library(RobotLibrary INTERFACE)                                                                 # Declaration of RobotLibrary
 
 ########## Other directories to add to the build ##########
-add_subdirectory(Control)
+#add_subdirectory(Control)
 add_subdirectory(Math)
 add_subdirectory(Model)
 add_subdirectory(Trajectory)
