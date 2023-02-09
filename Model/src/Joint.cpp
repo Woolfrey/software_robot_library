@@ -8,13 +8,18 @@ Joint::Joint(const Pose &origin,
              const float positionLimits[2],
              const float &velocityLimit,
              const float &torqueLimit,
-             const bool &revolute):
+             const bool &revolute,
+             const std::string &parentLink,
+             const std::string &childLink,
+             const std::string &name):
              _pose(origin),
              _axis(axisOfActuation),
              pLim{positionLimits[0], positionLimits[1]},
              vLim(velocityLimit),
              tLim(torqueLimit),
-             isRevolute(revolute)
+             isRevolute(revolute),
+             _parentLink(parentLink),
+             _childLink(childLink)
 {
 	this->_axis.normalize();                                                                    // Ensure unit norm
 	

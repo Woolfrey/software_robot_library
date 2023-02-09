@@ -5,6 +5,7 @@ project(RobotLibraryTest)
 find_package(Eigen3 REQUIRED)                                                                       # As it says on the label
 
 include_directories( ${EIGEN3_INCLUDE_DIRS})
+include_directories( ${tinyxml2_INCLUDE_DIRS})
 
 ########## List of executables to be compiled ##########
 
@@ -20,6 +21,6 @@ include_directories( ${EIGEN3_INCLUDE_DIRS})
 #add_dependencies(qp_test RobotLibrary)
 #target_link_libraries(qp_test RobotLibrary)
 
-#add_executable(urdf_test urdf_test.cpp)
-#add_dependencies(urdf_test RobotLibrary)
-#target_link_libraries(urdf_test RobotLibrary)
+add_executable(urdf_test urdf_test.cpp)
+add_dependencies(urdf_test RobotLibrary)
+target_link_libraries(urdf_test RobotLibrary tinyxml2)

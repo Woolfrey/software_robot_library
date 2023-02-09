@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 3.8)					                               # Minimum
 
 project(RobotLibrary VERSION 1.0.0 LANGUAGES CXX)                                                   # Can use ${PROJECT_NAME} as a reference
 
+#add_compile_options(-std=c++14)
+set(CMAKE_CXX_STANDARD 14)
+
 if(NOT CMAKE_BUILD_TYPE)
   # Options are:
   #  - Debug (Information, not optimised)
@@ -14,12 +17,13 @@ endif()
 add_library(RobotLibrary INTERFACE)                                                                 # Declaration of RobotLibrary
 
 ########## Other directories to add to the build ##########
-#add_subdirectory(Control)
+add_subdirectory(Control)
 add_subdirectory(Math)
 add_subdirectory(Model)
 add_subdirectory(Trajectory)
 
-target_link_libraries(RobotLibrary INTERFACE Control Math Model Trajectory)                         # Link the subdirectories
+#target_link_libraries(RobotLibrary INTERFACE Control Math Model Trajectory)                         # Link the subdirectories
+target_link_libraries(RobotLibrary INTERFACE Math Model Trajectory)                         # Link the subdirectories
 
 ##############################################
 # Installation instructions
