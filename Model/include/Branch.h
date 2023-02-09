@@ -7,10 +7,16 @@
 #ifndef BRANCH_H_
 #define BRANCH_H_
 
+<<<<<<< HEAD
 #include <memory>
 
 #include "Joint.h"
 #include "RigidBody.h"
+=======
+#include <Joint.h>
+#include <RigidBody.h>
+#include <vector>                                                                                   // std::vector
+>>>>>>> 8721f15d767f1973bffe3f7d19b95628b3bdf62a
 
 class Branch : public RigidBody
 {
