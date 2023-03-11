@@ -1,8 +1,9 @@
 #ifndef QPSOLVER_H_
 #define QPSOLVER_H_
 
-#include <Math.h>                                                                                    // Required for QR Decomposition
-#include <vector>                                                                                    // std::vector
+#include <Eigen/Dense>                                                                              // Linear algebra and matrix decomposition
+#include <iostream>                                                                                 // std::cerr, std::cout
+#include <vector>                                                                                   // std::vector
 
 class QPSolver
 {
@@ -44,16 +45,19 @@ class QPSolver
 		                              const Eigen::VectorXf &xMin,
 		                              const Eigen::VectorXf &xMax,
 		                              const Eigen::VectorXf &x0);
-		                         
+		
+		Eigen::VectorXf last_solution() const { return this->lastSolution; }
+		
 	private:
 		// These are variables used by the interior point method:
-		float alpha0    = 1.0;                                                              // Scalar for Newton step
-		float alphaMod  = 0.5;                                                              // Modify step size when constraint violated
-		float beta0     = 0.01;                                                              // Rate of decreasing barrier function
-		float tol       = 1e-2;                                                             // Tolerance on step size
-		float u0        = 100;                                                              // Scalar on barrier function
-		int   steps     = 20;                                                               // No. of steps to run interior point method
-		                         
+		float alpha0   = 1.0;                                                               // Scalar for Newton step
+		float alphaMod = 0.5;                                                               // Modify step size when constraint violated
+		float beta0    = 0.01;                                                              // Rate of decreasing barrier function
+		float tol      = 1e-2;                                                              // Tolerance on step size
+		float u0       = 100;                                                               // Scalar on barrier function
+		int   steps    = 20;                                                                // No. of steps to run interior point method
+		
+		Eigen::VectorXf lastSolution;
 };                                                                                                  // Semicolon needed after class declaration
 
 #endif
