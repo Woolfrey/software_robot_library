@@ -7,89 +7,53 @@
 #ifndef POLYNOMIAL_H_
 #define POLYNOMIAL_H_
 
-#include <Eigen/Geometry>                                                                          // Eigen::VectorXf, Eigen::AngleAxisf
-#include <math.h>                                                                                  // M_PI
+#include <TrajectoryBase.h>
 #include <vector>                                                                                  // std::vector
-#include <iostream>
-class Polynomial
+
+class Polynomial : public TrajectoryBase
 {
 	public:
-	
 		Polynomial() {}                                                                     // Empty constructor
 
-		// Constructor with only positions, delegates zero velocity
+		// Constructor for translations; delegate zero velocity
 		Polynomial(const Eigen::VectorXf &startPoint,
 			   const Eigen::VectorXf &endPoint,
-			   const float &startTime,
-			   const float &endTime,
-			   const unsigned int &order) :
+			   const float           &startTime,
+			   const float           &endTime,
+			   const unsigned int    &order)
+		:
 		Polynomial(startPoint,
-                          endPoint,
-                          Eigen::VectorXf::Zero(startPoint.size()),
-                          Eigen::VectorXf::Zero(endPoint.size()),
-                          startTime,
-                          endTime,
-                          order) {}
+                           endPoint,
+                           Eigen::VectorXf::Zero(startPoint.size()),
+                           Eigen::VectorXf::Zero(endPoint.size()),
+                           startTime,
+                           endTime,
+                           order) {}
 		
-		// Constructor with positions and velocities
+		// Constructor with positions and endpoint velocities
 		Polynomial(const Eigen::VectorXf &startPoint,
 			   const Eigen::VectorXf &endPoint,
 			   const Eigen::VectorXf &startVelocity,
 			   const Eigen::VectorXf &endVelocity,
-			   const float &startTime,
-			   const float &endTime,
-			   const unsigned int &order);
+			   const float           &startTime,
+			   const float           &endTime,
+			   const unsigned int    &order);
 		
-		// Constructor with orientation, delegates zero velocity
-		Polynomial(const Eigen::AngleAxisf &startPoint,
-			   const Eigen::AngleAxisf &endPoint,
-			   const float &startTime,
-			   const float &endTime,
-			   const unsigned int &order) :
-		Polynomial(startPoint,
-               	   endPoint,
-               	   Eigen::Vector3f::Zero(),
-               	   Eigen::Vector3f::Zero(),
-               	   startTime,
-               	   endTime,
-               	   order) {}
-		
-		// Constructor with orientation and velocity
-		Polynomial(const Eigen::AngleAxisf &startPoint,
-			   const Eigen::AngleAxisf &endPoint,
-			   const Eigen::Vector3f &startVelocity,
-			   const Eigen::Vector3f &endVelocity,
-			   const float &startTime,
-			   const float &endTime,
-			   const unsigned int &order);
-		
-		// Get the desired state for translations
+		// Get the desired state
 		bool get_state(Eigen::VectorXf &pos,
 			       Eigen::VectorXf &vel,
 			       Eigen::VectorXf &acc,
-			       const float &time);
-		
-		// Get the desired state for rotations
-		bool get_state(Eigen::AngleAxisf &rot,
-			       Eigen::Vector3f &vel,
-			       Eigen::Vector3f &acc,
-			       const float &time);
+			       const float     &time);
 		
 	private:
-	
-		bool isValid = false;                                                              // Won't do calcs if this is false
-		Eigen::AngleAxisf R0;                                                              // Start rotation: R(t) = R0*dR(t)
-		float t0, tf;                                                                      // Start time and end time			
-		unsigned int m;                                                                    // Number of dimensions
-		unsigned int n;                                                                    // Order of polynomial
-		std::vector<std::vector<float>> coeff;                                            
+		unsigned int _order;
 		
-		bool times_are_sound(const float &startTime, const float &endTime);
+		std::vector<std::vector<float>> coeff;                                              // Polynomial coefficients
 		
-		bool compute_coefficients(const std::vector<float> &startPoint,
-					   const std::vector<float> &endPoint,
-					   const std::vector<float> &startVelocity,
-					   const std::vector<float> &endVelocity);
+		bool compute_coefficients(const Eigen::VectorXf &startPoint,
+					  const Eigen::VectorXf &endPoint,
+					  const Eigen::VectorXf &startVelocity,
+					  const Eigen::VectorXf &endVelocity);
 		
 };                                                                                                 // Semicolon needed after class declaration
 

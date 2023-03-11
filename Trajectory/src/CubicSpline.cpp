@@ -1,121 +1,93 @@
 #include <CubicSpline.h>
 
-
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                           Constructor for spline over real numbers                             //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 CubicSpline::CubicSpline(const std::vector<Eigen::VectorXf> &waypoint,
-			  const std::vector<float> &time):
-			  m(waypoint[0].size()),                                                    // Dimensions for each point
-			  n(waypoint.size()),                                                       // Number of points
-			  t(time)                                                                   // Time at which to pass each point
+			 const std::vector<float> &time)
+			 :
+			 dimensions(waypoint[0].size()),
+			 numPoints(waypoint.size()),                                                // Assign the number of waypoints
+			 _time(time)
 {
-	// Check the input vectors are the same length
+	// Ensure inputs are of equal length
 	if(waypoint.size() != time.size())
 	{
-		std::cerr << "[ERROR] [CUBICSPLINE] Constructor: "
-                         << "Inputs are not of equal length! "
-			  << "There were " << waypoint.size() << " waypoints "
-			  << "and " << time.size() << " times." << std::endl;
+		auto points = std::to_string(waypoint.size());
+		auto times  = std::to_string(time.size());
+		
+		std::string message = "[ERROR] [CUBIC SPLINE] Constructor: "
+		                      "Size of input arguments does not match. "
+		                      "The waypoint vector had " + points + " elements, and "
+		                      "the time vector had " + times + " elements.";
+		                      
+		throw std::runtime_error(message);
 	}
-	else if(times_are_sound(time))
-	{
-		// Compute the displacements between each waypoint
-		std::vector<Eigen::VectorXf> displacement; displacement.resize(this->n-1);
-		for(int i = 0; i < this->n-1; i++)
-		{
-			for(int j = 0; j < this->m; j++)
-			{
-				displacement[i][j] = waypoint[i+1][j] - waypoint[i][j];             // Get the difference in position
-			}
-		}
-		
-		std::vector<Eigen::VectorXf> velocity = compute_velocities(displacement, time);     // Compute the velocities for each waypoint
-		
-		// Now create n-1 cubic polynomials for the spline
-		for(int i = 0; i < this->n-1; i++) this->spline.push_back( Polynomial(waypoint[i],
-										        waypoint[i+1],
-										        velocity[i],
-										        velocity[i+1],
-										        time[i],
-										        time[i+1],
-										        3));
-		this->isValid = true;
-	}
-}
-
-  ////////////////////////////////////////////////////////////////////////////////////////////////////
- //                           Constructor for spline over orientations                             //
-////////////////////////////////////////////////////////////////////////////////////////////////////
-CubicSpline::CubicSpline(const std::vector<Eigen::AngleAxisf> &waypoint,
-			  const std::vector<float> &time) :
-			  m(3),
-			  n(waypoint.size()),
-			  t(time)						 
-{
-	// Check the input vectors are the same length
-	if(waypoint.size() != time.size())
-	{
-		std::cerr << "[ERROR] [CUBICSPLINE] Constructor: "
-			  << "Inputs are not of equal length! "
-			  << "There were " << waypoint.size() << " waypoints "
-			  << "and " << time.size() << " times." << std::endl;
-	}
-	else if(times_are_sound(time))
-	{
-		std::vector<Eigen::VectorXf> displacement; displacement.resize(this->n-1);
-		
-		// Compute the displacements in orientation
-		for(int i = 0; i < this->n-1; i++)
-		{
-			Eigen::AngleAxisf dR = Eigen::AngleAxisf(waypoint[i].inverse()*waypoint[i+1]); // Difference in orientation
-			
-			float angle = dR.angle(); if(angle > M_PI) angle = 2*M_PI - angle;          // If > 180 degrees, take the shorter path
-			Eigen::Vector3f axis = dR.axis();                                           // Get the axis of rotation
-			
-			displacement[i].resize(this->m);
-			for(int j = 0; j < this->m; j++) displacement[i][j] = angle*axis[j];        // Store the displacement as angle*axis
-		}
-		
-		std::vector<Eigen::VectorXf> velocity = compute_velocities(displacement,time);      // Solve for the velocities at each waypoint
-		
-		// Now generate n-1 cubic polynomials for the spline
-		for(int i = 0; i < this->n-1; i++) this->spline.push_back( Polynomial(waypoint[i],
-										        waypoint[i+1],
-										        velocity[i],
-										        velocity[i+1],
-										        time[i],
-										        time[i+1],
-										        3));
-		this->isValid = true;
-	}
-}
-
-  ////////////////////////////////////////////////////////////////////////////////////////////////////
- //                               Check that the inputs are sound                                  //
-////////////////////////////////////////////////////////////////////////////////////////////////////
-bool CubicSpline::times_are_sound(const std::vector<float> &time)
-{
+	
+	// Ensure times are in ascending order
 	for(int i = 0; i < time.size()-1; i++)
 	{
-		if(time[i] == time[i+1] or time[i] > time[i+1])
+		auto now     = std::to_string(time[i]);
+		auto then    = std::to_string(time[i+1]);
+		auto current = std::to_string(i);
+		auto next    = std::to_string(i+1);
+		
+		if(time[i] == time[i+1])
 		{
-			std::cerr << "[ERROR] [CUBICSPLINE] Constructor: "
-				  << "Times are not in ascending order! "
-				  << "Time " << i+1 << " was " << time[i] << " seconds and "
-				  << "time " << i+2 << " was " << time[i+1] << " seconds." << std::endl;
-
-			return false;
+			std::string message = "[ERROR] [CUBIC SPLINE] Constructor: "
+			                      "Time of " + now + " for waypoint " + current + " "
+			                      "is equal to time of " + then + " for waypoint " + next + ". "
+			                      "Cannot move in zero time!";
+			                      
+			throw std::runtime_error(message);
+		}
+		else if(time[i] > time[i+1])
+		{
+			std::string message = "[ERROR] [CUBIC SPLINE] Constructor: "
+			                      "Times are not in ascending order! "
+			                      "Waypoint " + current + " was " + now + " seconds, and "
+			                      "waypoint " + next + " was " + then + " seconds.";
+			                      
+			throw std::runtime_error(message);
 		}
 	}
-	return true;
+	
+	// Compute displacements between points to determine velocities
+	std::vector<Eigen::VectorXf> displacement; displacement.resize(this->numPoints-1);
+	for(int i = 0; i < this->numPoints -1; i++)
+	{
+		displacement[i].resize(waypoint[i].size());
+		
+		for(int j = 0; j < waypoint[0].size(); j++)
+		{
+			displacement[i][j] = waypoint[i+1][j] - waypoint[i][j];                     // Difference between this point and the next
+		}
+	}
+	
+	std::vector<Eigen::VectorXf> velocity = compute_velocities(displacement,time);              // Compute the velocities from the displacement
+	
+	// Now create n-1 cubic polynomials for the spline
+	for(int i = 0; i < this->numPoints-1; i++)
+	{
+		try
+		{
+			this->spline.push_back(Polynomial(waypoint[i],
+			                                  waypoint[i+1],
+			                                  velocity[i],
+			                                  velocity[i+1],
+			                                  time[i],
+			                                  time[i+1],
+			                                  3));
+		}
+		catch(const std::exception &error) { throw error; }                                 // Pass on error message from Polynomial class
+	}
 }
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                           Compute the velocities at each waypoint                              //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 std::vector<Eigen::VectorXf> CubicSpline::compute_velocities(const std::vector<Eigen::VectorXf> &dx,
-							       const std::vector<float> &time)
+							     const std::vector<float> &time)
 {
 	// Decent explanation here:
         // Angeles, J. (Ed.). (2014). Fundamentals of robotic mechanical systems:
@@ -126,14 +98,15 @@ std::vector<Eigen::VectorXf> CubicSpline::compute_velocities(const std::vector<E
 	// Velocities are related to the displacements via A*xdot = B*dx.
 	// Note that dx = x(i+1) - x(i) is used instead of just x because
 	// it generalizes better to orientations as well
-	Eigen::MatrixXf A = Eigen::MatrixXf::Identity(this->n, this->n);
-	Eigen::MatrixXf B = Eigen::MatrixXf::Zero(this->n, this->n-1);
+	
+	Eigen::MatrixXf A = Eigen::MatrixXf::Identity(this->numPoints, this->numPoints);
+	Eigen::MatrixXf B = Eigen::MatrixXf::Zero(this->numPoints, this->numPoints-1);
 	
 	// Set the constraints at each waypoint
-	for(int i = 1; i < this->n-1; i++)
+	for(int i = 1; i < this->numPoints-1; i++)
 	{
-		double dt1 = this->t[i]   - this->t[i-1];
-		double dt2 = this->t[i+1] - this->t[i];
+		double dt1 = this->_time[i]   - this->_time[i-1];
+		double dt2 = this->_time[i+1] - this->_time[i];
 		
 		A(i,i-1) = 1/dt1;
 		A(i,i)   = 2*(1/dt1 + 1/dt2);
@@ -145,14 +118,14 @@ std::vector<Eigen::VectorXf> CubicSpline::compute_velocities(const std::vector<E
 	
 	Eigen::MatrixXf C = A.inverse()*B;                                                          // This makes calcs a little easier
 	
-	std::vector<Eigen::VectorXf> xdot; xdot.resize(this->n);                                    // Value to be returned
-	for(int i = 0; i < this->n; i++) xdot[i].resize(this->m);                                   // Set the appropriate dimensions
+	std::vector<Eigen::VectorXf> xdot; xdot.resize(this->numPoints);                            // Value to be returned
+	for(int i = 0; i < this->numPoints; i++) xdot[i].resize(this->dimensions);                  // Set the appropriate dimensions
 	
 	// Solve the velocity eat each waypoint for each dimension
 	// Note: Waypoints are stored column wise, but we need to solve velocities across each row
-	for(int i = 0; i < this->m; i++)
+	for(int i = 0; i < this->dimensions; i++)
 	{
-		Eigen::VectorXf displacement(this->n-1);
+		Eigen::VectorXf displacement(this->numPoints-1);
 		for(int j = 0; j < displacement.size(); j++) displacement[j] = dx[j][i];            // Get all waypoints for the ith row
 		
 		Eigen::VectorXf velocity = C*displacement;                                          // Compute all n velocities
@@ -166,82 +139,47 @@ std::vector<Eigen::VectorXf> CubicSpline::compute_velocities(const std::vector<E
  //                            Get the desired state for the given time                            //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 bool CubicSpline::get_state(Eigen::VectorXf &pos,
-			     Eigen::VectorXf &vel,
-			     Eigen::VectorXf &acc,
-			     const float &time)
+			    Eigen::VectorXf &vel,
+			    Eigen::VectorXf &acc,
+			    const float     &time)
 {
-	if(not this->isValid)
+	if(pos.size() != vel.size()
+	or vel.size() != acc.size())
 	{
-		std::cerr << "[ERROR] [CUBICSPLINE] get_state(): "
-			  << "Something went wrong during the construction of this object. "
-			  << "Could not obtain the state." << std::endl;
-				  
+		std::cerr << "[ERROR] [CUBIC SPLINE] get_state() : "
+			  << "Input vectors are not the same length! "
+			  << "The position vector had " << pos.size() << " elements, "
+			  << "the velocity vector had " << vel.size() << " elements, and "
+			  << "the acceleration vector had " << acc.size() << " elements.";
+			  
 		return false;
 	}
-	else if(pos.size() != this->m or vel.size() != this->m or acc.size() != this->m)
+	else if(pos.size() != this->dimensions)
 	{
-		std::cerr << "[ERROR] [CUBICSPLINE] Constructor: "
-			  << "Input vectors are not the correct length."
-			  << "This object has " << this->m << " dimensions but "
-			  << "pos had " << pos.size() << " elements, "
-			  << "vel had " << vel.size() << " elements, and "
-			  << "acc had " << acc.size() << " elements." << std::endl;
-				  
+		std::cerr << "[ERROR] [CUBIC SPLINE] get_state() : "
+	                  << "This spline has " << this->dimensions << " dimensions, "
+	                  << "but the input vectors had " << pos.size() << " elements.";
+
 		return false;
 	}
 	else
 	{
-		int j;
-		if(time < this->t[0])               j = 0;                                          // Not yet started, stay on first spline
-		else if(time >= this->t[this->n-1]) j = this->n-1;                                  // Finished, stay on last spline
-		else                                                                                // Somewhere in between...
+		int splineNumber;
+		
+		if(time < this->_time.front())     splineNumber = 0;                                // Not yet started; on the first spline
+		else if(time > this->_time.back()) splineNumber = this->numPoints-1;                // Finished; on the last spline
+		else                                                                                // Somewhere inbetween
 		{
-			for(int i = 1; i < this->n-1; i++)
+			for(int i = 0; i < this->numPoints-1; i++)
 			{
-				if(time < this->t[i])                                               // Not yet reached ith waypoint...
+				if(time < this->_time[i])                                           // Not yet reached ith point....
 				{
-					j = i-1;                                                    // ... so must be on spline i-1
+					splineNumber = i-1;                                         // ... so must be on spline i
 					break;
 				}
 			}
 		}
 		
-		return spline[j].get_state(pos, vel, acc, time);
-	}
-}
-
-  ////////////////////////////////////////////////////////////////////////////////////////////////////
- //                        Get the desired orientation for the given time                          //
-////////////////////////////////////////////////////////////////////////////////////////////////////
-bool CubicSpline::get_state(Eigen::AngleAxisf &rot,
-			     Eigen::Vector3f &vel,
-			     Eigen::Vector3f &acc,
-			     const float &time)
-{
-	if(not this->isValid)
-	{
-		std::cerr << "[ERROR] [CUBICSPLINE] get_state(): "
-			  << "Something went wrong during the construction of this object. "
-			  << "Cannot get the desired state." << std::endl;
-			  
-		return false;
-	}
-	else
-	{
-		int j;
-		if(time < this->t[0])               j = 0;                                          // Not yet started, stay on first spline
-		else if(time >= this->t[this->n-1]) j = this->n-1;                                  // Finished, stay on last spline
-		else                                                                                // Somewhere in between...
-		{
-			for(int i = 1; i < this->n-1; i++)
-			{
-				if(time < this->t[i])                                               // Not yet reached ith waypoint...
-				{
-					j = i-1;                                                    // ... so must be on spline i-1
-					break;
-				}
-			}
-		}
-		return spline[j].get_state(rot, vel, acc, time);
+		return spline[splineNumber].get_state(pos,vel,acc,time);
 	}
 }

@@ -8,9 +8,6 @@
 #define CARTESIANTRAJECTORY_H_
 
 #include <CubicSpline.h>                                                                            // Custom trajectory class
-#include <Eigen/Geometry>                                                                           // Eigen::Isometry3f, Eigen::AngleAxisf
-#include <vector>                                                                                   // std::vector
-#include <iostream>
 
 class CartesianTrajectory
 {
@@ -18,21 +15,19 @@ class CartesianTrajectory
 	
 		CartesianTrajectory();
 		
-		CartesianTrajectory(const std::vector<Eigen::Isometry3f> &waypoint,
-                                   const std::vector<float> &time);
-
-		bool get_state(Eigen::Isometry3f &pose,
-                               Eigen::VectorXf &vel,
-                               Eigen::VectorXf &acc,
-                               const float &time);
+		CartesianTrajectory(const std::vector<Pose>  &waypoint,
+		                    const std::vector<float> &time);
+		                    
+		bool get_state(Pose                      &pose,
+			       Eigen::Matrix<double,6,1> &vel,
+			       Eigen::Matrix<double,6,1> &acc,
+			       const float               &time);
 	
 	private:
-	
-		bool isValid = false;                                                               // Won't do calcs if this is false
-		CubicSpline translationTrajectory;                                                  // Translation component
-		CubicSpline orientationTrajectory;                                                  // Orientation component
-		unsigned int n;                                                                     // Number of waypoints
+		unsigned int numPoints;
 		
+		CubicSpline translationTrajectory;
+		CubicSpline orientationTrajectory;
 };                                                                                                  // Semicolon needed after class declaration
 
 #endif

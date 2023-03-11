@@ -6,9 +6,24 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 TrapezoidalVelocity::TrapezoidalVelocity(const Eigen::VectorXf &startPoint,
                                          const Eigen::VectorXf &endPoint,
-                                         const float &velocity,
-                                         const float &acceleration)
+                                         const float           &velocity,
+                                         const float           &acceleration)
+                                         :
+                                         TrajectoryBase(startTime,endTime,dimensions),
+                                         maxVel(velocity),
+                                         maxAcc(acceleration)
+                                         
 {
-	// The time to complete the trajectory should be computed from the given values.
+	
 }
 
+  ///////////////////////////////////////////////////////////////////////////////////////////////////
+ //                               Get the state for the given time                                //
+///////////////////////////////////////////////////////////////////////////////////////////////////
+bool TrapezoidalVelocity::get_state(Eigen::VectorXf &pos,
+                                    Eigen::VectorXf &vel,
+                                    Eigen::VectorXf &acc,
+                                    const float     &time)
+{
+
+}

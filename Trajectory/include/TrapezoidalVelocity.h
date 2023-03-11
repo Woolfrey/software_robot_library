@@ -9,25 +9,27 @@
 
 #include <Eigen/Geometry>                                                                           // Eigen::Vector, Eigen::Matrix, Eigen::Quaternion
 
-class TrapezoidalVelocity
+class TrapezoidalVelocity : public TrajectoryBase;
 {
 	public:
 		// Empty constructor
 		TrapezoidalVelocity() {}
 		
-		// Constructor for trajectory over real numbers
+		// Constructor for translations
 		TrapezoidalVelocity(const Eigen::VectorXf &startPoint,
-                                   const Eigen::VectorXf &endPoint,
-                                   const float &velocity,
-                                   const float &acceleration);
+                                    const Eigen::VectorXf &endPoint,
+                                    const float           &velocity,
+                                    const float           &acceleration);
 		
-		// Get state for trajectory over real numbers
-		void get_state(Eigen::VectorXf &pos, Eigen::VectorXf &vel, Eigen::VectorXf &acc, const float &time);			
+		// Get state for translations
+		bool get_state(Eigen::VectorXf &pos,
+		               Eigen::VectorXf &vel,
+		               Eigen::VectorXf &acc,
+		               const float &time);			
 				
 	private:
-		int n;                                                                              // Number of dimensions
+		float maxVel, maxAcc;
 		
-		float vMax, aMax, startTime, endTime;
 };                                                                                                  // Semicolon needed after class declaration
 
 #endif
