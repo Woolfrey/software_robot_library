@@ -139,5 +139,6 @@ int main(int argc, char *argv[])
 
 	std::cout << "\nThe error norm ||y - A*x|| is " << (y-A*xHat).norm() << ". "
 	          << "It took " << time*1000 << " ms to solve (" << 1/time << " Hz)." << std::endl;
+	
 	return 0; 
 }
