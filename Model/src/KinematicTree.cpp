@@ -34,10 +34,10 @@ bool KinematicTree::update_state(const Eigen::VectorXf &jointPosition,
 		
 		for(int i = 0; i < this->numJoints; i++)
 		{
-			m    = this->branch[i].mass();
-			I    = this->branch[i].inertia();
-			com  = this->branch[i].pose()*this->branch[i].com();                       // Transform centre of mass to global frame
-			Idot = this->branch[i].inertia_derivative();
+			m    = this->branch[i]->mass();
+			I    = this->branch[i]->inertia();
+			com  = this->branch[i]->pose()*this->branch[i]->com();                       // Transform centre of mass to global frame
+			Idot = this->branch[i]->inertiaDerivative();
 			
 			// Compute joint space dynamics
 			J = jacobian(com,i+1);                                                    // Get the Jacobian to the ith centre of mass
@@ -70,7 +70,7 @@ Eigen::MatrixXf KinematicTree::jacobian(const Eigen::Vector3f &point,
 	// Search the tree from the outer-most branches for speed
 	for(int i = this->numJoints-1; i >= 0; i--)
 	{
-		if(this->branch[i].name() == branchName) return jacobian(point, i);                 // Return Jacobian to the ith branch
+//		if(this->branch[i].name() == branchName) return jacobian(point, i);                 // Return Jacobian to the ith branch
 	}
 	
 	std::cerr << "[ERROR] [KINEMATIC TREE] jacobian(): "
@@ -106,4 +106,15 @@ Eigen::MatrixXf KinematicTree::jacobian(const Eigen::Vector3f &point,
 	}
 	
 	return J;
+}
+
+void KinematicTree::setRoot(const RigidBody &root_link)
+{
+    _root = std::make_shared<Branch>(Branch(root_link, Joint()));
+}
+
+bool KinematicTree::setBranches(std::vector<std::shared_ptr<Branch>> new_branches)
+{
+    branch = (std::move(new_branches));
+    return true;
 }

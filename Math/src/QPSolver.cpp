@@ -145,6 +145,7 @@ Eigen::VectorXf QPSolver::solve(const Eigen::MatrixXf &H,
 
 			dx = I.partialPivLu().solve(-g);                                            // LU decomposition seems most stable
 			
+<<<<<<< HEAD
 			// Ensure the next position is within the constraint
 			alpha = this->alpha0;                                                       // Reset the scalar for the step size
 			for(int j = 0; j < numConstraints; j++)
@@ -157,6 +158,21 @@ Eigen::VectorXf QPSolver::solve(const Eigen::MatrixXf &H,
 					
 					if(temp < alpha) alpha = temp;                              // If smaller, override
 				} 
+=======
+			// Ensure next step remains inside constraint
+			alpha = this->alpha0;
+			for(int j = 0; j < numConstraints; j++)
+			{
+				// d_i   = b'*x_i - z
+				// d_i+1 = b'*(x_i + alpha*dx_i) - z
+				///      = alpha*b'*dx_i > 0
+				
+				float dotProd = bt[j].dot(dx);
+				
+				if( d[j] + alpha*dotProd < 0 ) alpha = (1e-04 - d[j]) / dotProd;
+				
+//				while( d[j] + alpha*bt[j].dot(dx) < 0) alpha *= this->alphaMod;
+>>>>>>> 73c88b1f2d5513047bfc89b6590cf520af74684c
 			}
 
 			if(alpha*dx.norm() < this->tol) break;                                      // Change in position is insignificant; must be optimal

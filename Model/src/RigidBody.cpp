@@ -6,15 +6,16 @@
 RigidBody::RigidBody(const Pose            &origin,
                      const Eigen::Vector3f &centreOfMass,
                      const float           &weight,
-                     const Eigen::Matrix3f &momentOfInertia):
+                     const Eigen::Matrix3f &momentOfInertia,
+                     const std::string     &name):
                      _pose(origin),
                      _com(centreOfMass),
                      _mass(weight),
-                     localInertia(momentOfInertia)
+                     _localInertia(momentOfInertia)
 {		
 	Eigen::Matrix3f R = this->_pose.quat().toRotationMatrix();                                  // Convert to SO(3)
 	
-	this->globalInertia = R*this->localInertia*R.transpose();                                   // Rotate to global frame
+	this->_globalInertia = R*this->_localInertia*R.transpose();                                   // Rotate to global frame
 
 	if(this->_mass < 0)
 	{
@@ -34,18 +35,18 @@ void RigidBody::update_state(const Pose            &origin,
 {
 	// Set new state values
 	this->_pose = origin;
-	this->linearVelocity = linearVel;
-	this->angularVelocity = angularVel;
+	this->_linearVelocity = linearVel;
+	this->_angularVelocity = angularVel;
 	
 	// Rotate inertia to new global reference frame
 	Eigen::Matrix3f R = this->_pose.quat().toRotationMatrix();
-	this->globalInertia = R*this->localInertia*R.transpose();
+	this->_globalInertia = R*this->_localInertia*R.transpose();
 	
 	// Compute time-derivative of the inertia
 	Eigen::Matrix3f skew;
-	skew <<                      0.0, -this->angularVelocity(2),  this->angularVelocity(1),
-	        this->angularVelocity(2),                       0.0, -this->angularVelocity(0),
-	       -this->angularVelocity(1),  this->angularVelocity(0),                       0.0;
+	skew <<                      0.0, -this->_angularVelocity(2),  this->_angularVelocity(1),
+	        this->_angularVelocity(2),                       0.0, -this->_angularVelocity(0),
+	       -this->_angularVelocity(1),  this->_angularVelocity(0),                       0.0;
 	
-	this->inertiaDerivative = skew*this->globalInertia;                                         // d/dt(I) = s(w)*I
+	this->_inertiaDerivative = skew*this->_globalInertia;                                         // d/dt(I) = s(w)*I
 }

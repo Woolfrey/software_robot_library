@@ -7,8 +7,10 @@
 #ifndef JOINT_H_
 #define JOINT_H_
 
-#include <Pose.h>
 #include <iostream>
+#include <vector>
+
+#include "Pose.h"
 
 class Joint
 {
@@ -20,7 +22,10 @@ class Joint
 		      const float positionLimits[2],
 		      const float &velocityLimit,
 		      const float &torqueLimit,
-		      const bool  &revolute);
+		      const bool  &revolute,
+              const std::string &parentLink,
+              const std::string &childLink,
+              const std::string &name = "");
 		
 		// Get Functions
 		bool is_revolute() const {return this->isRevolute;}                                // Returns true if revolute
@@ -34,9 +39,17 @@ class Joint
 		float velocity_limit() const {return this->vLim;}                                 // Get the speed limit
 		
 		void get_position_limits(float &lower, float &upper);                             // Get the position limits
-		
+
+        std::string get_name() const{return this->_name;}
+        std::string get_child_link_name() const { return this->_childLink;}
+        std::string get_parent_link_name() const { return this->_parentLink;}
+
 	protected:
-	
+
+        std::string _name;
+        std::string _parentLink;
+        std::string _childLink;
+
 		bool isRevolute = true; // NOTE: NEED TO MAKE A SET {REVOLUTE, PRISMATIC, FIXED}
 	
 		Pose _pose;
