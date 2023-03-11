@@ -23,9 +23,9 @@ class Pose
 		
 		Eigen::Matrix<float,4,4> as_matrix();                                               // Return a 4x4 Homogeneous Transform
 
-		Eigen::Vector3f pos() const {return this->_pos;}
+		Eigen::Vector3f pos() const { return this->_pos; }
 		
-		Eigen::Quaternionf quat() const {return this->_quat;}
+		Eigen::Quaternionf quat() const { return this->_quat; }
 		
 		Pose inverse();
 		

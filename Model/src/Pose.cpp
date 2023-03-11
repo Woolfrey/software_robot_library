@@ -4,7 +4,8 @@
  //                                         Constructor                                           //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 Pose::Pose(const Eigen::Vector3f    &position,
-           const Eigen::Quaternionf &quaternion):
+           const Eigen::Quaternionf &quaternion)
+           :
            _pos(position),
            _quat(quaternion)
 {
@@ -23,7 +24,7 @@ Eigen::Matrix<float,6,1> Pose::error(const Pose &desired)
 	if(angle > M_PI)
 	{
 		std::cout << "[WARNING] [POSE] error(): "
-		          << "Angle between quaternions is " << angle*180/M_PI << "!" << std::endl;
+		          << "Angle between quaternions is " << angle*180/M_PI << " degrees!" << std::endl;
 	}
 
 	error.head(3) = desired.pos() - this->_pos;
@@ -41,8 +42,8 @@ Eigen::Matrix<float,4,4> Pose::as_matrix()
 {
 	Eigen::Matrix<float,4,4> T; T.setIdentity();                                                // Value to be returned
 	
-	T.block(0,0,3,3) = this->_quat.toRotationMatrix();                                           // Convert to SO(3) and insert
-	T.block(0,3,3,1) = this->_pos;                                                               // Insert translation component
+	T.block(0,0,3,3) = this->_quat.toRotationMatrix();                                          // Convert to SO(3) and insert
+	T.block(0,3,3,1) = this->_pos;                                                              // Insert translation component
 	
 	return T;
 }
@@ -52,6 +53,9 @@ Eigen::Matrix<float,4,4> Pose::as_matrix()
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 Pose Pose::inverse()
 {
+	// NOTE TO FUTURE SELF: I don't think this is correct!
+	// Need to rotate the position vector.
+	
 	return Pose(-this->_pos, this->_quat.inverse());
 }
 
