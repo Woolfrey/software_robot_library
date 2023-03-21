@@ -7,58 +7,48 @@
 #ifndef JOINT_H_
 #define JOINT_H_
 
-#include <iostream>
+#include <Pose.h>
 #include <vector>
 
-#include "Pose.h"
 
 class Joint
 {
 	public:
-		Joint() {}                                                                         // Empty constructor
-		
-		Joint(const Pose &origin,
-		      const Eigen::Vector3f &axisOfActuation,
-		      const float positionLimits[2],
-		      const float &velocityLimit,
-		      const float &torqueLimit,
-		      const bool  &revolute,
-              const std::string &parentLink,
-              const std::string &childLink,
-              const std::string &name = "");
-		
-		// Get Functions
-		bool is_revolute() const {return this->isRevolute;}                                // Returns true if revolute
-		
-		bool is_prismatic() const {return not this->isRevolute;}                           // Returns true if NOT revolute
-		
-		Pose pose(const float &jointPosition);                                             // Get the pose associated with the given joint position
-		
-		Eigen::Vector3f axis() const {return this->_axis;}
-		
-		float velocity_limit() const {return this->vLim;}                                 // Get the speed limit
-		
-		void get_position_limits(float &lower, float &upper);                             // Get the position limits
+		// Minimum constructor, delegate to full constructor
+		Joint(const std::string     &name,
+		      const std::string     &type,
+		      const Eigen::Vector3f &axis,
+		      const float            positionLimit[2])
+		:
+		Joint(name, type, axis, Pose(), positionLimit, 100.0, 10.0, 1.0, 0.0) {}
 
-        std::string get_name() const{return this->_name;}
-        std::string get_child_link_name() const { return this->_childLink;}
-        std::string get_parent_link_name() const { return this->_parentLink;}
-
-	protected:
-
-        std::string _name;
-        std::string _parentLink;
-        std::string _childLink;
-
-		bool isRevolute = true; // NOTE: NEED TO MAKE A SET {REVOLUTE, PRISMATIC, FIXED}
+		// Full constructor
+		Joint(const std::string     &name,
+		      const std::string     &type,
+		      const Eigen::Vector3f &axis,
+		      const Pose            &Pose,
+		      const float            positionLimit[2],
+		      const float           &velocityLimit,
+		      const float           &forceLimit,
+		      const float           &damping,
+		      const float           &friction);
+		
+		Pose transform(const float &position);                                              // Get the joint pose for the given position
 	
-		Pose _pose;
-		Eigen::Vector3f _axis = {0,0,1};
-		float damping = 1.0;                                                               // Viscous friction for the joint
-		float pLim[2] = {-M_PI, M_PI};                                                     // Position limits
-		float vLim = 10;                                                                   // Speed limits
-		float tLim = 10;                                                                   // Torque / force limits
+	private:
+	
+		Eigen::Vector3f _axis;                                                              // Axis of actuation for this joint
 
-};                                                                                                 // Semicolon needed after a class declaration
+		float    _positionLimit[2];
+		float    _velocityLimit;
+		float    _forceLimit;
+		float    _damping;
+		float    _friction;
+		
+		Pose _origin;                                                                       // Origin relative to preceding link
+		
+		std::string _name;                                                                  // Unique identifier
+		std::string _type;
+};                                                                                                  // Semicolon needed after a class declaration
 
 #endif

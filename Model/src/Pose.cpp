@@ -19,19 +19,22 @@ Eigen::Matrix<float,6,1> Pose::error(const Pose &desired)
 {
 	Eigen::Matrix<float,6,1> error;                                                             // Value to be returned
 
-	float angle = acos(desired.quat().dot(this->_quat));
+	error.head(3) = desired.pos() - this->_pos;                                                 // Position error
 
-	if(angle > M_PI)
-	{
-		std::cout << "[WARNING] [POSE] error(): "
-		          << "Angle between quaternions is " << angle*180/M_PI << " degrees!" << std::endl;
-	}
-
-	error.head(3) = desired.pos() - this->_pos;
+	float angle = acos(desired.quat().dot(this->_quat));                                        // From dot product
 	
-	error.tail(3) = this->_quat.w()*desired.quat().vec()
-                      - desired.quat().w()*this->_quat.vec()
-                      - desired.quat().vec().cross(this->_quat.vec());
+	if(angle < M_PI)
+	{
+		error.tail(3) = this->_quat.w()    * desired.quat().vec()
+		              - desired.quat().w() * this->_quat.vec()
+		              - desired.quat().vec().cross(this->_quat.vec());
+	}
+	else // Spin the other direction
+	{
+		error.tail(3) = desired.quat().w() * this->_quat.vec()
+		              - this->_quat.w()    * desired.quat().vec()
+		              + desired.quat().vec().cross(this->_quat.vec());
+	}
 	
 	return error;
 }

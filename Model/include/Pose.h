@@ -13,9 +13,13 @@
 class Pose
 {
 	public:
-		Pose() {}                                                                           // Empty constructor
+		// Empty constructor, delegate to full constructor
+		Pose() : Pose(Eigen::Vector3f::Zero(),
+		              Eigen::Quaternionf(Eigen::AngleAxisf(0,Eigen::Vector3f::UnitX()))) {}
 		
-		Pose(const Eigen::Vector3f &position, const Eigen::Quaternionf &quaternion);        // Constructor
+		// Full constructor
+		Pose(const Eigen::Vector3f    &position,
+		     const Eigen::Quaternionf &quaternion);
 		
 		// Functions
 	
@@ -35,9 +39,9 @@ class Pose
 		
 	private:
 	
-		Eigen::Vector3f _pos;
+		Eigen::Vector3f _pos = {0.0, 0.0, 0.0};
 		
-		Eigen::Quaternionf _quat;
+		Eigen::Quaternionf _quat = {1.0, 0.0, 0.0, 0.0};
 	
 };                                                                                                  // Semicolon needed after class declaration
 

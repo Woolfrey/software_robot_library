@@ -1,120 +1,175 @@
 #include <KinematicTree.h>
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
- //                          Update the kinematic & dynamic properties                            //
+ //                                        Constructor                                            //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-bool KinematicTree::update_state(const Eigen::VectorXf &jointPosition,
-                                 const Eigen::VectorXf &jointVelocity,
-                                 const Pose &basePose,
-                                 const Eigen::Matrix<float,6,1> baseTwist)
+KinematicTree::KinematicTree(const std::string &pathToURDF)
 {
-	if(jointPosition.size() != this->numJoints or jointVelocity.size() != this->numJoints)
+	if(not std::ifstream(pathToURDF.c_str()))
 	{
-		std::cerr << "[ERROR] [KINEMATIC TREE] update_state(): "
-		          << "This model has " << this->numJoints << " joints, "
-		          << "but this joint position argument had " << jointPosition.size() << " elements, "
-		          << "and the joint velocity argument had " << jointVelocity.size() << " elements." << std::endl;
+		std::string message = "[ERROR] [KINEMATIC TREE] Constructor: The file " + pathToURDF + " does not appear to exist.";
 		
-		return false;
+		throw std::runtime_error(message);
 	}
 	else
 	{
-		// Variables used in this scope
-		float m;
-		Eigen::MatrixXf J, Jdot, Jv, Jw, Jvdot, Jwdot;
-		Eigen::Matrix3f I, Idot;
-		Eigen::Vector3f com;
-		
-		
-		// Reset values
-		this->Mjj.setZero();
-		this->Mjb.setZero();
-		this->Cjj.setZero();
-		this->Cjb.setZero();
-		
-		for(int i = 0; i < this->numJoints; i++)
-		{
-			m    = this->branch[i]->mass();
-			I    = this->branch[i]->inertia();
-			com  = this->branch[i]->pose()*this->branch[i]->com();                       // Transform centre of mass to global frame
-			Idot = this->branch[i]->inertiaDerivative();
-			
-			// Compute joint space dynamics
-			J = jacobian(com,i+1);                                                    // Get the Jacobian to the ith centre of mass
-			Jv = J.block(0,0,3,i+1);
-			Jw = J.block(3,0,3,i+1);
-			
-			this->Mjj += m*Jv.transpose()*Jv
-			           + Jw.transpose()*I*Jw;
-			     
 
-			Jdot = time_derivative(J);
+		tinyxml2::XMLDocument urdf;
+		urdf.LoadFile(pathToURDF.c_str());
+		
+		tinyxml2::XMLElement* robot = urdf.FirstChildElement("robot");
+		if(robot == nullptr) throw std::runtime_error("[ERROR] [KINEMATIC TREE] Constructor: There does not appear to be a robot element in the given URDF.");
+		
+		// Search through every joint
+		for(auto joint = robot->FirstChildElement("joint"); joint; joint = joint->NextSiblingElement("joint"))
+		{
+		
+			const char* jointName = joint->Attribute("name");
+			const char* type      = joint->Attribute("type");
 			
-			this->Cjj += m*Jv.transpose()*Jdot.block(0,0,3,i+1)
-			           + Jw.transpose()*(I*Jdot.block(3,0,3,i+1) + Idot*Jw);
-			           
-			// Compute joint/base coupled dynamics
+			std::cout << "\n" << jointName << " is a " << type << " joint.\n";
 			
+			tinyxml2::XMLElement* axis = joint->FirstChildElement("axis");
+			
+			if(axis != nullptr)
+			{
+				std::cout << "The axis is:\n" << char_to_vector3f(axis->Attribute("xyz")) << "." << std::endl;
+			}
+			
+			/*
+			// Extract joint friction information
+			tinyxml2::XMLElement* dynamics = joint->FirstChildElement("dynamics");
+			float damping  = 1.0;
+			float friction = 0.0;
+			
+			if(dynamics == nullptr)
+			{
+				// Compiler is throwing a warning on these lines:
+//				damping  = dynamics->FloatAttribute("damping");
+//				friction = dynamics->FloatAttribute("friction");
+			}
+		
+			// Extract joint limit information
+			tinyxml2::XMLElement* limit = joint->FirstChildElement("limit");
+//			float positionLimit[2] = {limit->FloatAttribute("lower"), limit->FloatAttribute("upper")};
+//			float velocityLimit    = limit->FloatAttribute("velocity");
+//			float forceLimit       = limit->FloatAttribute("effort");
+		
+			// Extract joint pose information
+			tinyxml2::XMLElement* origin = joint->FirstChildElement("origin");
+			Eigen::Vector3f pos;
+			Eigen::Quaternionf quat;
+			if(origin == nullptr)
+			{
+				pos.setZero();
+				quat.setIdentity();
+			}
+			else
+			{
+				pos = char_to_vector3f(origin->Attribute("xyz"));
+				
+				Eigen::Vector3f rpy = char_to_vector3f(origin->Attribute("rpy"));
+				
+				quat = Eigen::AngleAxisf(rpy(0),Eigen::Vector3f::UnitX())
+				     * Eigen::AngleAxisf(rpy(1),Eigen::Vector3f::UnitY())
+				     * Eigen::AngleAxisf(rpy(2),Eigen::Vector3f::UnitZ());				
+			}
+			
+			// Create the joint object
+			Joint jointObject(jointName,
+			                  type,
+			                  axisVector,
+			                  Pose(pos,quat),
+			                  positionLimit,
+			                  velocityLimit,
+			                  forceLimit,
+			                  damping,
+			                  friction);
+			
+			// Get the link attached to it
+			RigidBody rigidBody;
+			
+			tinyxml2::XMLElement* proceedingLink = joint->FirstChildElement("child");
+			if(proceedingLink == nullptr)
+			{
+				std::string message = "[ERROR] [KINEMATIC TREE] Constructor: Joint ";
+				message.push_back(*jointName);                                      // c++ is really annoying sometimes
+				message += " has no 'child' link attached to it!";
+				                      
+				throw std::runtime_error(message);
+			}
+			else
+			{
+				// Variables used in this scope
+				float mass;
+				Eigen::Matrix3f momentOfInertia;
+				Eigen::Vector3f com;
+				Eigen::Vector3f rpy;
+				
+				tinyxml2::XMLElement* inertial = proceedingLink->FirstChildElement("inertial");
+				if(inertial != nullptr)
+				{
+					mass = inertial->FloatAttribute("mass");
+					
+					float ixx  = inertial->FloatAttribute("ixx");
+					float ixy  = inertial->FloatAttribute("ixy");
+					float ixz  = inertial->FloatAttribute("ixz");
+					float iyy  = inertial->FloatAttribute("iyy");
+					float iyz  = inertial->FloatAttribute("iyz");
+					float izz  = inertial->FloatAttribute("izz");
+					
+					momentOfInertia << ixx, ixy, ixz,
+						           ixy, iyy, iyz,
+						           ixz, iyz, izz;
+
+					tinyxml2::XMLElement* origin = proceedingLink->FirstChildElement("inertial");
+					com = (origin == nullptr) ? Eigen::Vector3f::Zero() : char_to_vector3f(origin->Attribute("xyz"));
+					rpy = (origin == nullptr) ? Eigen::Vector3f::Zero() : char_to_vector3f(origin->Attribute("rpy"));	
+				}
+				else
+				{
+					mass = 0.1;
+					momentOfInertia = 1e-03*Eigen::Matrix3f::Identity();
+					com.setZero();
+					rpy.setZero();
+					
+				}
+				
+				Pose centreOfMass(com, Eigen::AngleAxisf(rpy(0),Eigen::Vector3f::UnitX())
+				                     * Eigen::AngleAxisf(rpy(1),Eigen::Vector3f::UnitY())
+				                     * Eigen::AngleAxisf(rpy(2),Eigen::Vector3f::UnitZ()));	
+				
+				RigidBody rigidBody(mass,momentOfInertia, centreOfMass);
+				
+				// Add the joint and link to create a RobotLibrary::Link object
+				
+				this->link.emplace_back(jointObject,rigidBody);
+			}
+			*/
 		}
 		
-		return true;
 	}
 }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
- //                           Compute the Jacobian to the given branch                            //
+ //                   Convert a char of numbers to an Eigen::Vector3f object                      //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::MatrixXf KinematicTree::jacobian(const Eigen::Vector3f &point,
-                                        const std::string     &branchName)
+Eigen::Vector3f KinematicTree::char_to_vector3f(const char* character)
 {
-	// Search the tree from the outer-most branches for speed
-	for(int i = this->numJoints-1; i >= 0; i--)
+	if(strlen(character) == 5)
 	{
-//		if(this->branch[i].name() == branchName) return jacobian(point, i);                 // Return Jacobian to the ith branch
-	}
-	
-	std::cerr << "[ERROR] [KINEMATIC TREE] jacobian(): "
-	          << "Could not find a branch by the name of " << branchName << "!" << std::endl;
-	
-	return Eigen::MatrixXf::Zero(6,this->numJoints);
-}
-
-  ///////////////////////////////////////////////////////////////////////////////////////////////////
- //                       Compute the Jacobian to the given branch index                          //   
-///////////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::MatrixXf KinematicTree::jacobian(const Eigen::Vector3f &point,
-                                        const unsigned int    &jointNumber)
-{
-	Eigen::MatrixXf J(6,this->numJoints); J.setZero();
-	
-	if(jointNumber > this->numJoints)
-	{
-		std::cerr << "[ERROR] [KINEMATIC TREE] jacobian(): "
-		          << "Cannot compute the Jacobian up to joint " << jointNumber << " "
-		          << "as this model has only " << this->numJoints << " joints!" << std::endl;
+		return Eigen::Vector3f(std::atof(&character[1]),
+		                       std::atof(&character[2]),
+		                       std::atof(&character[3]));
 	}
 	else
 	{
-/*		unsigned int i = jointNumber;
+		std::cout << "[ERROR] [KINEMATIC TREE] char_to_vector(): "
+		          << "Expected a char of length 5 but it was " << strlen(character) << "." << std::endl;
 		
-		{
-			J.block(0,i,3,1) = this->branch[i].jointAxis().cross(point - this->branch[i].pose().pos());
-			J.block(3,i,3,1) = this->branch[i].jointAxis();
-			
-			i = this->branch[i].root();                                                 // Next along this branch
-		}*/
+		// I don't know why it's 5 ¯\_(ツ)_/¯
+		
+		return Eigen::Vector3f(1,0,0);
 	}
-	
-	return J;
 }
 
-void KinematicTree::setRoot(const RigidBody &root_link)
-{
-    _root = std::make_shared<Branch>(Branch(root_link, Joint()));
-}
-
-bool KinematicTree::setBranches(std::vector<std::shared_ptr<Branch>> new_branches)
-{
-    branch = (std::move(new_branches));
-    return true;
-}

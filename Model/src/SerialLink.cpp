@@ -4,7 +4,8 @@
  //                                       Constructor                                              //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 SerialLink::SerialLink(const std::vector<RigidBody> &links,
-                       const std::vector<Joint> &joints):
+                       const std::vector<Joint> &joints)
+                       :
                        n(joints.size()),                                                            // Number of joints
                        joint(joints),                                                               // Vector of Joint objects
                        q(Eigen::VectorXf::Zero(this->n)),                                           // Joint position vector
