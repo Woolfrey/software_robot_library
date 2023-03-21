@@ -1,10 +1,12 @@
-find_package(Eigen3 REQUIRED)
+####################################################################################################
+#                                              MODEL                                               #
+####################################################################################################
 
-include_directories(include ${EIGEN3_INCLUDE_DIRS})
+find_package(Eigen3 REQUIRED)                                                                       # For linear algebra
 
-add_library(Model SHARED src/Pose.cpp src/Joint.cpp src/RigidBody.cpp src/Branch.cpp src/KinematicTree.cpp)
+include_directories(${EIGEN3_INCLUDE_DIRS})
 
-#target_include_directories (Model PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+add_library(Model SHARED src/Joint.cpp src/KinematicTree.cpp src/Link.cpp src/Pose.cpp src/RigidBody.cpp src/tinyxml2.cpp)
 
 target_include_directories(Model
     PUBLIC 
