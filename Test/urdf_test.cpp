@@ -1,14 +1,7 @@
-#include <iostream>
-#include <fstream>                                                                                  // Open files
-#include <string>                                                                                   // std::string
-#include <utility>
-#include <map>
-#include "Branch.h"
-#include "KinematicTree.h"
-#include "RigidBody.h"
-#include "SerialLink.h"
-#include "tinyxml2.h"
+#include <iostream>                                                                                 // std::cerr, std::cout
+#include <KinematicTree.h>
 
+/*
 const char *extractAttribute(tinyxml2::XMLElement *xml_object, const char *element_name, const char *attribute_name)
 {
     tinyxml2::XMLElement *element_xml = xml_object->FirstChildElement(element_name);
@@ -21,25 +14,64 @@ const char *extractAttribute(tinyxml2::XMLElement *xml_object, const char *eleme
 
 }
 
-Eigen::VectorXf convertAttributeToEigen(const char *attribute, const int no_expected_values = 0)
+Eigen::VectorXf convert_to_eigen(const char *attribute, const int numExpectedValues = 0)
 {
-    Eigen::Vector3f attribute_eigen(Eigen::Vector3f::Zero());
-    std::vector<float> attribute_temp;
-    char *endptr;
-    for (char *p = (char *) attribute; *p != '\0'; p = endptr) {
-        float value = strtof(p, &endptr);
-        attribute_temp.push_back(value);
-    }
+	
+	std::vector<float> temporaryAttribute;
+	
+	char* endPointer;
+	
+	for(char* p = (char *) attribute; *p != '\0'; p = endPointer)
+	{
+		temporaryAttribute.push_back(strtof(p,&endPointer));
+	}
+	
+	for(auto it = temporaryAttribute.begin(); it != temporaryAttribute.end(); it++)
+	{
+		auto i = std::distance(temporaryAttribute.begin(),it);
+		eigenAttribute(i) = temporaryAttribute(i);
+	}
+	
+	return temporaryAttribute.size() == numExpectedValues
+	       (tempAttribute.size() > 1 and numExpectedValues == 0) ? eigenAttribute : Eigen::Vector3f::Zero();
+}*/
 
-    for (auto it = attribute_temp.begin(); it != attribute_temp.end(); ++it) {
-        auto i = std::distance(attribute_temp.begin(), it);
-        attribute_eigen(i) = attribute_temp[i];
-    }
-
-    return attribute_temp.size() == no_expected_values ||
-           (attribute_temp.size() > 1 && no_expected_values == 0) ? attribute_eigen : Eigen::Vector3f::Zero();
+int main(int argc, char **argv)
+{
+	if(argc != 2)
+	{
+		std::cout << "[ERROR] [URDF TEST] No path to file was given. "
+		          << "Usage: ./urdf_test /path/to/file.urdf\n";
+		          
+		return 1;
+	}
+	else
+	{	
+		std::string pathToURDF = argv[1];
+		
+		try
+		{
+			KinematicTree robot(pathToURDF);
+		}
+		catch(std::exception &error)
+		{
+			std::cout << "[ERROR] [URDF TEST] There was a problem constructing the KinematicTree object. "
+			          << "See the error message below for details.\n";
+			          
+			std::cout << error.what() << std::endl;
+		
+			return 1;
+		}
+		
+		std::cout << "\nWorker bees can leave.\n"
+		          << "Even drones can fly away.\n"
+		          << "The Queen is their slave.\n";
+		
+		return 0;
+	}
 }
 
+/*
 int main(int argc, char **argv)
 {
 
@@ -357,4 +389,4 @@ int main(int argc, char **argv)
         std::cout << "[INFO] urdf_test: Success!" << std::endl;
     }
     return 0;                                                                           // No problems with main
-}
+}*/
