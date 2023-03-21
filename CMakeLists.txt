@@ -2,7 +2,8 @@ cmake_minimum_required(VERSION 3.8)					                            # Minimum cm
 
 project(RobotLibrary VERSION 1.0.0 LANGUAGES CXX)                                                   # Can use ${PROJECT_NAME} as a reference
 
-<<<<<<< HEAD
+set(CMAKE_CXX_STANDARD 14)
+
 # Default build is Release. To build in other modes use:
 #
 #	cmake -DCMAKE_BUILD_TYPE=Type ../
@@ -14,29 +15,20 @@ project(RobotLibrary VERSION 1.0.0 LANGUAGES CXX)                               
 #	MinSizeRel	(Same as Release, but optimised for size)
 #
 # Then run `make` as usual.
-=======
-#add_compile_options(-std=c++14)
-set(CMAKE_CXX_STANDARD 14)
->>>>>>> 73c88b1f2d5513047bfc89b6590cf520af74684c
 
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
 
-add_library(RobotLibrary INTERFACE Math Trajectory)                                                 # Declaration of RobotLibrary
+add_library(RobotLibrary INTERFACE Math Model)                                                      # Declaration of RobotLibrary
 
 ########## Other directories to add to the build ##########
 #add_subdirectory(Control)
 add_subdirectory(Math)
-#add_subdirectory(Model)
-add_subdirectory(Trajectory)
+add_subdirectory(Model)
+#add_subdirectory(Trajectory)
 
-<<<<<<< HEAD
-target_link_libraries(RobotLibrary INTERFACE Math Trajectory)                                       # Link the subdirectories
-=======
-#target_link_libraries(RobotLibrary INTERFACE Control Math Model Trajectory)                         # Link the subdirectories
-target_link_libraries(RobotLibrary INTERFACE Math Model Trajectory)                         # Link the subdirectories
->>>>>>> 73c88b1f2d5513047bfc89b6590cf520af74684c
+target_link_libraries(RobotLibrary INTERFACE Math Model)                                            # Link the subdirectories
 
 ##############################################
 # Installation instructions
@@ -45,7 +37,7 @@ include(GNUInstallDirs)
 
 set(INSTALL_CONFIGDIR ${CMAKE_INSTALL_LIBDIR}/cmake/RobotLibrary)
 
-install(TARGETS RobotLibrary Math Trajectory                                                        # Specify targets to be installed
+install(TARGETS RobotLibrary Math Model                                                             # Specify targets to be installed
 	EXPORT RobotLibrary-targets
 	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 	ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
