@@ -6,28 +6,25 @@
 Eigen::VectorXf QPSolver::solve(const Eigen::MatrixXf &H,
                                 const Eigen::VectorXf &f)
 {
+	
 	if(H.rows() != H.cols())
 	{
-		auto rows = std::to_string(H.rows());
-		auto cols = std::to_string(H.cols());
-		
 		std::string message = "[ERROR] [QP SOLVER] solve(): "
-		                      "Expected a square matrix for the Hessian H but it was " + rows + "x" + cols + ".";
+		                      "Expected a square matrix for the Hessian H but it was "
+		                    + std::to_string(H.rows()) + "x" + std::to_string(H.cols()) + ".";                      
 		               
 		throw std::runtime_error(message);
 	}
 	else if(H.rows() != f.size())
-	{
-		auto rows = std::to_string(H.rows());
-		auto size = std::to_string(f.size());
-		
+	{	
 		std::string message = "[ERROR] [QP SOLVER] solve(): "
 		                      "Dimensions of arguments do not match. "
-		                      "The Hessian H was "+rows+"x"+rows+" and the f vector was "+size+"x1.";
+		                      "The Hessian H was " + std::to_string(H.rows()) + "x" + std::to_string(H.cols()) +
+		                      " and the f vector was " + std::to_string(f.size()) + "x1.";
 		                      
 		throw std::runtime_error(message);
 	}
-	else 	return H.partialPivLu().solve(-f);                                                  // Too easy lol
+	else 	return H.partialPivLu().solve(-f);                                                  // Too easy lol ᕙ(▀̿̿ĺ̯̿̿▀̿ ̿) ᕗ
 }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -42,42 +39,30 @@ Eigen::VectorXf QPSolver::solve(const Eigen::MatrixXf &H,
 	int dim = x0.size();                                                                        // Dimensions for the state vector
 	int numConstraints = B.rows();                                                              // As it says
 	
-	std::string message;                                                                        // In case of error
-	
 	// Check that the inputs are sound
 	if(H.rows() != H.cols())
 	{
-		auto rows = std::to_string(H.rows());
-		auto cols = std::to_string(H.cols());
-		
-		message = "[ERROR] [QP SOLVER] solve(): "
-		          "Expected a square matrix for the Hessian but it was "+rows+"x"+cols+".";
-		
+		std::string message = "[ERROR] [QP SOLVER] solve(): Expected a square matrix for the Hessian but it was "
+		                    + std::to_string(H.rows()) + "x" + std::to_string(H.cols()) + ".";
+		         	
 		throw std::runtime_error(message);
 	}
 	else if(f.size() != dim
 	     or H.rows() != dim
 	     or B.cols() != dim)
 	{
-		auto size = std::to_string(f.size());
-		auto rows = std::to_string(H.rows());
-		auto cols = std::to_string(B.cols());
-		
-		message = "[ERROR] [QP SOLVER] solve(): "
-		          "Dimensions of arguments do not match. The Hessian matrix was "+rows+"x"+rows+", "
-		          "the f vector was "+size+"x1, and the constraint matrix B had "+cols+" columns";
-		
+		std::string message = "[ERROR] [QP SOLVER] solve(): Dimensions of arguments do not match. "
+		                      "The Hessian was " + std::to_string(H.rows()) + "x" + std::to_string(H.cols()) + ", "
+		                      "the f vector was " + std::to_string(f.size()) + "x1, and "
+		                      "the constraint matrix B had " + std::to_string(B.cols()) + " columns.";
+
 		throw std::runtime_error(message);
 	}
 	else if(B.rows() != z.size())
 	{
-		auto rows = std::to_string(B.rows());
-		auto size = std::to_string(z.size());
-		
-		message = "[ERROR] [QP SOLVER] solve(): "
-		          "Dimensions for the constraints do not match. "
-		          "The constraint matrix B had "+rows+" rows and the constraint vector "
-		          "z had "+size+" elements.";
+		std::string message = "[ERROR] [QP SOLVER] solve(): Dimensions for constraints do not match. "
+		                      "The constraint matrix B had " + std::to_string(B.rows()) + " rows, and "
+		                      "the constaint vector z had " + std::to_string(z.size()) + " elements.";	
 		
 		throw std::runtime_error(message);
 	}
@@ -145,7 +130,6 @@ Eigen::VectorXf QPSolver::solve(const Eigen::MatrixXf &H,
 
 			dx = I.partialPivLu().solve(-g);                                            // LU decomposition seems most stable
 			
-<<<<<<< HEAD
 			// Ensure the next position is within the constraint
 			alpha = this->alpha0;                                                       // Reset the scalar for the step size
 			for(int j = 0; j < numConstraints; j++)
@@ -157,22 +141,7 @@ Eigen::VectorXf QPSolver::solve(const Eigen::MatrixXf &H,
 					float temp = (1e-04 - d[j])/dotProduct;                     // Compute optimal scalar to avoid constraint violation
 					
 					if(temp < alpha) alpha = temp;                              // If smaller, override
-				} 
-=======
-			// Ensure next step remains inside constraint
-			alpha = this->alpha0;
-			for(int j = 0; j < numConstraints; j++)
-			{
-				// d_i   = b'*x_i - z
-				// d_i+1 = b'*(x_i + alpha*dx_i) - z
-				///      = alpha*b'*dx_i > 0
-				
-				float dotProd = bt[j].dot(dx);
-				
-				if( d[j] + alpha*dotProd < 0 ) alpha = (1e-04 - d[j]) / dotProd;
-				
-//				while( d[j] + alpha*bt[j].dot(dx) < 0) alpha *= this->alphaMod;
->>>>>>> 73c88b1f2d5513047bfc89b6590cf520af74684c
+				}
 			}
 
 			if(alpha*dx.norm() < this->tol) break;                                      // Change in position is insignificant; must be optimal
@@ -197,22 +166,18 @@ Eigen::VectorXf QPSolver::least_squares(const Eigen::VectorXf &y,
 {
 	if(A.rows() < A.cols())                                                                     // Redundant system, use other function
 	{
-		auto rows = std::to_string(A.rows());
-		auto cols = std::to_string(A.cols());
-		
 		std::string message = "[ERROR] [QP SOLVER] least_squares(): "
-		                      "The A matrix has more rows than columns ("+rows+"x"+cols+"). "
+		                      "The A matrix has more rows than columns ("
+		                      + std::to_string(A.rows()) + "x" + std::to_string(A.cols()) + "). "
 		                      "Did you mean to call the function for redundant least squares?";
 		
 		throw std::runtime_error(message);		                    		                   
 	}
 	if(W.rows() != W.cols())
 	{
-		auto rows = std::to_string(W.rows());
-		auto cols = std::to_string(W.cols());
-		
 		std::string message = "[ERROR] [QP SOLVER] least_squares(): "
-		                      "Expected a square weighting matrix W but it was "+rows+"x"+cols+".";
+		                      "Expected a square weighting matrix W but it was "
+		                      + std::to_string(W.rows()) + "x" + std::to_string(W.cols()) + ".";
 		                      
 		throw std::runtime_error(message);
 	}
@@ -224,10 +189,10 @@ Eigen::VectorXf QPSolver::least_squares(const Eigen::VectorXf &y,
 		
 		std::string message = "[ERROR] [QP SOLVER] least_squares(): "
 		                      "Dimensions of input arguments do not match. "
-		                      "The y vector was "+size+"x1, "
-		                      "the A matrix had "+rows+" rows, and "
-		                      "the weighting matrix W was "+cols+"x"+cols+".";
-		                      
+		                      "The y vector was " + std::to_string(y.size()) + "x1, "
+		                      "the A matrix had " + std::to_string(A.rows()) + " rows, and "
+		                      "the weighting matrix W was " + std::to_string(W.rows()) + "x" + std::to_string(W.cols()) + ".";
+
 		throw std::runtime_error(message);	
 	}
 	else	return (A.transpose()*W*A).partialPivLu().solve(A.transpose()*W*y);                 // x = (A'*W*A)^-1*A'*W*y
@@ -244,43 +209,34 @@ Eigen::VectorXf QPSolver::least_squares(const Eigen::VectorXf &y,
                                         const Eigen::VectorXf &x0)
 {
 	if(W.rows() != W.cols())
-	{
-		auto rows = std::to_string(W.rows());
-		auto cols = std::to_string(W.cols());
-		
+	{	
 		std::string message = "[ERROR] [QP SOLVER] least_squares(): "
-		                      "Expected the weighting matrix to be square but it was "+rows+"x"+cols+".";
+		                      "Expected a square weighting matrix W but it was "
+		                    + std::to_string(W.rows()) + "x" + std::to_string(W.cols()) + ".";
 		
 		throw std::runtime_error(message);
 	}
 	else if(y.size() != W.rows() and A.rows() != y.size())
 	{
-		auto size = std::to_string(y.size());
-		auto rows = std::to_string(A.rows());
-		auto cols = std::to_string(W.cols());
 		
 		std::string message = "[ERROR] [QP SOLVER] least_squares(): "
 		                      "Dimensions of input arguments do not match. "
-		                      "The y vector was "+size+"x1, "
-		                      "the A matrix had "+rows+" rows, and "
-		                      "the weighting matrix W was "+cols+"x"+cols+".";
-		
+		                      "The y vector was " + std::to_string(y.size()) + "x1, "
+		                      "the A matrix had " + std::to_string(A.rows()) + " rows, and "
+		                      "the weighting matrix W was " + std::to_string(W.rows()) + "x" + std::to_string(W.cols()) + ".";
+	
 		throw std::runtime_error(message);
 	}
 	else if(A.cols() != xMin.size() or xMin.size() != xMax.size() or xMax.size() != x0.size())
 	{
-		auto cols = std::to_string(A.cols());
-		auto min  = std::to_string(xMin.size());
-		auto max  = std::to_string(xMax.size());
-		auto dim  = std::to_string(x0.size());
-		
+
 		std::string message = "[ERROR] [QP SOLVER] least_squares(): "
 		                      "Dimensions for the decision variable do not match. "
-		                      "The A matrix had "+cols+" columns, "
-		                      "the xMin vector had "+min+" elements, "
-		                      "the xMax vector had "+max+" elements, "
-		                      "and the start point x0 had "+dim+" elements.";
-		
+		                      "The A matrix had " + std::to_string(A.cols()) + " columns, "
+		                      "the xMin vector had " + std::to_string(xMin.size()) + " elements, "
+		                      "the xMax vector had " + std::to_string(xMax.size()) + " elements, and "
+		                      "the start point x0 had " + std::to_string(x0.size()) + " elements.";
+	
 		throw std::runtime_error(message);
 	}
 	else
@@ -314,37 +270,28 @@ Eigen::VectorXf QPSolver::least_squares(const Eigen::VectorXf &xd,
 {
 	if(W.rows() != W.cols())
 	{
-		auto rows = std::to_string(W.rows());
-		auto cols = std::to_string(W.cols());
-		
 		std::string message = "[ERROR] [QP SOLVER] least_squares(): "
-		                      "Expected the weighting matrix to be square but it was "+rows+"x"+cols+".";
+		                      "Expected the weighting matrix to be square but it was "
+		                    + std::to_string(W.rows()) + "x" + std::to_string(W.cols()) + ".";
 		
 		throw std::runtime_error(message);
 	}
 	else if(xd.size() != W.rows() or W.cols() != A.cols())
-	{
-		auto size = std::to_string(xd.size());
-		auto rows = std::to_string(W.rows());
-		auto cols = std::to_string(A.cols());
-		
+	{	
 		std::string message = "[ERROR] [QP SOLVER] least_squares(): "
 		                      "Dimensions for the decision variable do not match. "
-		                      "The desired vector had "+size+" elements, "
-		                      "the weighting matrix W had "+rows+"x"+rows+" elements, and "
-		                      "the constraint matrix A had "+cols+" columns.";
+		                      "The desired vector xd had " + std::to_string(xd.size()) + " elements, "
+		                      "the weighting matrix was " + std::to_string(W.rows()) + "x" + std::to_string(W.cols()) + ", and "
+		                      "the constraint matrix A had " + std::to_string(A.cols()) + " columns.";
 		
 		throw std::runtime_error(message);
         }
         else if(y.size() != A.rows())
-        {
-        	auto size = std::to_string(y.size());
-        	auto rows = std::to_string(A.rows());
-        	
+        {    	
         	std::string message = "[ERROR] [QP SOLVER] least_squares(): "
         	                      "Dimensions for the equality constraint do not match. "
-        	                      "The y vector had "+size+" elements, and "
-        	                      "the constraint matrix A had "+rows+" rows.";
+        	                      "The y vector had " + std::to_string(y.size()) + " elements, and "
+        	                      "the constraint matrix had " + std::to_string(A.rows()) + " rows.";
         	                      
         	throw std::runtime_error(message);
         }
@@ -393,12 +340,10 @@ Eigen::VectorXf QPSolver::least_squares(const Eigen::VectorXf &xd,
 	unsigned int n = x0.size();
 	
 	if(W.rows() != W.cols())
-	{
-		auto rows = std::to_string(W.rows());
-		auto cols = std::to_string(W.cols());
-		
+	{	
 		std::string message = "[ERROR] [QP SOLVER] least_squares(): "
-		                      "Expected the weighting matrix to be square but it was "+rows+"x"+cols+".";
+		                      "Expected the weighting matrix to be square but it was "
+		                    + std::to_string(W.rows()) + "x" + std::to_string(W.cols()) + ".";
 		
 		throw std::runtime_error(message);
 	}
@@ -407,34 +352,24 @@ Eigen::VectorXf QPSolver::least_squares(const Eigen::VectorXf &xd,
 	     or A.cols()    != n
 	     or xMin.size() != n
 	     or xMax.size() != n)
-	{
-		auto des  = std::to_string(xd.size());
-		auto rows = std::to_string(W.rows());
-		auto cols = std::to_string(A.cols());
-		auto dim  = std::to_string(n);
-		auto min  = std::to_string(xMin.size());
-		auto max  = std::to_string(xMax.size());
-		
+	{	
 		std::string message = "[ERROR] [QP SOLVER] least_squares(): "
 		                      "Dimensions for the decision variable do not match. "
-		                      "The desired vector xd had "+des+" elements, "
-		                      "the weighting matrix W had "+rows+"x"+rows+" elements, "
-		                      "the constraint matrix had "+cols+" columns, "
-		                      "the xMin vector had "+min+" elements, "
-		                      "the xMax vector had "+max+" elements, and "
-		                      "the start point x0 had "+dim+" elements.";
+		                      "The desired vector xd had " + std::to_string(xd.size()) + " elements, "
+		                      "the weighting matrix W had " + std::to_string(W.rows()) + "x" + std::to_string(W.cols()) + " elements, "
+		                      "the constraint matrix A had " + std::to_string(A.cols()) + " columns, "
+		                      "the xMin vector had " + std::to_string(xMin.size()) + " elements, "
+		                      "the xMax vector had " + std::to_string(xMax.size()) + " elements, and "
+		                      "the start point x0 had " + std::to_string(n) + " elements.";
 		
 		throw std::runtime_error(message);
 	}
         else if(A.rows() != m)
-        {
-        	auto dim  = std::to_string(y.size());
-        	auto rows = std::to_string(A.rows());
-        	
+        {	
         	std::string message = "[ERROR] [QP SOLVER] least_squares(): "
         	                      "Dimensions for the equality constraint do not match. "
-        	                      "The y vector had "+dim+" elements, and "
-        	                      "the A matrix had "+rows+" rows.";
+        	                      "The y vector had " + std::to_string(y.size()) + " elements, and "
+        	                      "the A matrix had " + std::to_string(A.rows()) + " rows.";
         	
         	throw std::runtime_error(message);
         }
