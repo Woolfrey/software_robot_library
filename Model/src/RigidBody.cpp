@@ -12,13 +12,12 @@ RigidBody::RigidBody(const float &mass,
                      _centreOfMass(centreOfMass)
 {	
 	std::string message = "[ERROR] [RIGID BODY] Constructor: ";
-	if(mass <= 0.0)
+	if(mass < 0.0)
 	{
-		message += "Mass must be greater than 0, but your input was " + std::to_string(mass) + "kg.";
-		
+		message += "Mass was " + std::to_string(mass) + " but cannot be negative.";
 		throw std::invalid_argument(message);
 	}
-	else if((momentOfInertia - momentOfInertia).norm() < 1e-04)
+	else if((momentOfInertia - momentOfInertia).norm() > 1e-04)
 	{
 		throw std::invalid_argument(message + "Moment of inertia was not symmetric.");
 	}
