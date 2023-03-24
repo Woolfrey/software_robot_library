@@ -9,7 +9,8 @@
 
 #include <fstream>                                                                                  // For loading files
 #include <Link.h>                                                                                   // Custom class
-#include <tinyxml2.h>
+#include <map>                                                                                      // std::map
+#include <tinyxml2.h>                                                                               // For parsing urdf files
 
 class KinematicTree
 {
