@@ -52,6 +52,8 @@ int main(int argc, char **argv)
 		try
 		{
 			KinematicTree robot(pathToURDF);
+			
+			return 0;
 		}
 		catch(std::exception &error)
 		{
@@ -62,12 +64,6 @@ int main(int argc, char **argv)
 		
 			return 1;
 		}
-		
-		std::cout << "\nWorker bees can leave.\n"
-		          << "Even drones can fly away.\n"
-		          << "The Queen is their slave.\n";
-		
-		return 0;
 	}
 }
 
