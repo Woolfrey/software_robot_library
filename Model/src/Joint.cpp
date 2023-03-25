@@ -15,7 +15,7 @@ Joint::Joint(const std::string     &name,
 	     :
 	     _name(name),
 	     _type(type),
-	     _axis(axis.normalized()),
+	     _axis(axis.normalized()),                                                              // Ensure unit norm for good measure
 	     _origin(origin),
 	     _positionLimit{positionLimit[0],positionLimit[1]},
 	     _velocityLimit(velocityLimit),

@@ -26,7 +26,7 @@ class Joint
 		Joint(const std::string     &name,
 		      const std::string     &type,
 		      const Eigen::Vector3f &axis,
-		      const Pose            &Pose,
+		      const Pose            &origin,
 		      const float            positionLimit[2],
 		      const float           &velocityLimit,
 		      const float           &forceLimit,
