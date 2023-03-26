@@ -84,7 +84,8 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
 		}
 		else
 		{
-			std::cout << "The " << childLinkName << " link is attached to the " << jointName << " joint.\n";
+			std::cout << "The " << childLinkName << " link is attached to the " << jointName << " joint. "
+			          << "It is a " << jointType << " joint.\n";
 		}
 		
 		std::string comp = jointType;                                                       // Need to force a string here for comparison
@@ -163,7 +164,7 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
 			}
 			
 			linkList.emplace(childLinkName,Link(joint,rigidBody->second));              // Add Link object to the list
-			
+
 			rigidBodyList.erase(std::string(childLinkName));                            // Erase from the list
 		}
 		else
@@ -195,7 +196,10 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
 	// Condense the KinematicTree by adding every Link with a fixed joint to its parent
 	for(auto link = linkList.begin(); link != linkList.end(); link++)
 	{
-	
+		// We need to:
+		// 1. Add the inertia to the parent link
+		// 2. Assign the child link frame as a reference frame in the parent link?
+		// 3. Set a new parent link for the child link
 	}
 }
 
@@ -204,8 +208,8 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 Eigen::Vector3f KinematicTree::char_to_vector3f(const char* character)
 {
-	std::vector<float> numberAsVector;                                                          // Temporary storage
 	std::string        numberAsString;                                                          // So we can concatenate individual char together
+	std::vector<float> numberAsVector;                                                          // Temporary storage
 	
 	int startPoint = 0;                                                                         
 	for(int i = 0; i < strlen(character); i++)
