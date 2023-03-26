@@ -22,11 +22,19 @@ class Link : public RigidBody
 		
 		void combine_link(const Link &other);
 		
-		Link* preceding_link() const { return this->_precedingLink; }                       // Get the preceding link in the chain
+		const Link* preceding_link() const { return this->precedingLink; }                  // Get the preceding link in the chain
+		
+		const Link* proceeding_link(const unsigned int &i) const { return this->proceedingLink[i]; } // Get the proceeding link in the chain
+
+		bool add_proceeding_link(const Link* link);
+		
+		void set_preceding_link(const Link* link) { this->precedingLink = link; }
 		
 	private:
 	
-		Link* _precedingLink;
+		const Link* precedingLink = nullptr;
+		
+		std::vector<const Link*> proceedingLink;
 
 };                                                                                                  // Semicolon needed at the end of class declaration
 

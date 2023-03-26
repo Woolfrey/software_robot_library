@@ -31,3 +31,22 @@ void Link::combine_link(const Link &other)
 	                       
 	this->_inertia += R*other.inertia()*R.transpose() - other.mass()*S*S;                       // From the parallel axis theorem
 }
+
+  ////////////////////////////////////////////////////////////////////////////////////////////////////
+ //                               Add a proceeding link to the list                                //
+////////////////////////////////////////////////////////////////////////////////////////////////////
+bool Link::add_proceeding_link(const Link* link)
+{
+	if(link == nullptr)
+	{
+		std::cerr << "[ERROR] [LINK] add_proceeding_link(): "
+		          << "The link you are trying to add is a null pointer.\n";
+		
+		return false;
+	}
+	else
+	{
+		this->proceedingLink.push_back(link);
+		return true;
+	}
+}
