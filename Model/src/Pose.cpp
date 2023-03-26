@@ -56,10 +56,7 @@ Eigen::Matrix<float,4,4> Pose::as_matrix()
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 Pose Pose::inverse()
 {
-	// NOTE TO FUTURE SELF: I don't think this is correct!
-	// Need to rotate the position vector.
-	
-	return Pose(-this->_pos, this->_quat.inverse());
+	return Pose(-this->_quat.toRotationMatrix()*this->_pos, this->_quat.inverse());
 }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////

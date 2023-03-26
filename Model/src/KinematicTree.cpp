@@ -23,9 +23,11 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
 		throw std::runtime_error(errorMessage);
 	}
 	
-	std::map<std::string, RigidBody> linkList;                                                  // Create a map so we can find which link its attached to
+	// Create maps so we can easily search later
+	std::map<std::string, RigidBody> rigidBodyList;
+	std::map<std::string, Link>      linkList;
 	
-	// Search through every link
+	// Search through every 'link' in the URDF and conver to RigidBody object
 	for(auto link = robot->FirstChildElement("link"); link; link = link->NextSiblingElement("link"))
 	{
 		// Default values
@@ -61,67 +63,83 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
 				                        *Eigen::AngleAxisf(rpy(2),Eigen::Vector3f::UnitZ()));
 			}
 		}
-	
-		linkList.emplace(link->Attribute("name"), RigidBody(mass,momentOfInertia,centreOfMass)); // Add to list
-	}
-	
-	// Ensure the list is not empty before proceeding
-	if(linkList.empty())
-	{
-		errorMessage += "Could not find any links in the given URDF.";
-		throw std::runtime_error(errorMessage);
-	}
 		
+		const char* name = link->Attribute("name");
+	
+		rigidBodyList.emplace(name, RigidBody(mass,momentOfInertia,centreOfMass, name)); // Add to list
+	}
+
 	// Search through every joint
 	for(auto joint = robot->FirstChildElement("joint"); joint; joint = joint->NextSiblingElement("joint"))
-	{	
-		const char* jointName = joint->Attribute("name");
+	{
+		const char* jointName     = joint->Attribute("name");
+		const char* jointType     = joint->Attribute("type");
+		const char* childLinkName = joint->FirstChildElement("child")->Attribute("link");
 		
-		// Find the link attached to this joint
-		const char* proceedingLink = joint->FirstChildElement("child")->Attribute("link");
-		if(proceedingLink == nullptr)
-		{	
-			errorMessage += "The " + (std::string)jointName + " joint has no child link. Is this correct?";
+		// Ensure that joint has a link attached
+		if(childLinkName == nullptr)
+		{
+			errorMessage += "The " + (std::string)jointName + " joint has no child link.";
 			throw std::runtime_error(errorMessage);
 		}
 		else
 		{
-			auto search = linkList.find(std::string(proceedingLink));                   // Need to force to std::string for comparison
+			std::cout << "The " << childLinkName << " link is attached to the " << jointName << " joint.\n";
+		}
+		
+		std::string comp = jointType;                                                       // Need to force a string here for comparison
+		if(comp == "continuous" or comp == "fixed" or comp == "prismatic" or comp == "revolute")
+		{
+			// Properties to be assigned
+			float mass = 0.0;
+			Eigen::Matrix3f momentOfInertia = Eigen::Matrix3f::Zero();
+			Pose origin(Eigen::Vector3f::Zero(), Eigen::Quaternionf(1,0,0,0));
+			Eigen::Vector3f axis  = {1,0,0};
+			float positionLimit[] = {-M_PI, M_PI};
+			float velocityLimit   = 100*2*M_PI/60;
+			float forceLimit      = 10;
+			float damping         = 1.0;
+			float friction        = 0.0;
 			
-			if(search == linkList.end())
+			if(comp != "fixed")
 			{				
-				errorMessage += "Could not find the link attached to the " + (std::string)jointName + " joint.";
-				throw std::runtime_error(errorMessage);
-			}
-			else // Get the joint properties and create a RobotLibrary::Link object
-			{
-				std::cout << "The " << proceedingLink << " link is attached to the " << jointName << " joint.\n";
-				
-				// Default values
-				const char* type = joint->Attribute("type");
-				Eigen::Vector3f axis  = {1,0,0};
-				float damping         = 0.0;
-				float friction        = 0.0;
-				float positionLimit[] = {-M_PI, M_PI};                              // +- 180 degrees
-				float velocityLimit   = 100*(2*M_PI)/60.0;                          // 100 RPM
-				float forceLimit      = 10.0;                                       // Nm
-				Pose origin(Eigen::Vector3f(0,0,0),Eigen::Quaternionf(1,0,0,0));
-				
 				// Get the pose of the joint relative to preceeding link
-				tinyxml2::XMLElement* originXML = joint->FirstChildElement("origin");
-				if(originXML != nullptr)
+				tinyxml2::XMLElement* originElement = joint->FirstChildElement("origin");
+				if(originElement != nullptr)
 				{
-					Eigen::Vector3f xyz = char_to_vector3f(originXML->Attribute("xyz"));
-					Eigen::Vector3f rpy = char_to_vector3f(originXML->Attribute("rpy"));
+					Eigen::Vector3f xyz = char_to_vector3f(originElement->Attribute("xyz"));
+					Eigen::Vector3f rpy = char_to_vector3f(originElement->Attribute("rpy"));
 					
 					origin = Pose(xyz, Eigen::AngleAxisf(rpy(0),Eigen::Vector3f::UnitX())
-					                  *Eigen::AngleAxisf(rpy(1),Eigen::Vector3f::UnitY())
-					                  *Eigen::AngleAxisf(rpy(2),Eigen::Vector3f::UnitZ()));
+							  *Eigen::AngleAxisf(rpy(1),Eigen::Vector3f::UnitY())
+							  *Eigen::AngleAxisf(rpy(2),Eigen::Vector3f::UnitZ()));
+				}
+				
+				// Get the limits
+				if(comp == "continuous")
+				{
+					float inf = std::numeric_limits<float>::infinity();
+					positionLimit[0] =-inf;
+					positionLimit[1] = inf;
+					velocityLimit    = inf;
+					forceLimit       = inf;
+				}
+				else
+				{
+					// Get the joint limits
+					tinyxml2::XMLElement* limit;
+					if(limit != nullptr)
+					{
+						positionLimit[0] = limit->FloatAttribute("lower");
+						positionLimit[1] = limit->FloatAttribute("upper");
+						velocityLimit    = limit->FloatAttribute("velocity"); // NOTE: This is apparently option so could cause problems in the future
+						forceLimit       = limit->FloatAttribute("effort");
+					}
 				}
 				
 				// Get the axis of actuation					
-				tinyxml2::XMLElement* axisXML = joint->FirstChildElement("axis");
-				if(axisXML != nullptr) axis = char_to_vector3f(axisXML->Attribute("xyz"));
+				tinyxml2::XMLElement* axisElement = joint->FirstChildElement("axis");
+				if(axisElement != nullptr) axis = char_to_vector3f(axisElement->Attribute("xyz"));
 				
 				// Get the dynamic properties
 				tinyxml2::XMLElement* dynamics = joint->FirstChildElement("dynamics");
@@ -130,133 +148,56 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
 					damping  = dynamics->FloatAttribute("damping");
 					friction = dynamics->FloatAttribute("friction");
 				}
-				
-				// Get the joint limits
-				tinyxml2::XMLElement* limit;
-				if(limit != nullptr)
-				{
-					positionLimit[0] = limit->FloatAttribute("lower");
-					positionLimit[1] = limit->FloatAttribute("upper");
-					velocityLimit    = limit->FloatAttribute("velocity"); // NOTE: This is apparently option so could cause problems in the future
-					forceLimit       = limit->FloatAttribute("effort");
-				}
-				
-				Joint blah(jointName,type,axis,origin,positionLimit,velocityLimit,forceLimit,damping,friction);
 			}
+			
+			// Combine the Joint with the connected RigidBody to form a Link object
+			Joint joint(jointName,jointType,axis,origin,positionLimit,velocityLimit,forceLimit,damping,friction);
+	
+			auto rigidBody = rigidBodyList.find(std::string(childLinkName));            // Get the attached rigid body
+			if(rigidBody == rigidBodyList.end())
+			{
+				errorMessage += "Could not find the rigid body object named "
+				              + (std::string)childLinkName + " in the list???";
+				
+				throw std::runtime_error(errorMessage);
+			}
+			
+			linkList.emplace(childLinkName,Link(joint,rigidBody->second));              // Add Link object to the list
+			
+			rigidBodyList.erase(std::string(childLinkName));                            // Erase from the list
+		}
+		else
+		{
+			errorMessage += "The " + (std::string)jointName + " joint was " + comp + " "
+			                "but the KinematicTree class can only handle continuous, "
+			                "fixed, prismatic, or revolute joints.";
+			                
+			throw std::invalid_argument(errorMessage);
 		}
 	}
+	
+	// Find the base
+	if(rigidBodyList.size() != 1)
+	{
+		errorMessage += "There is more than 1 rigid body without a joint attached:\n";
+		for(auto iterator = rigidBodyList.begin(); iterator != rigidBodyList.end(); iterator++)
+		{
+			errorMessage += iterator->first + "\n";
+		}
+		throw std::runtime_error(errorMessage);
+	}
+	else
+	{
+		this->base = rigidBodyList.begin()->second;
+		std::cout << "I believe that '" << this->base.name() << "' is the base link.\n";
+	}
+	
+	// Condense the KinematicTree by adding every Link with a fixed joint to its parent
+	for(auto link = linkList.begin(); link != linkList.end(); link++)
+	{
+	
+	}
 }
-
-			/*
-			// Extract joint friction information
-			tinyxml2::XMLElement* dynamics = joint->FirstChildElement("dynamics");
-			float damping  = 1.0;
-			float friction = 0.0;
-			
-			if(dynamics == nullptr)
-			{
-				// Compiler is throwing a warning on these lines:
-//				damping  = dynamics->FloatAttribute("damping");
-//				friction = dynamics->FloatAttribute("friction");
-			}
-		
-			// Extract joint limit information
-			tinyxml2::XMLElement* limit = joint->FirstChildElement("limit");
-//			float positionLimit[2] = {limit->FloatAttribute("lower"), limit->FloatAttribute("upper")};
-//			float velocityLimit    = limit->FloatAttribute("velocity");
-//			float forceLimit       = limit->FloatAttribute("effort");
-		
-			// Extract joint pose information
-			tinyxml2::XMLElement* origin = joint->FirstChildElement("origin");
-			Eigen::Vector3f pos;
-			Eigen::Quaternionf quat;
-			if(origin == nullptr)
-			{
-				pos.setZero();
-				quat.setIdentity();
-			}
-			else
-			{
-				pos = char_to_vector3f(origin->Attribute("xyz"));
-				
-				Eigen::Vector3f rpy = char_to_vector3f(origin->Attribute("rpy"));
-				
-				quat = Eigen::AngleAxisf(rpy(0),Eigen::Vector3f::UnitX())
-				     * Eigen::AngleAxisf(rpy(1),Eigen::Vector3f::UnitY())
-				     * Eigen::AngleAxisf(rpy(2),Eigen::Vector3f::UnitZ());				
-			}
-			
-			// Create the joint object
-			Joint jointObject(jointName,
-			                  type,
-			                  axisVector,
-			                  Pose(pos,quat),
-			                  positionLimit,
-			                  velocityLimit,
-			                  forceLimit,
-			                  damping,
-			                  friction);
-			
-			// Get the link attached to it
-			RigidBody rigidBody;
-			
-			tinyxml2::XMLElement* proceedingLink = joint->FirstChildElement("child");
-			if(proceedingLink == nullptr)
-			{
-				std::string message = "[ERROR] [KINEMATIC TREE] Constructor: Joint ";
-				message.push_back(*jointName);                                      // c++ is really annoying sometimes
-				message += " has no 'child' link attached to it!";
-				                      
-				throw std::runtime_error(message);
-			}
-			else
-			{
-				// Variables used in this scope
-				float mass;
-				Eigen::Matrix3f momentOfInertia;
-				Eigen::Vector3f com;
-				Eigen::Vector3f rpy;
-				
-				tinyxml2::XMLElement* inertial = proceedingLink->FirstChildElement("inertial");
-				if(inertial != nullptr)
-				{
-					mass = inertial->FloatAttribute("mass");
-					
-					float ixx  = inertial->FloatAttribute("ixx");
-					float ixy  = inertial->FloatAttribute("ixy");
-					float ixz  = inertial->FloatAttribute("ixz");
-					float iyy  = inertial->FloatAttribute("iyy");
-					float iyz  = inertial->FloatAttribute("iyz");
-					float izz  = inertial->FloatAttribute("izz");
-					
-					momentOfInertia << ixx, ixy, ixz,
-						           ixy, iyy, iyz,
-						           ixz, iyz, izz;
-
-					tinyxml2::XMLElement* origin = proceedingLink->FirstChildElement("inertial");
-					com = (origin == nullptr) ? Eigen::Vector3f::Zero() : char_to_vector3f(origin->Attribute("xyz"));
-					rpy = (origin == nullptr) ? Eigen::Vector3f::Zero() : char_to_vector3f(origin->Attribute("rpy"));	
-				}
-				else
-				{
-					mass = 0.1;
-					momentOfInertia = 1e-03*Eigen::Matrix3f::Identity();
-					com.setZero();
-					rpy.setZero();
-					
-				}
-				
-				Pose centreOfMass(com, Eigen::AngleAxisf(rpy(0),Eigen::Vector3f::UnitX())
-				                     * Eigen::AngleAxisf(rpy(1),Eigen::Vector3f::UnitY())
-				                     * Eigen::AngleAxisf(rpy(2),Eigen::Vector3f::UnitZ()));	
-				
-				RigidBody rigidBody(mass,momentOfInertia, centreOfMass);
-				
-				// Add the joint and link to create a RobotLibrary::Link object
-				
-				this->link.emplace_back(jointObject,rigidBody);
-			}
-			*/
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //                   Convert a char of numbers to an Eigen::Vector3f object                      //

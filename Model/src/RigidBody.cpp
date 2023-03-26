@@ -3,13 +3,14 @@
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                                          Constructor                                           //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-RigidBody::RigidBody(const float &mass,
-                     const Eigen::Matrix3f &momentOfInertia,
-                     const Pose &centreOfMass)
+RigidBody::RigidBody(const float           &mass,
+                     const Eigen::Matrix3f &inertia,
+                     const Pose            &centreOfMass,
+                     const std::string     &name)
                      :
                      _mass(mass),
-                     _momentOfInertia(momentOfInertia),
-                     _centreOfMass(centreOfMass)
+                     _name(name),
+                     _com(centreOfMass.pos())
 {	
 	std::string message = "[ERROR] [RIGID BODY] Constructor: ";
 	if(mass < 0.0)
@@ -17,9 +18,22 @@ RigidBody::RigidBody(const float &mass,
 		message += "Mass was " + std::to_string(mass) + " but cannot be negative.";
 		throw std::invalid_argument(message);
 	}
-	else if((momentOfInertia - momentOfInertia).norm() > 1e-04)
+	else if((inertia - inertia.transpose()).norm() > 1e-04)
 	{
 		throw std::invalid_argument(message + "Moment of inertia was not symmetric.");
+	}
+	else
+	{
+		// Transform the inertia properties to the origin specified
+		// by the Pose object
+		
+		Eigen::Matrix3f R = centreOfMass.quat().toRotationMatrix();
+		
+		Eigen::Matrix3f S; S <<            0 , -this->_com(2),  this->_com(1),
+		                        this->_com(2),             0 , -this->_com(0),
+		                       -this->_com(1),  this->_com(0),             0 ;
+		                       
+		this->_inertia = R*inertia*R.transpose() - mass*S*S;                                // From the parallel axis theorem
 	}
 }
 

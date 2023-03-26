@@ -18,9 +18,16 @@ class Link : public RigidBody
 		     
 		Joint joint;
 		
+		Eigen::Matrix3f local_inertia() const {return this->_inertia;}
+		
+		void combine_link(const Link &other);
+		
+		Link* preceding_link() const { return this->_precedingLink; }                       // Get the preceding link in the chain
+		
 	private:
-		
-		
+	
+		Link* _precedingLink;
+
 };                                                                                                  // Semicolon needed at the end of class declaration
 
 #endif

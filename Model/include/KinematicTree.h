@@ -18,7 +18,7 @@ class KinematicTree
 		KinematicTree(const std::string &pathToURDF);                                       // Constructor from URDF
 		
 	private:
-		std::vector<Link> link;
+		RigidBody base;                                                                     // Base "link"
 		
 		Eigen::Vector3f char_to_vector3f(const char* character);                            // Used to parse urdf properties
 		
