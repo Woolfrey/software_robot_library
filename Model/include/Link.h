@@ -7,8 +7,9 @@
 #ifndef LINK_H_
 #define LINK_H_
 
-#include <Joint.h>
-#include <RigidBody.h>
+#include <Joint.h>                                                                                  // Custom class
+#include <memory>                                                                                   // std::shared_ptr
+#include <RigidBody.h>                                                                              // Custom class
 
 class Link : public RigidBody
 {
@@ -16,25 +17,16 @@ class Link : public RigidBody
 		Link(const Joint     &_joint,
 		     const RigidBody &rigidBody);
 		     
-		Joint joint;
+		Joint joint;                                                                        // The joint attached to this link
 		
-		Eigen::Matrix3f local_inertia() const {return this->_inertia;}
+		bool set_preceding_link(Link &link);
 		
-		void combine_link(const Link &other);
-		
-		const Link* preceding_link() const { return this->precedingLink; }                  // Get the preceding link in the chain
-		
-		const Link* proceeding_link(const unsigned int &i) const { return this->proceedingLink[i]; } // Get the proceeding link in the chain
-
-		bool add_proceeding_link(const Link* link);
-		
-		void set_preceding_link(const Link* link) { this->precedingLink = link; }
-		
-	private:
+		bool add_proceeding_link(Link &link);
 	
-		const Link* precedingLink = nullptr;
+	private:
+		std::shared_ptr<Link> _precedingLink = nullptr;
 		
-		std::vector<const Link*> proceedingLink;
+		std::vector<std::shared_ptr<Link>> _proceedingLink = {};
 
 };                                                                                                  // Semicolon needed at the end of class declaration
 
