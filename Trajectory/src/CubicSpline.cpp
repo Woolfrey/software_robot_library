@@ -10,49 +10,44 @@ CubicSpline::CubicSpline(const std::vector<Eigen::VectorXf> &waypoint,
 			 numPoints(waypoint.size()),                                                // Assign the number of waypoints
 			 _time(time)
 {
+	std::string errorMessage = "[ERROR] [CUBIC SPLINE] Constructor: ";
+	
 	// Ensure inputs are of equal length
 	if(waypoint.size() != time.size())
 	{
-		auto points = std::to_string(waypoint.size());
-		auto times  = std::to_string(time.size());
-		
-		std::string message = "[ERROR] [CUBIC SPLINE] Constructor: "
-		                      "Size of input arguments does not match. "
-		                      "The waypoint vector had " + points + " elements, and "
-		                      "the time vector had " + times + " elements.";
+		errorMessage += "Size of input arguments does not match. "
+		                "The waypoint vector had " + std::to_string(waypoint.size()) + " elements, and "
+		                "the time vector had " + std::to_string(time.size()) + " elements.";
 		                      
-		throw std::runtime_error(message);
+		throw std::invalid_argument(errorMessage);
 	}
 	
 	// Ensure times are in ascending order
 	for(int i = 0; i < time.size()-1; i++)
 	{
-		auto now     = std::to_string(time[i]);
-		auto then    = std::to_string(time[i+1]);
-		auto current = std::to_string(i);
-		auto next    = std::to_string(i+1);
-		
 		if(time[i] == time[i+1])
 		{
-			std::string message = "[ERROR] [CUBIC SPLINE] Constructor: "
-			                      "Time of " + now + " for waypoint " + current + " "
-			                      "is equal to time of " + then + " for waypoint " + next + ". "
-			                      "Cannot move in zero time!";
+			errorMessage += "Time of " + std::to_string(time[i]) + " for waypoint " + std::to_string(i) + " "
+			                "is equal to time of " + std::to_string(time[i+1]) + " for waypoint " + std::to_string(i+1) + ". "
+			                "You cannot teleport between places in zero time.";
 			                      
-			throw std::runtime_error(message);
+			throw std::logic_error(message);
 		}
 		else if(time[i] > time[i+1])
 		{
-			std::string message = "[ERROR] [CUBIC SPLINE] Constructor: "
-			                      "Times are not in ascending order! "
-			                      "Waypoint " + current + " was " + now + " seconds, and "
-			                      "waypoint " + next + " was " + then + " seconds.";
+			errorMessage += "Times are not in ascending order! "
+			                "Waypoint " + std::to_string(i) + " was " + std::to_string(time[i]) + " seconds, and "
+			                "waypoint " + std::to_string(i+1) + " was " + std::to_string(time[i+1]) + " seconds. "
+			                "The arrow of time only moves in one direction.";
 			                      
-			throw std::runtime_error(message);
+			throw std::logic_error(message);
 		}
 	}
 	
 	// Compute displacements between points to determine velocities
+	// NOTE TO SELF: I need to change the underlying code so that it doesn't
+	// require displacements
+	
 	std::vector<Eigen::VectorXf> displacement; displacement.resize(this->numPoints-1);
 	for(int i = 0; i < this->numPoints -1; i++)
 	{
@@ -79,7 +74,11 @@ CubicSpline::CubicSpline(const std::vector<Eigen::VectorXf> &waypoint,
 			                                  time[i+1],
 			                                  3));
 		}
-		catch(const std::exception &error) { throw error; }                                 // Pass on error message from Polynomial class
+		catch(const std::exception &exception)
+		{
+			std::cout << exception.what() << std::endl;
+			throw std::runtime_error("[ERROR] [CUBIC SPLINE] Constructor: Could not generate the spline.");
+		}
 	}
 }
 
