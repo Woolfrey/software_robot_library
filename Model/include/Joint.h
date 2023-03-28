@@ -35,8 +35,11 @@ class Joint
 		
 		// Functions
 		
-		Pose origin() const { return this->_origin; }                                       // Joint pose relative to preceeding link
+		Pose origin()      const { return this->_origin; }                                  // Joint pose relative to preceeding link
 	
+		std::string name() const { return this->_name; }
+		
+		std::string type() const { return this->_type; }
 	private:
 	
 		Eigen::Vector3f _axis;                                                              // Axis of actuation for this joint
