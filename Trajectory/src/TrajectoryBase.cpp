@@ -11,26 +11,22 @@ TrajectoryBase::TrajectoryBase(const float        &startTime,
                                _endTime(endTime),
                                dimensions(dim)
 {
+	std::string errorMessage = "[ERROR] [TRAJECTORY BASE] Constructor: ";
+	
 	if(startTime == endTime)
 	{
-		auto start = std::to_string(startTime);
-		auto end   = std::to_string(endTime);
-		
-		std::string message = "[ERROR] [TRAJECTORY BASE] Constructor: "
-		                      "Start time of " + start + " is equal to "
-		                      "end time of " + end + ". Cannot ove in zero time!";
-		                     
-		throw std::runtime_error(message);
+		errorMessage += "Start time of " + std::to_string(startTime) + " is equal to "
+		                "end time of " + std::to_string(endTime) + ". "
+		                "You cannot move faster than light.";
+		                
+		throw std::invalid_argument(errorMessage);
 	}
 	else if(startTime > endTime)
 	{
-		std::cout << "[WARNING] [TRAJECTORY BASE] Constructor: "
-		          << "Start time of " << startTime << " is greater than "
-		          << "end time of " << endTime << ". "
-		          << "Swapping values to avoid problems..." << std::endl;
-      		
-      		float temp       = this->_endTime;
-      		this->_endTime   = this->_startTime;
-      		this->_startTime = temp;
+		errorMessage += "Start time of " + std::to_string(startTime) + " is greater than "
+		                "end time of " + std::to_string(endTime) + ". "
+		                "You cannot go back to the past.";
+	
+		throw std::logic_error(errorMessage);
       	}
 }
