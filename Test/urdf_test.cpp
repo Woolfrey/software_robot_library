@@ -45,25 +45,21 @@ int main(int argc, char **argv)
 		          
 		return 1;
 	}
-	else
-	{	
-		std::string pathToURDF = argv[1];
-		
-		try
-		{
-			KinematicTree robot(pathToURDF);
-			
-			return 0;
-		}
-		catch(std::exception &error)
-		{
-			std::cout << "[ERROR] [URDF TEST] There was a problem constructing the KinematicTree object. "
-			          << "See the error message below for details.\n";
-			          
-			std::cout << error.what() << std::endl;
-		
-			return 1;
-		}
+	
+	std::string pathToURDF = argv[1];
+	
+	try
+	{
+		KinematicTree robot(pathToURDF);	
+		return 0;
+	}
+	catch(std::exception &error)
+	{
+		std::cout << "[ERROR] [URDF TEST] There was a problem constructing the KinematicTree object. "
+		          << "See the error message below for details.\n";          
+		std::cout << error.what() << std::endl;
+	
+		return 1;
 	}
 }
 
