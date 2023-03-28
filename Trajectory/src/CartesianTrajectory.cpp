@@ -14,20 +14,32 @@ CartesianTrajectory::CartesianTrajectory(const std::vector<Pose>  &waypoint,
 		    + "There were " + waypoint.size() + " waypoints and " + time.size() + " times.";
 	}
 	
-	std::vector<Eigen::VectorXf>    translation;
-	std::vector<Eigen::Quaternionf> orientation;
+	std::vector<Eigen::Matrix<double,6,1>> point;                                               // 3 for translation and 3 for orientation
+	x.resize(waypoint.size());
 	
-	for(int i = 0; i < this->numPoints; i++)
+	for(int i = 0; i < waypoint.size(); i++)
 	{
-		translation.push_back(waypoint[i].pos());
-		orientation.push_back(waypoint[i].quat());
+		point[i].head(3) = waypoint[i].pos();                                               // Grab the translation component directly
+		
+		Eigen::Vector3f epsilon = waypoint[i].quat().vec();                                 // Get the vector part of the quaternion
+		
+		float norm = epsilon.norm();                                                        // Magnitude of the vector                                               
+		
+		float angle = 2*asin(norm);                                                         // Extract angle embedded in quaternion
+		
+		if(angle == 0) point[i].tail(3) = Eigen::Vector3f::Zero();
+		else           point[i].tail(3) = angle*(epsilon/norm);                             // Angle*axis
 	}
 	
-	try this->translationTrajectory = CubicSpline(translation,time);
-	catch(const char* error_message) throw error_message;
-	
-	try this->orientationTrajectory = CubicSpline(orientation,time);
-	catch(const char* error_message) throw error_message;
+	try
+	{
+		this->trajectory = CubicSpline(point,time);
+	}
+	catch(const std::exception &exception)
+	{
+		std::cout << exception.what() << std::endl;
+		throw std::runtime_error("[ERROR] [CARTESIAN TRAJECTORY] Constructor: Could not generate the Cartesian trajectory.");
+	}
 }
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -38,24 +50,36 @@ bool CartesianTrajectory::get_state(Pose                      &pose,
                                     Eigen::Matrix<double,6,1> &acc,
                                     const float               &time)
 {
-	Eigen::VectorXf position, velocity, acceleration;
-	Eigen::Quaternionf quaternion;
+	Eigen::VectorXf x(6);                                                                        // Temporary placeholder
 	
-	if(this->translationTrajectory.get_state(position,velocity,acceleration,time)
+	if(this->trajectory.get_state(x,vel,acc,time))
 	{
-		vel.head(3) = velocity;
-		acc.head(3) = acceleration;
+		Eigen::Vector3f pos       = x.head(3);                                              // Translation component
+		Eigen::Vector3f angleAxis = x.tail(3);                                              // Orientation component
+		
+		float angle = angleAxis.norm();                                                     // Get the angle component
+		
+		if(angle == 0)
+		{
+			pose = Pose(pos,Eigen::Quaternionf(1,0,0,0));
+		}
+		else
+		{
+			Eigen::Vector3 axis = angleAxis.normalized();
+			
+			pose = Pose(pos,Eigen::Quaternionf(cos(0.5*angle),
+			                                   sin(0.5*angle)*axis(0),
+			                                   sin(0.5*angle)*axis(1),
+			                                   sin(0.5*angle)*axis(2)));
+		}
+		
+		return true;
 	}
-	else	return false;
-	
-	if(this->orientationTrajectory.get_state(quaternion,velocity,acceleration,time)
+	else
 	{
-		vel.tail(3) = velocity;
-		acc.tail(3) = acceleration;
+		std::cerr << "[ERROR] [CARTESIAN TRAJECTORY] get_state(): "
+		          << "Unable to get the state for some reason.\n";
+		          
+		return false;
 	}
-	else	return false;
-	
-	pose = Pose(position,quaternion);
-	
-	return true;
 }
