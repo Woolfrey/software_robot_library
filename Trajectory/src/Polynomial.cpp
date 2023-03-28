@@ -14,32 +14,28 @@ Polynomial::Polynomial(const Eigen::VectorXf &startPoint,
                        TrajectoryBase(startTime, endTime, startPoint.size()),                       // Construct base object
                        _order(order)                                                                // Order of polynomial
 {
+	std::string errorMessage = "[ERROR] [POLYNOMIAL TRAJECTORY] Constructor: ";
+	
 	if(startPoint.size()    != endPoint.size()
 	or endPoint.size()      != startVelocity.size()
 	or startVelocity.size() != endVelocity.size())
-	{
-		auto startPointSize = std::to_string(startPoint.size());
-		auto endPointSize   = std::to_string(endPoint.size());
-		auto startVelSize   = std::to_string(startVelocity.size());
-		auto endVelSize     = std::to_string(endVelocity.size());
+	{	
+		errorMessage += "Dimensons of input arguments do not match. "
+		                "Start point had " + std::to_string(startPoint.size()) + " elements, "
+		                "end point had " + std::to_string(endPoint.size()) + " elements, "
+		                "start velocity had " + std::to_string(startVelocity.size()) + " elements, and "
+		                "end velocity had " + std::to_string(endVelocity.size()) + " elements.";
 		
-		std::string message = "[ERROR] [POLYNOMIAL TRAJECTORY] Constructor: "
-		                      "Dimensons of input arguments do not match. "
-		                      "Start point had " + startPointSize + " elements, "
-		                      "end point had " + endPointSize + " elements, "
-		                      "start velocity had " + startVelSize + " elements, and "
-		                      "end velocity had " + endVelSize + " elements.";
-		
-		throw std::runtime_error(message);
+		throw std::runtime_error(errorMessage);
 	}
 	else
 	{
 		if(not compute_coefficients(startPoint, endPoint, startVelocity, endVelocity))      // As it says on the label
 		{
-			std::string message = "[ERROR] [POLYNOMIAL TRAJECTORY] Constructor: "
-			                      "Something went wrong during the construction of this object.";
+			errorMessage += "[ERROR] [POLYNOMIAL TRAJECTORY] Constructor: "
+			                "Could not compute the polynomial coefficients.";
 			                      
-			throw std::runtime_error(message);
+			throw std::runtime_error(errorMessage);
 		}
 	}
 }
