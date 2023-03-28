@@ -25,9 +25,9 @@ class CartesianTrajectory
 	
 	private:
 		unsigned int numPoints;
+
+		CubicSpline trajectory;                                                             // This is the underlying trajectory object      
 		
-		CubicSpline translationTrajectory;
-		CubicSpline orientationTrajectory;
 };                                                                                                  // Semicolon needed after class declaration
 
 #endif
