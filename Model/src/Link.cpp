@@ -15,38 +15,37 @@ Link::Link(const Joint     &_joint,
 }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
- //                             Combine another link with this one                                //
+ //                                    Set the preceding link                                     //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-void Link::combine_link(const Link &other)
+bool Link::set_preceding_link(Link &link)
 {
-	this->_mass += other.mass();                                                                // Add the mass
-	
-	// Transform the inertia to the origin of this link
-	Pose pose = other.joint.origin();
-	Eigen::Matrix3f R = pose.quat().toRotationMatrix();
-	Eigen::Vector3f r = pose.pos();
-	Eigen::Matrix3f S; S <<   0 , -r(2),  r(1),
-	                        r(2),    0 , -r(0),
-	                       -r(1),  r(0),    0 ;
-	                       
-	this->_inertia += R*other.inertia()*R.transpose() - other.mass()*S*S;                       // From the parallel axis theorem
-}
-
-  ////////////////////////////////////////////////////////////////////////////////////////////////////
- //                               Add a proceeding link to the list                                //
-////////////////////////////////////////////////////////////////////////////////////////////////////
-bool Link::add_proceeding_link(const Link* link)
-{
-	if(link == nullptr)
+	try
 	{
-		std::cerr << "[ERROR] [LINK] add_proceeding_link(): "
-		          << "The link you are trying to add is a null pointer.\n";
+		this->_precedingLink = std::make_shared<Link>(std::move(link));
+		
+		return true;
+	}
+	catch(const std::exception &exception)
+	{
+		std::cout << exception.what() << std::endl;
 		
 		return false;
 	}
-	else
+}
+
+  ///////////////////////////////////////////////////////////////////////////////////////////////////
+ //                          Add this link to the list of proceeding links                        //
+///////////////////////////////////////////////////////////////////////////////////////////////////
+bool Link::add_proceeding_link(Link &link)
+{
+	try
 	{
-		this->proceedingLink.push_back(link);
+		this->_proceedingLink.push_back(std::make_shared<Link>(std::move(link)));
 		return true;
+	}
+	catch(const std::exception &exception)
+	{
+		std::cout << exception.what() << std::endl;
+		return false;
 	}
 }
