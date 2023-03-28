@@ -7,15 +7,16 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
 {
 	std::string errorMessage = "[ERROR] [KINEMATIC TREE] Constructor: ";
 	
+	// Check to see if the file exists
 	if(not std::ifstream(pathToURDF.c_str()))
 	{
 		errorMessage += "The file " + pathToURDF + " does not appear to exist.";
 		throw std::runtime_error(errorMessage);
 	}
 
-	tinyxml2::XMLDocument urdf;
-	urdf.LoadFile(pathToURDF.c_str());
+	tinyxml2::XMLDocument urdf; urdf.LoadFile(pathToURDF.c_str());                              // Load URDF           
 	
+	// Make sure a robot is defined
 	tinyxml2::XMLElement* robot = urdf.FirstChildElement("robot");
 	if(robot == nullptr)
 	{
@@ -23,11 +24,9 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
 		throw std::runtime_error(errorMessage);
 	}
 	
-	// Create maps so we can easily search later
+	// Search through every 'link' in the URDF and convert to RigidBody object
 	std::map<std::string, RigidBody> rigidBodyList;
-	std::map<std::string, Link>      linkList;
 	
-	// Search through every 'link' in the URDF and conver to RigidBody object
 	for(auto link = robot->FirstChildElement("link"); link; link = link->NextSiblingElement("link"))
 	{
 		// Default values
@@ -66,58 +65,70 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
 		
 		const char* name = link->Attribute("name");
 	
-		rigidBodyList.emplace(name, RigidBody(mass,momentOfInertia,centreOfMass, name)); // Add to list
+		rigidBodyList.emplace(name, RigidBody(mass,momentOfInertia,centreOfMass, name));    // Add to list
 	}
 
-	// Search through every joint
+	// Search through every joint and combine with rigid body to form a link
+	std::map<std::string, Link> linkList;                                                       // Make a map so we can search later
+	std::map<std::string, std::array<std::string,2>> connectionList;                            // Need to store connections between links
+	
 	for(auto joint = robot->FirstChildElement("joint"); joint; joint = joint->NextSiblingElement("joint"))
 	{
-		const char* jointName     = joint->Attribute("name");
-		const char* jointType     = joint->Attribute("type");
+		const char* jointName = joint->Attribute("name");                                   // As it says
 		const char* childLinkName = joint->FirstChildElement("child")->Attribute("link");
+		std::string jointType = (std::string)joint->Attribute("type");                      // Force a string so we can compare
 		
-		// Ensure that joint has a link attached
+		// Ensure that the child link exists, otherwise terminate
 		if(childLinkName == nullptr)
 		{
 			errorMessage += "The " + (std::string)jointName + " joint has no child link.";
 			throw std::runtime_error(errorMessage);
 		}
-		else
+		
+		const char* parentLinkName = joint->FirstChildElement("parent")->Attribute("link");
+		if(parentLinkName == nullptr)
 		{
-			std::cout << "The " << childLinkName << " link is attached to the " << jointName << " joint. "
-			          << "It is a " << jointType << " joint.\n";
+			errorMessage += "The " + (std::string)jointName + " joint has no parent link.";
+			throw std::runtime_error(errorMessage);
 		}
 		
-		std::string comp = jointType;                                                       // Need to force a string here for comparison
-		if(comp == "continuous" or comp == "fixed" or comp == "prismatic" or comp == "revolute")
+		// Add connected link names to a list so we can find them later
+		std::array<std::string,2> temp = {parentLinkName, childLinkName};
+		connectionList.emplace(jointName, temp);
+		
+		// Get the joint properties
+		if(jointType == "continuous"
+		or jointType == "fixed"
+		or jointType == "prismatic"
+		or jointType == "revolute")
 		{
+			// Get the pose of the joint relative to preceeding link
+			Pose origin(Eigen::Vector3f::Zero(), Eigen::Quaternionf(1,0,0,0));          // Default pose
+			tinyxml2::XMLElement* originElement = joint->FirstChildElement("origin");
+			if(originElement != nullptr)
+			{
+				Eigen::Vector3f xyz = char_to_vector3f(originElement->Attribute("xyz"));
+				Eigen::Vector3f rpy = char_to_vector3f(originElement->Attribute("rpy"));
+				
+				origin = Pose(xyz, Eigen::AngleAxisf(rpy(0),Eigen::Vector3f::UnitX())
+						  *Eigen::AngleAxisf(rpy(1),Eigen::Vector3f::UnitY())
+						  *Eigen::AngleAxisf(rpy(2),Eigen::Vector3f::UnitZ()));
+			}
+
 			// Properties to be assigned
 			float mass = 0.0;
-			Eigen::Matrix3f momentOfInertia = Eigen::Matrix3f::Zero();
-			Pose origin(Eigen::Vector3f::Zero(), Eigen::Quaternionf(1,0,0,0));
-			Eigen::Vector3f axis  = {1,0,0};
-			float positionLimit[] = {-M_PI, M_PI};
-			float velocityLimit   = 100*2*M_PI/60;
 			float forceLimit      = 10;
 			float damping         = 1.0;
 			float friction        = 0.0;
-			
-			if(comp != "fixed")
-			{				
-				// Get the pose of the joint relative to preceeding link
-				tinyxml2::XMLElement* originElement = joint->FirstChildElement("origin");
-				if(originElement != nullptr)
-				{
-					Eigen::Vector3f xyz = char_to_vector3f(originElement->Attribute("xyz"));
-					Eigen::Vector3f rpy = char_to_vector3f(originElement->Attribute("rpy"));
-					
-					origin = Pose(xyz, Eigen::AngleAxisf(rpy(0),Eigen::Vector3f::UnitX())
-							  *Eigen::AngleAxisf(rpy(1),Eigen::Vector3f::UnitY())
-							  *Eigen::AngleAxisf(rpy(2),Eigen::Vector3f::UnitZ()));
-				}
-				
-				// Get the limits
-				if(comp == "continuous")
+			float positionLimit[] = {-M_PI, M_PI};
+			float velocityLimit   = 100*2*M_PI/60;
+			Eigen::Vector3f axis  = {1,0,0};
+			Eigen::Matrix3f momentOfInertia = Eigen::Matrix3f::Zero();
+
+			if(jointType != "fixed")
+			{	
+				// Get the joint limits	
+				if(jointType == "continuous")                                       // No limits on the joints
 				{
 					float inf = std::numeric_limits<float>::infinity();
 					positionLimit[0] =-inf;
@@ -125,9 +136,8 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
 					velocityLimit    = inf;
 					forceLimit       = inf;
 				}
-				else
+				else                                                                // Obtain the joint limits
 				{
-					// Get the joint limits
 					tinyxml2::XMLElement* limit;
 					if(limit != nullptr)
 					{
@@ -152,25 +162,25 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
 			}
 			
 			// Combine the Joint with the connected RigidBody to form a Link object
-			Joint joint(jointName,jointType,axis,origin,positionLimit,velocityLimit,forceLimit,damping,friction);
-	
 			auto rigidBody = rigidBodyList.find(std::string(childLinkName));            // Get the attached rigid body
 			if(rigidBody == rigidBodyList.end())
 			{
 				errorMessage += "Could not find the rigid body object named "
 				              + (std::string)childLinkName + " in the list???";
-				
+				              
 				throw std::runtime_error(errorMessage);
 			}
 			
-			linkList.emplace(childLinkName,Link(joint,rigidBody->second));              // Add Link object to the list
-
-			rigidBodyList.erase(std::string(childLinkName));                            // Erase from the list
+			Joint j0int(jointName,jointType,axis,origin,positionLimit,velocityLimit,forceLimit,damping,friction);
+			
+			linkList.emplace(childLinkName,Link(j0int,rigidBody->second));              // Add Link object to the list
+			
+			rigidBodyList.erase(std::string(childLinkName));                            // Erase the rigid body from the list
 		}
 		else
 		{
-			errorMessage += "The " + (std::string)jointName + " joint was " + comp + " "
-			                "but the KinematicTree class can only handle continuous, "
+			errorMessage += "The " + (std::string)jointName + " joint was " + jointType +
+			                " but the KinematicTree class can only handle continuous, "
 			                "fixed, prismatic, or revolute joints.";
 			                
 			throw std::invalid_argument(errorMessage);
@@ -196,10 +206,57 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
 	// Condense the KinematicTree by adding every Link with a fixed joint to its parent
 	for(auto link = linkList.begin(); link != linkList.end(); link++)
 	{
-		// We need to:
-		// 1. Add the inertia to the parent link
-		// 2. Assign the child link frame as a reference frame in the parent link?
-		// 3. Set a new parent link for the child link
+		std::string jointName = link->second.joint.name();                                  // Get the name of the joint attached to this link
+	
+		// Find the connected links from the list
+		auto joint = connectionList.find(jointName);
+		
+		if(joint == connectionList.end())
+		{
+			errorMessage += "Could not find the " + jointName + " joint ( "
+			              + link->second.joint.type() + ") in the list.";
+			throw std::runtime_error(errorMessage);
+		}
+		
+		std::string precedingLinkName  = joint->second[0];
+		std::string proceedingLinkName = joint->second[1];
+		
+		std::cout << precedingLinkName << " <-> "
+		          << jointName << " (" << link->second.joint.type() << ") <-> "
+		          << proceedingLinkName << std::endl;
+		
+		// First add the proceeding links as references
+		auto proceedingLink = linkList.find(proceedingLinkName);
+		if(proceedingLink == linkList.end())
+		{
+			errorMessage += "Could not find the " + proceedingLinkName + " link in the list.";
+			throw std::runtime_error(errorMessage);
+		}
+		else if(not link->second.add_proceeding_link(proceedingLink->second))
+		{
+			errorMessage += "Could not add the " + proceedingLinkName + " as the proceeding link "
+			                " of the " + link->first + " link.";
+			throw std::runtime_error(errorMessage);
+		}
+		
+		// Now set the preceding link
+		auto precedingLink = linkList.find(precedingLinkName);
+		if(precedingLinkName == this->base.name())
+		{
+			// Merge these links with the base
+		}
+		else if(precedingLink == linkList.end())
+		{
+			errorMessage += "Could not find the " + precedingLinkName + " link "
+			                "for the " + jointName + " joint in the list.";
+			throw std::runtime_error(errorMessage);
+		}
+		else if(not link->second.set_preceding_link(precedingLink->second))
+		{
+			errorMessage += "Could not set the " + precedingLinkName + " as the preceding link "
+			                " of the " + link->first + " link.";
+			throw std::runtime_error(errorMessage);
+		}
 	}
 }
 
