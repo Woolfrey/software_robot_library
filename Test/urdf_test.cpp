@@ -51,12 +51,14 @@ int main(int argc, char **argv)
 	try
 	{
 		KinematicTree robot(pathToURDF);	
+		
 		return 0;
 	}
 	catch(std::exception &error)
 	{
 		std::cout << "[ERROR] [URDF TEST] There was a problem constructing the KinematicTree object. "
-		          << "See the error message below for details.\n";          
+		          << "See the error message below for details.\n";
+		                    
 		std::cout << error.what() << std::endl;
 	
 		return 1;
