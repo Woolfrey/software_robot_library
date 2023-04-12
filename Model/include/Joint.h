@@ -40,6 +40,7 @@ class Joint
 		std::string name() const { return this->_name; }
 		
 		std::string type() const { return this->_type; }
+		
 	private:
 	
 		Eigen::Vector3f _axis;                                                              // Axis of actuation for this joint
@@ -54,6 +55,7 @@ class Joint
 		
 		std::string _name;                                                                  // Unique identifier
 		std::string _type;
+
 };                                                                                                  // Semicolon needed after a class declaration
 
 #endif
