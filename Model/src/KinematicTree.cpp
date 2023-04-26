@@ -159,10 +159,10 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
 			if(temp == this->linkList.end()) throw std::runtime_error(errorMessage + "Could not find the child link in the list.");
 			
 			j0int.set_child_link(&temp->second);                                        // Set the pointer to the child link
-	
-			temp->second.attach_joint(&j0int);                                          // Reference this joint in the child link
 			
 			this->jointList.emplace(jointName, j0int);                                  // Add to the joint list
+			
+			temp->second.attach_joint(&this->jointList.at(jointName));                  // Set pointer to this joint in the child link
 		}
 		else
 		{
@@ -189,20 +189,9 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
 	// then delete  joint 'a' from the list
 	for(auto iterator = this->jointList.begin(); iterator != this->jointList.end(); iterator++)
 	{
-		/////////////////// This block of code works fine //////////////////////////////////
 		Joint *b = &iterator->second;
+		Link  *B = b->parent_link();
 		
-		Link *B = b->parent_link();
-		
-		Link *C = b->child_link();
-		
-		std::cout << B->name() << " <-- (" << b->name() << ") <-- " << C->name() << std::endl;
-		////////////////////////////////////////////////////////////////////////////////////
-		
-		
-		
-		/*
-		////////////////////// This has memory leaks //////////////////////////////////////
 		Joint *a = B->attached_joint();
 		
 		if(a != nullptr)
@@ -210,11 +199,8 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
 			Link *A = a->parent_link();
 			
 			std::cout << A->name() << " <-- (" << a->name() << ") <-- "
-			          << B->name() << " <-- (" << b->name() << ") <-- "
-			          << C->name() << std::endl;
-		}
-		///////////////////////////////////////////////////////////////////////////////////
-		*/
+			          << B->name() << " <-- (" << b->name() << ")\n";
+		}		
 	}
 	
 	std::cout << "All done.\n";
