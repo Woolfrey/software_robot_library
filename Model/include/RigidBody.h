@@ -9,22 +9,15 @@
 
 #include <Pose.h>                                                                                   // Custom class
 
+class Joint;                                                                                        // Forward declaration since RigidBody and Joint are mutually referential
+
 class RigidBody
 {
 	public:   
-		// Empty constructor, delegate default values
-		RigidBody()
-		: 
-		RigidBody(0.0,
-		          Eigen::Matrix3f::Zero(),
-		          Pose(Eigen::Vector3f::Zero(),Eigen::Quaternionf(1,0,0,0)),
-		          "unnamed") {}
-		
-		// Full constructor
+		// Constructor
 		RigidBody(const float           &mass,
 		          const Eigen::Matrix3f &inertia,
-		          const Pose            &centreOfMass,
-		          const std::string     &name);
+		          const Pose            &centreOfMass);
 		      
 		// Functions    
 		
@@ -33,19 +26,16 @@ class RigidBody
 		Eigen::Matrix3f inertia() const { return this->_inertia; }
 		
 		Eigen::Vector3f com()     const { return this->_com; }                              // Get the center of mass
-	
-		std::string name()        const { return this->_name; }
 		
 	protected:
 	          
-		Eigen::Matrix3f _inertia;
+		Eigen::Matrix3f _inertia = (Eigen::MatrixXf(3,3) << 0, 0, 0,
+		                                                    0, 0, 0,
+		                                                    0, 0, 0).finished();
 		
-		Eigen::Vector3f _com;
+		Eigen::Vector3f _com = {0,0,0};
 		
-		float _mass;
-		
-		std::string _name;
-		
+		float _mass = 0.0;
 };                                                                                                  // Semicolon needed after a class declaration
 
 #endif

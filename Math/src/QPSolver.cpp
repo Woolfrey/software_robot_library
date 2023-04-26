@@ -263,10 +263,10 @@ Eigen::VectorXf QPSolver::least_squares(const Eigen::VectorXf &y,
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //       Solve a least squares problem of the form min 0.5*(xd-x)'*W*(xd-x)  s.t. A*x = y        //
 ///////////////////////////////////////////////////////////////////////////////////////////////////                                  
-Eigen::VectorXf QPSolver::least_squares(const Eigen::VectorXf &xd,
-                                        const Eigen::MatrixXf &W,
-                                        const Eigen::VectorXf &y,
-                                        const Eigen::MatrixXf &A)
+Eigen::VectorXf QPSolver::redundant_least_squares(const Eigen::VectorXf &xd,
+                                                  const Eigen::MatrixXf &W,
+                                                  const Eigen::VectorXf &y,
+                                                  const Eigen::MatrixXf &A)
 {
 	if(W.rows() != W.cols())
 	{
@@ -328,13 +328,13 @@ Eigen::VectorXf QPSolver::least_squares(const Eigen::VectorXf &xd,
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //     Solve a problem of the form min 0.5*(xd-x)'*W*(xd-x)  s.t. A*x = y, xMin <= x <= xMax     //
 ///////////////////////////////////////////////////////////////////////////////////////////////////  
-Eigen::VectorXf QPSolver::least_squares(const Eigen::VectorXf &xd,
-                                        const Eigen::MatrixXf &W,
-                                        const Eigen::VectorXf &y,
-                                        const Eigen::MatrixXf &A,
-                                        const Eigen::VectorXf &xMin,
-                                        const Eigen::VectorXf &xMax,
-                                        const Eigen::VectorXf &x0)
+Eigen::VectorXf QPSolver::redundant_least_squares(const Eigen::VectorXf &xd,
+                                                  const Eigen::MatrixXf &W,
+                                                  const Eigen::VectorXf &y,
+                                                  const Eigen::MatrixXf &A,
+                                                  const Eigen::VectorXf &xMin,
+                                                  const Eigen::VectorXf &xMax,
+                                                  const Eigen::VectorXf &x0)
 {
 	unsigned int m = y.size();
 	unsigned int n = x0.size();

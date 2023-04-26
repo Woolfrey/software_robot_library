@@ -1,4 +1,5 @@
 #include <Joint.h>
+#include <Link.h>
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                                          Constructor                                           //
@@ -23,10 +24,6 @@ Joint::Joint(const std::string     &name,
 	     _damping(damping),
 	     _friction(friction)
 {
-	// Worker bees can leave
-	// Even drones can fly away
-	// The Queen is their slave
-	
 	// Check that the inputs are sound
 	std::string message = "[ERROR] [JOINT] Constructor: ";
 	
@@ -65,5 +62,45 @@ Joint::Joint(const std::string     &name,
 		           " but it cannot be negative.";
 		                       
 		throw std::invalid_argument(message);
+	}
+}
+
+  ///////////////////////////////////////////////////////////////////////////////////////////////////
+ //                             Set the pointer to the parent link                                //
+///////////////////////////////////////////////////////////////////////////////////////////////////
+bool Joint::set_parent_link(Link* link)
+{
+	if(link == nullptr)
+	{
+		std::cerr << "[ERROR] [JOINT] set_parent_link(): "
+		          << "Reference is a null pointer.\n";
+		
+		return false;
+	}
+	else
+	{
+		this->parentLink = link;
+		
+		return true;
+	}
+}
+ 
+  ///////////////////////////////////////////////////////////////////////////////////////////////////
+ //                            Set the pointer to the child link                                  //
+///////////////////////////////////////////////////////////////////////////////////////////////////
+bool Joint::set_child_link(Link *link)
+{
+	if(link == nullptr)
+	{
+		std::cerr << "[ERROR] [JOINT] set_child_link(): "
+		          << "Reference is a null pointer.\n";
+		
+		return false;
+	}
+	else
+	{
+		this->childLink = link;
+		
+		return true;
 	}
 }

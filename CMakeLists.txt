@@ -17,7 +17,7 @@ set(CMAKE_CXX_STANDARD 14)
 # Then run `make` as usual.
 
 if(NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE Release)
+  set(CMAKE_BUILD_TYPE Debug)
 endif()
 
 add_library(RobotLibrary INTERFACE Math Model)                                                      # Declaration of RobotLibrary

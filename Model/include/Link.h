@@ -7,33 +7,31 @@
 #ifndef LINK_H_
 #define LINK_H_
 
-#include <Joint.h>                                                                                  // Custom class
 #include <memory>                                                                                   // std::shared_ptr
 #include <RigidBody.h>                                                                              // Custom class
 
+class Joint;                                                                                        // Forward declaration
+ 
 class Link : public RigidBody
 {
 	public:
-		Link(const Joint       &_joint,
-		     const RigidBody   &rigidBody,
-		     const std::string &name);
-		     
-		Joint joint;                                                                        // The joint attached to this link
+		Link(const std::string &name,
+		     const RigidBody &rigidBody)
+		:
+		_name(name),
+		RigidBody(rigidBody) {}
 		
-		bool set_preceding_link(const std::shared_ptr<Link> link);
+		bool attach_joint(Joint *joint);
 		
-		bool add_proceeding_link(const std::shared_ptr<Link> link);
+		Joint* attached_joint() const { return this->attachedJoint; }
 		
 		std::string name() const { return this->_name; }
-	
+		     
 	private:
-	
-		std::string _name;
-	
-		std::shared_ptr<Link> _precedingLink = nullptr;
 		
-		std::vector<std::shared_ptr<Link>> _proceedingLink = {};
-
+		Joint *attachedJoint = nullptr;                                                     // Pointer to the attached joint
+		
+		std::string _name;
 };                                                                                                  // Semicolon needed at the end of class declaration
 
 #endif

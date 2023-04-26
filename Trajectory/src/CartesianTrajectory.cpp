@@ -8,10 +8,14 @@ CartesianTrajectory::CartesianTrajectory(const std::vector<Pose>  &waypoint,
                                          :
                                          numPoints(waypoint.size())
 {
+	std::string errorMessage = "[ERROR] [CARTESIAN TRAJECTORY] Constructor: ";
+	
 	if(waypoint.size() != time.size())
 	{
-		throw "[ERROR] [CARTESIAN TRAJECTORY] Length of input arguments do not match! "
-		    + "There were " + waypoint.size() + " waypoints and " + time.size() + " times.";
+		errorMessage += "Length of input arguments do not match. There were "
+		              + waypoint.size() + " waypoints and " + time.size() + " times.\n";
+		
+		throw std::logic_error(errorMessage);
 	}
 	
 	std::vector<Eigen::Matrix<double,6,1>> point;                                               // 3 for translation and 3 for orientation
@@ -38,7 +42,10 @@ CartesianTrajectory::CartesianTrajectory(const std::vector<Pose>  &waypoint,
 	catch(const std::exception &exception)
 	{
 		std::cout << exception.what() << std::endl;
-		throw std::runtime_error("[ERROR] [CARTESIAN TRAJECTORY] Constructor: Could not generate the Cartesian trajectory.");
+		
+		errorMessage += "Could not generate a trajectory.\n";
+
+		throw std::runtime_error(errorMessage);
 	}
 }
 

@@ -126,7 +126,7 @@ int main(int argc, char *argv[])
 	xd = 100*Eigen::VectorXf::Ones(n);	
 	
 	timer = clock();
-	xHat  = solver.least_squares(xd,Eigen::MatrixXf::Identity(n,n),y,A,xMin,xMax,x0);
+	xHat  = solver.redundant_least_squares(xd,Eigen::MatrixXf::Identity(n,n),y,A,xMin,xMax,x0);
 	timer = clock() - timer;
 	time  = (float)timer/CLOCKS_PER_SEC;
 	

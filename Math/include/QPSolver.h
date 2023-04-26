@@ -18,10 +18,10 @@ class QPSolver
 		                                     const Eigen::MatrixXf &A,
 		                                     const Eigen::MatrixXf &W);
 		                                     
-		static Eigen::VectorXf least_squares(const Eigen::VectorXf &xd,                     // Solve least squares with equality constraints
-		                                     const Eigen::MatrixXf &W,
-		                                     const Eigen::VectorXf &y,
-		                                     const Eigen::MatrixXf &A);
+		static Eigen::VectorXf redundant_least_squares(const Eigen::VectorXf &xd,           // Solve least squares with equality constraints
+		                                               const Eigen::MatrixXf &W,
+		                                               const Eigen::VectorXf &y,
+		                                               const Eigen::MatrixXf &A);
 		                                     
 		// These functions require an object to be created since they use the
 		// interior point solver:
@@ -38,13 +38,13 @@ class QPSolver
 		                              const Eigen::VectorXf &xMax,
 		                              const Eigen::VectorXf &x0);
 		                              
-		Eigen::VectorXf least_squares(const Eigen::VectorXf &xd,                            // Solve a constrained least squares problem
-		                              const Eigen::MatrixXf &W,
-		                              const Eigen::VectorXf &y,
-		                              const Eigen::MatrixXf &A,
-		                              const Eigen::VectorXf &xMin,
-		                              const Eigen::VectorXf &xMax,
-		                              const Eigen::VectorXf &x0);
+		Eigen::VectorXf redundant_least_squares(const Eigen::VectorXf &xd,                  // Solve a constrained least squares problem
+		                                        const Eigen::MatrixXf &W,
+		                                        const Eigen::VectorXf &y,
+		                                        const Eigen::MatrixXf &A,
+		                                        const Eigen::VectorXf &xMin,
+		                                        const Eigen::VectorXf &xMax,
+		                                        const Eigen::VectorXf &x0);
 		
 		Eigen::VectorXf last_solution() const { return this->lastSolution; }
 		

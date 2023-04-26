@@ -6,19 +6,13 @@
 KinematicTree::KinematicTree(const std::string &pathToURDF)
 {
 	// NOTE: We should probably write a "check_urdf" function to ensure it is valid
-
-	// Variables used in this scope
-	std::map<std::string, std::string> connectionMap;                                           // Store connection between links and joints
-	std::map<std::string, std::shared_ptr<Link>>    linkMap;                                    // 
-	std::map<std::string, RigidBody>                rigidBodyMap;                               // 'links' in urdf converted to RigidBody
 	
 	std::string errorMessage = "[ERROR] [KINEMATIC TREE] Constructor: ";
 	
 	// Check to see if the file exists
 	if(not std::ifstream(pathToURDF.c_str()))
 	{
-		errorMessage += "The file " + pathToURDF + " does not appear to exist.";
-		throw std::runtime_error(errorMessage);
+		throw std::runtime_error(errorMessage + "The file " + pathToURDF + " does not appear to exist.");
 	}
 
 	tinyxml2::XMLDocument urdf; urdf.LoadFile(pathToURDF.c_str());                              // Load URDF           
@@ -27,8 +21,7 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
 	tinyxml2::XMLElement* robot = urdf.FirstChildElement("robot");
 	if(robot == nullptr)
 	{
-		errorMessage += "There does not appear to be a robot element in the URDF.";
-		throw std::runtime_error(errorMessage);
+		throw std::runtime_error(errorMessage + "There does not appear to be a 'robot' element in the URDF.");
 	}
 	
 	// Search through every 'link' in the URDF and convert to RigidBody object
@@ -69,21 +62,17 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
 			}
 		}
 		
-		rigidBodyMap.emplace(linkName, RigidBody(mass,momentOfInertia,centreOfMass, linkName)); // Add to list
+		RigidBody rigidBody(mass,momentOfInertia,centreOfMass);                             // Temporary object
+		
+		this->linkList.emplace(linkName, Link(linkName, rigidBody));                        // Add to the list
 	}
 	
-	// Search through every joint and combine with rigid body to form a link
+	// Search through every joint
 	for(auto joint = robot->FirstChildElement("joint"); joint; joint = joint->NextSiblingElement("joint"))
 	{
-		std::string jointName      = joint->Attribute("name");
-		std::string jointType      = joint->Attribute("type");
-		std::string parentLinkName = joint->FirstChildElement("parent")->Attribute("link");
-		std::string childLinkName  = joint->FirstChildElement("child")->Attribute("link");
-		
-		connectionMap.emplace(jointName, parentLinkName);                                   // Store the connections so we can find them later
-		
-//		std::cout << parentLinkName << " <-> " << jointName << " (" << jointType << ") <-> " << childLinkName << std::endl;
-		
+		std::string jointName = joint->Attribute("name");
+		std::string jointType = joint->Attribute("type");
+
 		// Get the joint properties
 		if(jointType == "continuous"
 		or jointType == "fixed"
@@ -150,98 +139,76 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
 				}
 			}
 			
-			// Create the RobotLibrary::Joint object
-			Joint j0int(jointName, jointType, axis, origin, positionLimit, velocityLimit, forceLimit, damping, friction);
+			Joint j0int(jointName, jointType, axis, origin, positionLimit,
+			            velocityLimit, forceLimit, damping, friction);                  // Create Joint object
+			                                                     
+			// Find the parent link
+			std::string parentName = joint->FirstChildElement("parent")->Attribute("link"); // Get the name of the parent joint
 			
-			// Find its attached link
-			auto rigidBody = rigidBodyMap.find(childLinkName);                          // Get the attached rigid body
-			if(rigidBody == rigidBodyMap.end())
-			{
-				errorMessage += "Could not find the rigid body object named " + childLinkName + " in the list.";
-				              
-				throw std::runtime_error(errorMessage);
-			}
+			auto temp = this->linkList.find(parentName);                                // Find it in the list
 			
-			linkMap.emplace(childLinkName, std::make_shared<Link>(j0int, rigidBody->second, childLinkName)); // Add them to the map
+			if(temp == this->linkList.end()) throw std::runtime_error(errorMessage + "Could not find the parent link in the list.");
 			
-			rigidBodyMap.erase(childLinkName);                                          // Erase the rigid body from the list
+			j0int.set_parent_link(&temp->second);                                       // Set the pointer to the parent link
+			
+			// Find the child link
+			std::string childName = joint->FirstChildElement("child")->Attribute("link"); // Get the name of the child joint
+			
+			temp = this->linkList.find(childName);                                      // Find it in the list
+			
+			if(temp == this->linkList.end()) throw std::runtime_error(errorMessage + "Could not find the child link in the list.");
+			
+			j0int.set_child_link(&temp->second);                                        // Set the pointer to the child link
+	
+			temp->second.attach_joint(&j0int);                                          // Reference this joint in the child link
+			
+			this->jointList.emplace(jointName, j0int);                                  // Add to the joint list
 		}
 		else
 		{
-			errorMessage += "The " + jointName + " joint was " + jointType +
-			                " but the KinematicTree class can only handle continuous, "
-			                "fixed, prismatic, or revolute joints.";
+			errorMessage += "The " + jointName + " joint was " + jointType + " but "
+			              + "RobotLibrary::KinematicTree can only handle continuous, "
+			              + "fixed, prismatic, or revolute joints.";
 			                
 			throw std::invalid_argument(errorMessage);
 		}
 	}
-		
+	
 	// Find the base
-	if(rigidBodyMap.size() != 1)
+	for(auto iterator = this->linkList.begin(); iterator != this->linkList.end(); iterator++)
 	{
-		errorMessage += "There is more than 1 rigid body without a joint attached:\n";
-		for(auto iterator = rigidBodyMap.begin(); iterator != rigidBodyMap.end(); iterator++)
+		if(iterator->second.attached_joint() == nullptr)
 		{
-			errorMessage += iterator->first + "\n";
+			std::cout << "I believe that '" << iterator->first << "' is the base.\n";
 		}
-		throw std::runtime_error(errorMessage);
-	}
-	else
-	{
-		this->base = rigidBodyMap.begin()->second;
-		
-		std::cout << "I believe that '" << this->base.name() << "' is the base.\n";
 	}
 	
-	// Assign pointers based on link connections and condense all fixed joints
-	for(auto link = linkMap.begin(); link != linkMap.end(); link++)
+	// For a sequence of links and joints  A <-- a <-- B <-- b
+	// if joint 'a' is fixed, merge link 'B' in to link 'A',
+	// update the origin of joint 'b' relative to 'A',
+	// then delete  joint 'a' from the list
+	for(auto iterator = this->jointList.begin(); iterator != this->jointList.end(); iterator++)
 	{
-		std::string jointName = link->second->joint.name();
-		std::string jointType = link->second->joint.type();
+		Joint *b = &iterator->second;                                                         // Current joint
 		
-		// Find the preceding link from the connection map
-		auto connection = connectionMap.find(jointName);
-	 	if(connection == connectionMap.end())
-	 	{
-	 		errorMessage += "Could not find " + jointName + " in the connection map.";
-	 		
-	 		throw std::runtime_error(errorMessage);
-	 	}
-
-		std::string precedingLinkName  = connection->second;      
-
-		// Assign the preceding link as a pointer
-		auto precedingLink = linkMap.find(precedingLinkName);
-		if(precedingLinkName != this->base.name())
+		Link  *B = b->parent_link();                                                          // Parent link of joint B
+	
+		std::cout << B->name() << " <-- (" << b->name() << ")\n";
+	
+		Joint *a = B->attached_joint();
+		
+		// This is giving memory leaks:
+		if(a != nullptr)
 		{
-			if(precedingLink == linkMap.end())
-			{
-				errorMessage += "Could not find " + precedingLinkName + " in the link map.";
-				
-				throw std::runtime_error(errorMessage);
-			}
+			Link *A = a->parent_link();
 			
-			if(not link->second->set_preceding_link(precedingLink->second))             // Set the pointer to the preceding link
-			{
-				std::cerr << "[ERROR] [KINEMATIC TREE] Constructor() : "
-				          << " Could not set preceding link.\n";
-			}
-			
-			precedingLink->second->add_proceeding_link(link->second);                   // Make this link a proceeding link of its predecessor
+			std::cout << A->name() << " <-- ("
+			          << a->name() << ") <-- "
+			          << B->name() << " <-- ("
+			          << b->name() << ")\n";
 		}
 		
-		// Now merge all links with fixed joints to the predecessor
-		if(link->second->joint.type() == "fixed")
-		{
-			if(precedingLinkName == this->base.name())
-			{
-				
-			}
-			else
-			{
-				
-			}
-		}
+//		 std::cout << b->parent_link()->name() << " <-- (" << b->name() << ") <-- " << b->child_link()->name() << std::endl;
 	}
 	
 	std::cout << "All done.\n";

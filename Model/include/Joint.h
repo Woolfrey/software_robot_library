@@ -10,6 +10,7 @@
 #include <Pose.h>
 #include <vector>
 
+class Link;                                                                                         // Forward declaration since Joint and RigidBody are mutually referential
 
 class Joint
 {
@@ -34,28 +35,44 @@ class Joint
 		      const float           &friction);
 		
 		// Functions
-		
-		Pose origin()      const { return this->_origin; }                                  // Joint pose relative to preceeding link
+				
+		Pose origin() const { return this->_origin; }                                       // Joint pose relative to its parent link
 	
-		std::string name() const { return this->_name; }
+		Link* parent_link() const { return this->parentLink; }                              // Get the pointer to parent link
+		
+		Link* child_link() const { return this->childLink; }                                // Get pointer to child link
+		
+		bool set_child_link(Link* link);
+		
+		bool set_parent_link(Link* link);
 		
 		std::string type() const { return this->_type; }
+		
+		std::string name() const { return this->_name; }
 		
 	private:
 	
 		Eigen::Vector3f _axis;                                                              // Axis of actuation for this joint
 
 		float _positionLimit[2];
+		
 		float _velocityLimit;
+		
 		float _forceLimit;
+		
 		float _damping;
+		
 		float _friction;
 		
 		Pose _origin;                                                                       // Origin relative to preceding link
 		
-		std::string _name;                                                                  // Unique identifier
 		std::string _type;
-
+		
+		std::string _name;
+		
+		Link* childLink = nullptr;
+		
+		Link* parentLink = nullptr;
 };                                                                                                  // Semicolon needed after a class declaration
 
 #endif

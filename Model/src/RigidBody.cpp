@@ -1,3 +1,4 @@
+#include <Joint.h>
 #include <RigidBody.h>
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -5,11 +6,9 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 RigidBody::RigidBody(const float           &mass,
                      const Eigen::Matrix3f &inertia,
-                     const Pose            &centreOfMass,
-                     const std::string     &name)
+                     const Pose            &centreOfMass)
                      :
                      _mass(mass),
-                     _name(name),
                      _com(centreOfMass.pos())
 {	
 	std::string message = "[ERROR] [RIGID BODY] Constructor: ";
@@ -20,7 +19,7 @@ RigidBody::RigidBody(const float           &mass,
 	}
 	else if((inertia - inertia.transpose()).norm() > 1e-04)
 	{
-		throw std::invalid_argument(message + "Moment of inertia was not symmetric.");
+		throw std::invalid_argument(message + "Moment of inertia does not appear to be symmetric.");
 	}
 	else
 	{

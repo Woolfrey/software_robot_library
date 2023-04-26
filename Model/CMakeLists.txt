@@ -6,7 +6,7 @@ find_package(Eigen3 REQUIRED)                                                   
 
 include_directories(${EIGEN3_INCLUDE_DIRS})
 
-add_library(Model SHARED src/Joint.cpp src/KinematicTree.cpp src/Link.cpp src/Pose.cpp src/RigidBody.cpp src/tinyxml2.cpp)
+add_library(Model SHARED src/Joint.cpp src/Link.cpp src/KinematicTree.cpp src/Pose.cpp src/RigidBody.cpp src/tinyxml2.cpp)
 
 target_include_directories(Model
     PUBLIC 
