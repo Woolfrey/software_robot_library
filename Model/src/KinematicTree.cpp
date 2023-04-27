@@ -24,7 +24,7 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
 		throw std::runtime_error(errorMessage + "There does not appear to be a 'robot' element in the URDF.");
 	}
 	
-	// Search through every 'link' in the URDF and convert to RigidBody object
+	// Search through every link in the urdf and conver to RobotLibrary::Link object
 	for(auto link = robot->FirstChildElement("link"); link; link = link->NextSiblingElement("link"))
 	{
 		// Default properties
@@ -141,7 +141,9 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
 			
 			Joint j0int(jointName, jointType, axis, origin, positionLimit,
 			            velocityLimit, forceLimit, damping, friction);                  // Create Joint object
-			                                                     
+			            
+			this->jointList.emplace(jointName, j0int);                                  // Add to the list
+			
 			// Find the parent link
 			std::string parentName = joint->FirstChildElement("parent")->Attribute("link"); // Get the name of the parent joint
 			
@@ -149,7 +151,7 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
 			
 			if(temp == this->linkList.end()) throw std::runtime_error(errorMessage + "Could not find the parent link in the list.");
 			
-			j0int.set_parent_link(&temp->second);                                       // Set the pointer to the parent link
+			this->jointList.at(jointName).set_parent_link(&temp->second);               // Set the pointer to the parent link
 			
 			// Find the child link
 			std::string childName = joint->FirstChildElement("child")->Attribute("link"); // Get the name of the child joint
@@ -158,11 +160,7 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
 			
 			if(temp == this->linkList.end()) throw std::runtime_error(errorMessage + "Could not find the child link in the list.");
 			
-			j0int.set_child_link(&temp->second);                                        // Set the pointer to the child link
-			
-			this->jointList.emplace(jointName, j0int);                                  // Add to the joint list
-			
-			temp->second.attach_joint(&this->jointList.at(jointName));                  // Set pointer to this joint in the child link
+			this->jointList.at(jointName).set_child_link(&temp->second);                // Set pointer to child link
 		}
 		else
 		{
@@ -174,36 +172,103 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
 		}
 	}
 	
-	// Find the base
-	for(auto iterator = this->linkList.begin(); iterator != this->linkList.end(); iterator++)
-	{
-		if(iterator->second.attached_joint() == nullptr)
-		{
-			std::cout << "I believe that '" << iterator->first << "' is the base.\n";
-		}
-	}
-	
-	// For a sequence of links and joints  A <-- a <-- B <-- b
-	// if joint 'a' is fixed, merge link 'B' in to link 'A',
-	// update the origin of joint 'b' relative to 'A',
-	// then delete  joint 'a' from the list
+	std::cout << "There are " << this->jointList.size() << " joints and " << this->linkList.size() << " links.\n";
+
+	// FIRST PASS: For a sequence of links and joints A <-- a <-- B <-- b
+	// If joint 'a' is fixed:
+	// - Merge link 'B' in to link 'A'
+	// - Update the joint origin of 'b' relative to 'A'
+	// So the new sequence is (A+B) <-- b
+	// At the same time, assign the base link
 	for(auto iterator = this->jointList.begin(); iterator != this->jointList.end(); iterator++)
 	{
-		Joint *b = &iterator->second;
-		Link  *B = b->parent_link();
+		Joint *b = &iterator->second;                                                       // This current joint
+		Link  *B = b->parent_link();                                                        // The parent link
+		Joint *a = B->attached_joint();                                                     // The joint attached to the parent
 		
-		Joint *a = B->attached_joint();
-		
-		if(a != nullptr)
+		if(a == nullptr) 								    // Link B must be the base since it has no preceding joint
 		{
-			Link *A = a->parent_link();
-			
-			std::cout << A->name() << " <-- (" << a->name() << ") <-- "
-			          << B->name() << " <-- (" << b->name() << ")\n";
-		}		
+			if(this->baseLink == nullptr) this->baseLink = B;                           // Pointer to the base
+			else if(this->baseLink->name() != B->name())
+			{
+				throw std::runtime_error(errorMessage + "More than one base link candidate. The current base link is " + this->baseLink->name() + ", but also found " + B->name() + ".");
+			}
+		}
+		else
+		{
+			if(std::string(a->type()) == "fixed")
+			{
+				Link *A = a->parent_link();                                         // Parent of joint A
+				
+				std::cout << "The " << B->name() << " link needs to be merged with the "
+				          << A->name() << " link.\n";
+				          
+				A->merge(B);                                                        // Merge the links
+				
+				b->set_parent_link(A);                                              // Set Link 'A' as the new parent of joint 'b'
+				
+				Pose temp = a->origin();
+				
+				b->offset_origin(temp);                                             // Offset the origin of joint 'b' relative to link 'A"
+				
+				this->jointList.erase(a->name());                                   // Remove joint 'a' from the list
+				
+				this->linkList.erase(B->name());                                    // Erase link 'B' from the list
+			}
+		}	
 	}
 	
+	std::cout << "There are now " << this->jointList.size() << " joints and " << this->linkList.size() << " links.\n";
+	
+	// SECOND PASS: Merge all links with fixed joints A <-- a <-- B
+	// (assuming tree does not extend beyong B)
+	// At the same time, list joints attached to the base link
+	for(auto iterator = this->jointList.begin(); iterator != this->jointList.end(); iterator++)
+	{
+		Joint *a = &iterator->second;                                                       // Get as a pointer
+		
+		Link *A = a->parent_link();
+		
+		Link *B = a->child_link();
+		
+		if(std::string(a->type()) == "fixed")
+		{
+			
+			std::cout << B->name() << " needs to be merged in to " << A->name() << std::endl;
+			
+			A->merge(B);
+			
+			this->linkList.erase(B->name());
+			
+			// this->jointList.erase(a->name()); // THIS CAUSES  A SEGMENTATION FAULT???
+		}
+	}                                
+	
+	std::cout << "I believe '" << this->baseLink->name() << "' is the base link.\n";
+
 	std::cout << "All done.\n";
+}
+
+  ///////////////////////////////////////////////////////////////////////////////////////////////////
+ //                              Update the kinematics and dynamics                               //        
+///////////////////////////////////////////////////////////////////////////////////////////////////
+bool KinematicTree::update_state(const Eigen::VectorXf &jointPos,
+                                 const Eigen::VectorXf &jointVel,
+                                 const Pose &basePose,
+                                 const Eigen::Matrix<float,6,1> &baseTwist)
+{
+	if(jointPos.size() != this->numJoints
+	or jointVel.size() != this->numJoints)
+	{
+		std::cerr << "[ERROR] [KINEMATIC TREE] update_state(): "
+		          << "This model has " << this->numJoints << " joints, but "
+		          << "the joint position argument had " << jointPos.size() << " elements, "
+		          << "and the joint velocity argument had " << jointVel.size() << " element.\n";
+		
+		return false;
+	}
+	
+	return true;
 }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
