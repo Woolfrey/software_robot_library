@@ -35,20 +35,22 @@ class Joint
 		      const float           &friction);
 		
 		// Functions
-				
-		Pose origin() const { return this->_origin; }                                       // Joint pose relative to its parent link
+	
+		bool set_child_link(Link* link);                                                    // Set pointer to child link
+		
+		bool set_parent_link(Link* link);                                                   // Set pointer to parent link
 	
 		Link* parent_link() const { return this->parentLink; }                              // Get the pointer to parent link
 		
 		Link* child_link() const { return this->childLink; }                                // Get pointer to child link
 		
-		bool set_child_link(Link* link);
-		
-		bool set_parent_link(Link* link);
+		Pose origin() const { return this->_origin; }                                       // Joint pose relative to its parent link
 		
 		std::string type() const { return this->_type; }
 		
 		std::string name() const { return this->_name; }
+		
+		void offset_origin(Pose &offset) { this->_origin = offset*this->_origin; }
 		
 	private:
 	
