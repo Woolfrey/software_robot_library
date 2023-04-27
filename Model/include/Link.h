@@ -21,11 +21,13 @@ class Link : public RigidBody
 		_name(name),
 		RigidBody(rigidBody) {}
 		
-		bool attach_joint(Joint *joint);
+		bool merge(const Link *other);                                                      // Merge the properties of the other link with this one
 		
-		Joint* attached_joint() const { return this->attachedJoint; }
+		bool attach_joint(Joint *joint);                                                    // Specify a pointer to the preceding joint
 		
-		std::string name() const { return this->_name; }
+		Joint* attached_joint() const { return this->attachedJoint; }                       // Get the pointer to the joint
+		
+		std::string name() const { return this->_name; }                                    // Return the name of this link
 		     
 	private:
 		
