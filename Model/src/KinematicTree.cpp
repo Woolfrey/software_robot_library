@@ -172,13 +172,10 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
 		}
 	}
 	
-	std::cout << "There are " << this->jointList.size() << " joints and " << this->linkList.size() << " links.\n";
+	int previousNumJoints = this->jointList.size();
 
 	// FIRST PASS: For a sequence of links and joints A <-- a <-- B <-- b
-	// If joint 'a' is fixed:
-	// - Merge link 'B' in to link 'A'
-	// - Update the joint origin of 'b' relative to 'A'
-	// So the new sequence is (A+B) <-- b
+	// If joint 'a' is fixed, combine links so we have (A + B) <-- b
 	// At the same time, assign the base link
 	for(auto iterator = this->jointList.begin(); iterator != this->jointList.end(); iterator++)
 	{
@@ -188,21 +185,15 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
 		
 		if(a == nullptr) 								    // Link B must be the base since it has no preceding joint
 		{
-			if(this->baseLink == nullptr) this->baseLink = B;                           // Pointer to the base
-			else if(this->baseLink->name() != B->name())
-			{
-				throw std::runtime_error(errorMessage + "More than one base link candidate. The current base link is " + this->baseLink->name() + ", but also found " + B->name() + ".");
-			}
+			if(this->base == nullptr) this->base = B;                                   // Pointer to the base
+			else if(this->base->name() != B->name()) throw std::runtime_error(errorMessage + "More than one base link candidate. The current base link is " + this->base->name() + ", but also found " + B->name() + ".");
 		}
 		else
 		{
 			if(std::string(a->type()) == "fixed")
 			{
 				Link *A = a->parent_link();                                         // Parent of joint A
-				
-				std::cout << "The " << B->name() << " link needs to be merged with the "
-				          << A->name() << " link.\n";
-				          
+				     
 				A->merge(B);                                                        // Merge the links
 				
 				b->set_parent_link(A);                                              // Set Link 'A' as the new parent of joint 'b'
@@ -218,12 +209,9 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
 		}	
 	}
 	
-	std::cout << "There are now " << this->jointList.size() << " joints and " << this->linkList.size() << " links.\n";
-	
-	// SECOND PASS: Merge all links with fixed joints A <-- a <-- B
-	// (assuming tree does not extend beyong B)
+	// SECOND PASS: Merge all links with fixed joints A <-- a <-- B (assuming tree does not extend beyong B)
 	// At the same time, list joints attached to the base link
-	for(auto iterator = this->jointList.begin(); iterator != this->jointList.end(); iterator++)
+	for(auto iterator = this->jointList.begin(); iterator != this->jointList.end();)
 	{
 		Joint *a = &iterator->second;                                                       // Get as a pointer
 		
@@ -232,21 +220,39 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
 		Link *B = a->child_link();
 		
 		if(std::string(a->type()) == "fixed")
-		{
-			
-			std::cout << B->name() << " needs to be merged in to " << A->name() << std::endl;
-			
+		{	
 			A->merge(B);
-			
+		
 			this->linkList.erase(B->name());
 			
-			// this->jointList.erase(a->name()); // THIS CAUSES  A SEGMENTATION FAULT???
+			iterator++;                                                                 // Need to iterate BEFORE erasing or we'll get a segmentation fault
+			
+			this->jointList.erase(a->name());
 		}
-	}                                
+		else	iterator++;
+	}
 	
-	std::cout << "I believe '" << this->baseLink->name() << "' is the base link.\n";
-
-	std::cout << "All done.\n";
+	// Now connect the links so we can traverse the kinematic tree
+	// (There's probably a smarter way to put this in the above code but I'm tired)
+	for(auto iterator = this->jointList.begin(); iterator != this->jointList.end(); iterator++)
+	{
+		Joint *joint = &iterator->second;                                                    // Makes things a little easier
+		
+		Link *parentLink = joint->parent_link();
+		
+		Link *childLink  = joint->child_link();
+		
+		parentLink->add_next_link(childLink);
+		
+		childLink->set_previous_link(parentLink);
+	}
+	
+	this->numJoints = this->jointList.size();
+		
+	this->_name    = robot->Attribute("name");
+	
+	std::cout << "[INFO] [KINEMATIC TREE] Successfully parsed the `" << this->_name << "' model from the URDF. "
+	          << "There are are " << this->numJoints << " joints (reduced from " << previousNumJoints << ").\n";
 }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -267,6 +273,8 @@ bool KinematicTree::update_state(const Eigen::VectorXf &jointPos,
 		
 		return false;
 	}
+	
+	
 	
 	return true;
 }
