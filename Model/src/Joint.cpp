@@ -102,7 +102,7 @@ bool Joint::set_child_link(Link *link)
 		this->childLink = link;                                                             // Set pointer to child
 		
 		link->attach_joint(this);                                                           // Add pointer to this object in the link
-		
+
 		return true;
 	}
 }
