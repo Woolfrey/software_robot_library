@@ -29,6 +29,8 @@ class KinematicTree
 		                  const Pose                     &basePose,
 		                  const Eigen::Matrix<float,6,1> &baseTwist);
 		                  
+		std::string name() const { return this->_name; }
+		                  
 	private:
 		
 		int numJoints;
@@ -39,11 +41,13 @@ class KinematicTree
 		
 		Eigen::Vector3f char_to_vector3f(const char* character);                            // Used to parse urdf properties
 		
-		Link* baseLink;                                                                     // Pointer to the base of the tree
+		Link* base;                                                                         // Pointer to the base of the tree
 		
 		Pose _basePose;
 
 		Eigen::Matrix<float,6,1> _baseTwist;
+
+		std::string _name;
 };                                                                                                  // Semicolon needed after class declarations
 
 #endif
