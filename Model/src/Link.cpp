@@ -2,7 +2,7 @@
 #include <Link.h>
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
- //                                    Set the preceding link                                     //
+ //                      Assign pointer to the joint attached to this link                        //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 bool Link::attach_joint(Joint *joint)
 {
@@ -19,11 +19,49 @@ bool Link::attach_joint(Joint *joint)
 		return true;
 	}
 }
+
+  ///////////////////////////////////////////////////////////////////////////////////////////////////
+ //                   Assign pointer to the previous link in the kinematic chain                  //
+///////////////////////////////////////////////////////////////////////////////////////////////////
+bool Link::set_previous_link(Link *link)
+{
+	if(link == nullptr)
+	{
+		std::cerr << "[ERROR] [LINK] set_previous_link(): Input was a null pointer.\n";
+		
+		return false;
+	}
+	else
+	{
+		this->previousLink = link;
+		
+		return true;
+	}
+}
+  ///////////////////////////////////////////////////////////////////////////////////////////////////
+ //                    Add a pointer to a proceeding link in the kinematic chain                  //
+///////////////////////////////////////////////////////////////////////////////////////////////////
+bool Link::add_next_link(Link *link)
+{
+	if(link == nullptr)
+	{
+		std::cerr << "[ERROR] [LINK] add_next_link(): Input was a null pointer.\n";
+		
+		return false;
+	}
+	else
+	{
+		this->nextLinks.push_back(link);
+		
+		return true;
+	}
+}
+
   
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                              Merge another link with this one                                  //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-bool Link::merge(const Link *other)
+bool Link::merge(Link *other)
 {
 	if(other == nullptr)
 	{
@@ -53,3 +91,4 @@ bool Link::merge(const Link *other)
 		return true;
 	}
 }
+
