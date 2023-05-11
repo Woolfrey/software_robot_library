@@ -8,6 +8,7 @@
 #define CARTESIANTRAJECTORY_H_
 
 #include <CubicSpline.h>                                                                            // Custom trajectory class
+#include "Pose.h"
 
 class CartesianTrajectory
 {
@@ -19,8 +20,8 @@ class CartesianTrajectory
 		                    const std::vector<float> &time);
 		                    
 		bool get_state(Pose                      &pose,
-			       Eigen::Matrix<double,6,1> &vel,
-			       Eigen::Matrix<double,6,1> &acc,
+			       Eigen::Matrix<float,6,1> &vel,
+			       Eigen::Matrix<float,6,1> &acc,
 			       const float               &time);
 	
 	private:
