@@ -11,5 +11,3 @@ target_include_directories(Math
 	PRIVATE
 		${CMAKE_CURRENT_SOURCE_DIR}/src                                                     # Location of source files
 )
-
-target_link_libraries(Math)                                                                        # Specify dependent libraries here
