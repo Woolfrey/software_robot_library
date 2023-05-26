@@ -273,8 +273,33 @@ bool KinematicTree::update_state(const Eigen::VectorXf &jointPos,
 		
 		return false;
 	}
+
+	// If we use pointers here, all the Link and Joint objects are updated
+	// this->q    = jointPos;
+	// this->qdot = jointVel;
 	
+	std::vector<Link*> candidateList = this->base->next_links();
 	
+	std::cout << "\nTraversing the kinematic tree...\n";
+	
+	Link *lastLink = this->base;
+	
+	while(candidateList.size() > 0)
+	{
+		Link *currentLink = candidateList.back();                                           // Get the link at the end of the list
+		
+		Joint *joint = currentLink->attached_joint();
+		
+		
+		candidateList.pop_back();                                                           // Remove it from the list
+		
+		std::vector<Link*> temp = currentLink->next_links();                                // Get the links following this one
+		
+		if(temp.size() != 0) candidateList.insert(candidateList.end(), temp.begin(), temp.end()); // Add them to the search list
+	
+		std::cout << "This is the " << currentLink->name() << " link.\n";
+		
+	}
 	
 	return true;
 }
