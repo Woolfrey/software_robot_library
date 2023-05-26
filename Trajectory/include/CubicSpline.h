@@ -19,6 +19,9 @@ class CubicSpline
 		CubicSpline(const std::vector<Eigen::VectorXf> &waypoint,
 			    const std::vector<float> &time);
 
+        CubicSpline(const std::vector<Eigen::Matrix<float,6,1>> &waypoint,
+                const std::vector<float> &time);
+
 		bool get_state(Eigen::VectorXf &pos,
 			       Eigen::VectorXf &vel,
 			       Eigen::VectorXf &acc,

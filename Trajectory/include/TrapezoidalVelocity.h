@@ -8,8 +8,9 @@
 #define TRAPEZOIDAL_VELOCITY_H_
 
 #include <Eigen/Geometry>                                                                           // Eigen::Vector, Eigen::Matrix, Eigen::Quaternion
+#include "TrajectoryBase.h"
 
-class TrapezoidalVelocity : public TrajectoryBase;
+class TrapezoidalVelocity : public TrajectoryBase
 {
 	public:
 		// Empty constructor

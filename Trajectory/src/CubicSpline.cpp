@@ -31,7 +31,7 @@ CubicSpline::CubicSpline(const std::vector<Eigen::VectorXf> &waypoint,
 			                "is equal to time of " + std::to_string(time[i+1]) + " for waypoint " + std::to_string(i+1) + ". "
 			                "You cannot teleport between places in zero time.";
 			                      
-			throw std::logic_error(message);
+			throw std::logic_error(errorMessage);
 		}
 		else if(time[i] > time[i+1])
 		{
@@ -40,7 +40,7 @@ CubicSpline::CubicSpline(const std::vector<Eigen::VectorXf> &waypoint,
 			                "waypoint " + std::to_string(i+1) + " was " + std::to_string(time[i+1]) + " seconds. "
 			                "The arrow of time only moves in one direction.";
 			                      
-			throw std::logic_error(message);
+			throw std::logic_error(errorMessage);
 		}
 	}
 	
@@ -80,6 +80,28 @@ CubicSpline::CubicSpline(const std::vector<Eigen::VectorXf> &waypoint,
 			throw std::runtime_error("[ERROR] [CUBIC SPLINE] Constructor: Could not generate the spline.");
 		}
 	}
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+//                           Constructor for spline over real numbers                             //
+////////////////////////////////////////////////////////////////////////////////////////////////////
+CubicSpline::CubicSpline(const std::vector<Eigen::Matrix<float,6,1>> &waypoint,
+                         const std::vector<float> &time)
+        :
+        dimensions(waypoint[0].size()),
+        numPoints(waypoint.size()),                                                // Assign the number of waypoints
+        _time(time)
+{
+    std::vector<Eigen::VectorXf> waypoint_temp;
+
+    for (const auto & i : waypoint)
+    {
+        waypoint_temp.emplace_back(i);
+    }
+
+    CubicSpline cs(waypoint_temp,time);
+    this->spline = cs.spline;
 }
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////

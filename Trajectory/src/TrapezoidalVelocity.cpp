@@ -9,7 +9,7 @@ TrapezoidalVelocity::TrapezoidalVelocity(const Eigen::VectorXf &startPoint,
                                          const float           &velocity,
                                          const float           &acceleration)
                                          :
-                                         TrajectoryBase(startTime,endTime,dimensions),
+                                         TrajectoryBase(_startTime,_endTime,dimensions),
                                          maxVel(velocity),
                                          maxAcc(acceleration)
                                          
@@ -25,5 +25,5 @@ bool TrapezoidalVelocity::get_state(Eigen::VectorXf &pos,
                                     Eigen::VectorXf &acc,
                                     const float     &time)
 {
-
+    return true;
 }
