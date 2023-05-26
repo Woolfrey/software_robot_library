@@ -13,7 +13,7 @@ bool qr_decomposition(const Eigen::MatrixXf &A,
 	
 	if(m < n)
 	{
-		std::cerr << "[ERROR] qr_decomp() "
+		std::cerr << "[ERROR] qr_decomposition() "
 		          << "Matrix A has " << A.rows() << " rows which is less than its "
 		          << A.cols() << " columns. Cannot solve the QR decomposition." << std::endl;
 		
@@ -46,10 +46,47 @@ bool qr_decomposition(const Eigen::MatrixXf &A,
 			
 			R(j,j) = Q.col(j).norm();
 			
-			if(abs(R(j,j)) > 1E-6) Q.col(j) /= R(j,j);
-			else                   Q.col(j).setZero();
+			
+			if(abs(R(j,j)) > 1E-07) Q.col(j) /= R(j,j);
+			else                    Q.col(j).setZero();
 		}
 		
 		return true;
 	}
 }
+ 
+  ///////////////////////////////////////////////////////////////////////////////////////////////////
+ //                     Find the null space of an upper-right triangular matrix                   //
+///////////////////////////////////////////////////////////////////////////////////////////////////
+Eigen::MatrixXf triangular_null_space(const Eigen::MatrixXf &U)
+{
+	if(U.rows() != U.cols())
+	{
+		std::cerr << "[ERROR] triangular_null_space(): Expected a square matrix, but the "
+		          << "input was " << U.rows() << "x" << U.cols() << ".\n";
+		
+		return Eigen::MatrixXf::Zero(U.rows(),U.cols());
+	}
+	else
+	{
+		unsigned int n = U.rows();
+		
+		Eigen::MatrixXf N(n,n); N.setZero();                                                // Value to be returned
+		
+		for(int i = n-1; i >= 0; i--)                                                       // Work from last value up
+		{
+			for(int k = 0; k < n; k++)                                                  // Solve every column of N
+			{
+				float sum = 0.0;
+				
+				for(int j = n-1; j > i; j--) sum += U(i,j)*N(j,k);
+				
+				if(abs(U(i,i)) < 1e-07) N(i,k) = 1;                                 // Trivial
+				else                    N(i,k) = -sum/U(i,i);
+			}
+		}
+		
+		return N;
+	}
+}
+
