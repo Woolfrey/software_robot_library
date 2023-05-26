@@ -252,7 +252,7 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
 	this->_name    = robot->Attribute("name");
 	
 	std::cout << "[INFO] [KINEMATIC TREE] Successfully parsed the `" << this->_name << "' model from the URDF. "
-	          << "There are are " << this->numJoints << " joints (reduced from " << previousNumJoints << ").\n";
+	          << "There are " << this->numJoints << " joints (reduced from " << previousNumJoints << ").\n";
 }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
