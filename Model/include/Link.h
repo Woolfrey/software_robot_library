@@ -36,7 +36,8 @@ class Link : public RigidBody
 		std::vector<Link*> next_links() const { return this->nextLinks; }
 		
 		std::string name() const { return this->_name; }                                    // Return the name of this link
-		     
+		
+		
 	private:
 		
 		Joint *attachedJoint = nullptr;                                                     // Pointer to the attached joint
