@@ -30,10 +30,14 @@ class KinematicTree
 		                  const Eigen::Matrix<float,6,1> &baseTwist);
 		                  
 		std::string name() const { return this->_name; }
+		
+		int number_of_joints() const { return this->numJoints; }
 		                  
 	private:
 		
 		int numJoints;
+		
+		Eigen::VectorXf q, qdot;                                                            // Joint positions and velocities
 
 		std::map<std::string, Joint> jointList;
 		
@@ -41,7 +45,7 @@ class KinematicTree
 		
 		Eigen::Vector3f char_to_vector3f(const char* character);                            // Used to parse urdf properties
 		
-		Link* base;                                                                         // Pointer to the base of the tree
+		Link* base = nullptr;                                                               // Pointer to the base of the tree
 		
 		Pose _basePose;
 
