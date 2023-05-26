@@ -23,3 +23,7 @@ target_link_libraries(qp_test RobotLibrary)
 add_executable(urdf_test urdf_test.cpp)
 add_dependencies(urdf_test RobotLibrary)
 target_link_libraries(urdf_test RobotLibrary tinyxml2)
+
+add_executable(qr_test qr_test.cpp)
+add_dependencies(qr_test RobotLibrary)
+target_link_libraries(qr_test RobotLibrary)
