@@ -56,6 +56,10 @@ class Joint
 	
 		Eigen::Vector3f _axis;                                                              // Axis of actuation for this joint
 
+		float _position = 0;
+		
+		float _velocity = 0;
+
 		float _positionLimit[2];
 		
 		float _velocityLimit;
