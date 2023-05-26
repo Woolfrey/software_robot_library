@@ -50,7 +50,15 @@ int main(int argc, char **argv)
 	
 	try
 	{
-		KinematicTree robot(pathToURDF);	
+		KinematicTree model(pathToURDF);
+		
+		int numJoints = model.number_of_joints();
+		
+		if(not model.update_state(Eigen::VectorXf::Zero(numJoints),
+		                          Eigen::VectorXf::Zero(numJoints)))
+		{
+			std::cout << "[ERROR] [URDF TEST] Couldn't update the state for some reason.\n";
+		}
 		
 		return 0;
 	}
