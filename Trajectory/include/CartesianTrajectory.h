@@ -20,8 +20,8 @@ class CartesianTrajectory
 		                    const std::vector<float> &time);
 		                    
 		bool get_state(Pose                      &pose,
-			       Eigen::Matrix<float,6,1> &vel,
-			       Eigen::Matrix<float,6,1> &acc,
+			       Eigen::Matrix<float,6,1>  &vel,
+			       Eigen::Matrix<float,6,1>  &acc,
 			       const float               &time);
 	
 	private:

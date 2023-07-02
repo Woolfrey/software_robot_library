@@ -1,0 +1,17 @@
+THINGS TO DO:
+
+1. Convert center of mass (c.o.m.) POSE to c.o.m. position vector (rotate inertia before discarding orientation) X
+2. Combine inertia for merged links using parallel axis theorem X
+3. Convert frames (joint, c.o.m.) of merged links to reference frames (return pointer to a pose?)
+4. Number joints
+5. Compute forward kinematics
+	a) base pose * joint offset (if attached to base)
+	b) previous joint pose * joint offset (if not attached to base)
+	c) angular velocity = previous angular velocity + joint contribution
+6. Compute inverse dynamics
+	a) Transform c.o.m. to base frame
+	b) Compute Jacobian to c.o.m.
+	c) Compute time derivative of Jacobian
+	d) Sum up inertia matrix
+	c) Sum up Coriolis matrix
+	d) Sum up gravity vector

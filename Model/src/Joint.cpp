@@ -7,22 +7,24 @@
 Joint::Joint(const std::string     &name,
 	     const std::string     &type,
 	     const Eigen::Vector3f &axis,
-	     const Pose            &origin,
+	     const Pose            &offset,
 	     const float            positionLimit[2],
-	     const float           &velocityLimit,
+	     const float           &speedLimit,
 	     const float           &forceLimit,
 	     const float           &damping,
-	     const float           &friction)
+	     const float           &friction,
+	     const unsigned int    &number)
 	     :
 	     _name(name),
 	     _type(type),
 	     _axis(axis.normalized()),                                                              // Ensure unit norm for good measure
-	     _origin(origin),
+	     _offset(offset),
 	     _positionLimit{positionLimit[0],positionLimit[1]},
-	     _velocityLimit(velocityLimit),
+	     _speedLimit(speedLimit),
 	     _forceLimit(forceLimit),
 	     _damping(damping),
-	     _friction(friction)
+	     _friction(friction),
+	     _number(number)
 {
 	// Check that the inputs are sound
 	std::string message = "[ERROR] [JOINT] Constructor: ";
@@ -35,9 +37,9 @@ Joint::Joint(const std::string     &name,
 		
 		throw std::logic_error(message);
 	}
-	else if(velocityLimit <= 0)
+	else if(speedLimit <= 0)
 	{
-		message += "Velocity limit for " + name + " joint was " + std::to_string(velocityLimit) +
+		message += "Speed limit for " + name + " joint was " + std::to_string(speedLimit) +
 		           " but it must be positive.";
 		
 		throw std::invalid_argument(message);
@@ -63,6 +65,17 @@ Joint::Joint(const std::string     &name,
 		                       
 		throw std::invalid_argument(message);
 	}
+	
+	// Make sure the type is correctly specified
+	     if(this->_type == "revolute" or this->_type == "continuous") this->isRevolute = true;
+	else if(this->_type == "prismatic")                               this->isRevolute = false;
+	else
+	{
+		message += "Joint type was " + this->_type + " but expected 'revolute', "
+		         + "'continuous', or 'prismatic'.";
+		         
+		throw std::invalid_argument(message);
+	}
 }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -72,14 +85,13 @@ bool Joint::set_parent_link(Link* link)
 {
 	if(link == nullptr)
 	{
-		std::cerr << "[ERROR] [JOINT] set_parent_link(): "
-		          << "Reference is a null pointer.\n";
+		std::cerr << "[ERROR] [JOINT] set_parent_link(): Reference is a null pointer.\n";
 		
 		return false;
 	}
 	else
 	{
-		this->parentLink = link;
+		this->_parentLink = link;
 		
 		return true;
 	}
@@ -92,17 +104,59 @@ bool Joint::set_child_link(Link *link)
 {
 	if(link == nullptr)
 	{
-		std::cerr << "[ERROR] [JOINT] set_child_link(): "
-		          << "Reference is a null pointer.\n";
+		std::cerr << "[ERROR] [JOINT] set_child_link(): Reference is a null pointer.\n";
 		
 		return false;
 	}
 	else
 	{
-		this->childLink = link;                                                             // Set pointer to child
+		this->_childLink = link;                                                             // Set pointer to child
 		
 		link->attach_joint(this);                                                           // Add pointer to this object in the link
 
 		return true;
 	}
 }
+
+  ////////////////////////////////////////////////////////////////////////////////////////////////////
+ //             Update the pose of the joint with respect to the global frame of reference         //
+////////////////////////////////////////////////////////////////////////////////////////////////////
+bool Joint::update_state(const Pose &previousPose, const float &position)
+{
+	if(position <= this->_positionLimit[0])
+	{
+		std::cerr << "[FLAGRANT SYSTEM ERROR] [JOINT] update_state(): "
+		          << "Position for the " << this->_name << " joint is below the lower limit ("
+		          << position << " < " << this->_positionLimit[0] << ").\n";
+		
+		return false;
+	}
+	else if(position >= this->_positionLimit[1])
+	{
+		std::cerr << "[FLAGRANT SYSTEM ERROR] [JOINT] update_state(): "
+		          << "Position for the " << this->_name << " joint is above the lower limit ("
+		          << position << " > " << this->_positionLimit[1] << ").\n";
+		
+		return false;
+	}
+	else
+	{
+/*		this->_pose = previousPose * this->_offset;
+		
+		if(this->isRevolute)
+		{
+			this->_pose *= Pose(Eigen::Vector3f::Zero,
+				            Eigen::Quaternionf(cos(0.5*position),
+				                               sin(0.5*position)*this->_localAxis(0),
+				                               sin(0.5*position)*this->_localAxis(1),
+				                               sin(0.5*position)*this->_localAxis(2)));
+		}
+		else // prismatic
+		{
+			this->_pose *= Pose(position*this->_localAxis, Eigen::Quaternionf(1, 0, 0, 0));
+		}*/
+	
+		return true;
+	}
+}
+

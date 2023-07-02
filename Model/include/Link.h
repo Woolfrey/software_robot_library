@@ -7,7 +7,6 @@
 #ifndef LINK_H_
 #define LINK_H_
 
-#include <memory>                                                                                   // std::shared_ptr
 #include <RigidBody.h>                                                                              // Custom class
 
 class Joint;                                                                                        // Forward declaration
@@ -16,12 +15,14 @@ class Link : public RigidBody
 {
 	public:
 		Link(const std::string &name,
-		     const RigidBody &rigidBody)
+		     const RigidBody   &rigidBody)
 		:
 		_name(name),
 		RigidBody(rigidBody) {}
 		
-		bool merge(Link *other);                                                            // Merge the properties of the other link with this one
+		// Methods
+		
+		bool merge(Link *otherLink);                                                        // Merge the properties of the other link with this one
 		
 		bool attach_joint(Joint *joint);                                                    // Specify a pointer to the preceding joint
 		
@@ -29,7 +30,7 @@ class Link : public RigidBody
 		
 		bool add_next_link(Link *link);
 		
-		Joint* attached_joint() const { return this->attachedJoint; }                       // Get the pointer to the joint
+		Joint* joint() const { return this->_joint; }                                       // Get the pointer to the joint
 		
 		Link* previous_link() const { return this->previousLink; }
 		
@@ -37,10 +38,13 @@ class Link : public RigidBody
 		
 		std::string name() const { return this->_name; }                                    // Return the name of this link
 		
+		// Properties
+		
+		Eigen::Vector3f angularVelocity = {0, 0, 0};
 		
 	private:
 		
-		Joint *attachedJoint = nullptr;                                                     // Pointer to the attached joint
+		Joint *_joint = nullptr;                                                            // Pointer to the attached joint
 		
 		Link *previousLink = nullptr;                                                       // Pointer to previous link in the kinematic chain
 		

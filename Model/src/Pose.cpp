@@ -6,10 +6,10 @@
 Pose::Pose(const Eigen::Vector3f    &position,
            const Eigen::Quaternionf &quaternion)
            :
-           _pos(position),
-           _quat(quaternion)
+           _position(position),
+           _quaternion(quaternion.normalized())
 {
-	this->_quat.normalize();                                                                    // Ensure unit norm for good measure
+
 }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -19,21 +19,21 @@ Eigen::Matrix<float,6,1> Pose::error(const Pose &desired)
 {
 	Eigen::Matrix<float,6,1> error;                                                             // Value to be returned
 
-	error.head(3) = desired.pos() - this->_pos;                                                 // Position error
-
-	float angle = acos(desired.quat().dot(this->_quat));                                        // From dot product
+	error.head(3) = desired.position() - this->_position;                                       // Position error
+	
+	float angle = this->_quaternion.angularDistance(desired.quaternion());                      // Distance between vectors (i.e. dot product)
 	
 	if(angle < M_PI)
 	{
-		error.tail(3) = this->_quat.w()    * desired.quat().vec()
-		              - desired.quat().w() * this->_quat.vec()
-		              - desired.quat().vec().cross(this->_quat.vec());
+		error.tail(3) = this->_quaternion.w() * desired.quaternion().vec()
+		              - desired.quaternion().w() * this->_quaternion.vec()
+		              - desired.quaternion().vec().cross(this->_quaternion.vec());
 	}
 	else // Spin the other direction
 	{
-		error.tail(3) = desired.quat().w() * this->_quat.vec()
-		              - this->_quat.w()    * desired.quat().vec()
-		              + desired.quat().vec().cross(this->_quat.vec());
+		error.tail(3) = desired.quaternion().w() * this->_quaternion.vec()
+		              - this->_quaternion.w() * desired.quaternion().vec()
+		              + desired.quaternion().vec().cross(this->_quaternion.vec());
 	}
 	
 	return error;
@@ -45,8 +45,8 @@ Eigen::Matrix<float,4,4> Pose::as_matrix()
 {
 	Eigen::Matrix<float,4,4> T; T.setIdentity();                                                // Value to be returned
 	
-	T.block(0,0,3,3) = this->_quat.toRotationMatrix();                                          // Convert to SO(3) and insert
-	T.block(0,3,3,1) = this->_pos;                                                              // Insert translation component
+	T.block(0,0,3,3) = this->_quaternion.toRotationMatrix();                                    // Convert to SO(3) and insert
+	T.block(0,3,3,1) = this->_position;                                                         // Insert translation component
 	
 	return T;
 }
@@ -56,7 +56,7 @@ Eigen::Matrix<float,4,4> Pose::as_matrix()
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 Pose Pose::inverse()
 {
-	return Pose(-this->_quat.toRotationMatrix()*this->_pos, this->_quat.inverse());
+	return Pose(-this->_quaternion.toRotationMatrix()*this->_position, this->_quaternion.inverse());
 }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -64,8 +64,8 @@ Pose Pose::inverse()
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 Pose Pose::operator* (const Pose &other)
 {
-	return Pose(this->_pos + this->_quat.toRotationMatrix()*other.pos(),
-	            this->_quat*other.quat());
+	return Pose(this->_position + this->_quaternion.toRotationMatrix()*other.position(),
+	            this->_quaternion*other.quaternion());
 }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -73,5 +73,5 @@ Pose Pose::operator* (const Pose &other)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 Eigen::Vector3f Pose::operator* (const Eigen::Vector3f &other)
 {
-	return this->_pos + this->_quat.toRotationMatrix()*other;
+	return this->_position + this->_quaternion.toRotationMatrix()*other;
 }

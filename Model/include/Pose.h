@@ -27,23 +27,23 @@ class Pose
 		
 		Eigen::Matrix<float,4,4> as_matrix();                                               // Return a 4x4 Homogeneous Transform
 
-		Eigen::Matrix3f rotation_matrix() const { return this->_quat.toRotationMatrix(); }
+		Eigen::Matrix3f rotation() const { return this->_quaternion.toRotationMatrix(); }   // Return SO(3) matrix for rotation
 		
-		Eigen::Vector3f pos() const { return this->_pos; }
+		Eigen::Vector3f position() const { return this->_position; }                        // Return the translation vector
 		
-		Eigen::Quaternionf quat() const { return this->_quat; }
+		Eigen::Quaternionf quaternion() const { return this->_quaternion; }                 // Return the quaternion object
 		
-		Pose inverse();
+		Pose inverse();                                                                     // Get the opposite of this pose
 		
-		Pose operator*(const Pose &other);
+		Pose operator*(const Pose &other);                                                  // Multiply this Pose with another
 		
-		Eigen::Vector3f operator*(const Eigen::Vector3f &other);
+		Eigen::Vector3f operator*(const Eigen::Vector3f &other);                            // Transform a translation vector
 		
 	private:
 	
-		Eigen::Vector3f _pos = {0.0, 0.0, 0.0};
+		Eigen::Vector3f _position = {0.0, 0.0, 0.0};
 		
-		Eigen::Quaternionf _quat = {1.0, 0.0, 0.0, 0.0};
+		Eigen::Quaternionf _quaternion = {1.0, 0.0, 0.0, 0.0};
 	
 };                                                                                                  // Semicolon needed after class declaration
 

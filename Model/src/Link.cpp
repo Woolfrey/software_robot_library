@@ -14,7 +14,7 @@ bool Link::attach_joint(Joint *joint)
 	}
 	else
 	{
-		this->attachedJoint = joint;
+		this->_joint = joint;
 		
 		return true;
 	}
@@ -38,6 +38,7 @@ bool Link::set_previous_link(Link *link)
 		return true;
 	}
 }
+
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //                    Add a pointer to a proceeding link in the kinematic chain                  //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -56,14 +57,13 @@ bool Link::add_next_link(Link *link)
 		return true;
 	}
 }
-
   
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                              Merge another link with this one                                  //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-bool Link::merge(Link *other)
+bool Link::merge(Link *otherLink)
 {
-	if(other == nullptr)
+	if(otherLink == nullptr)
 	{
 		std::cerr << "[ERROR] [LINK] merge(): Input is a null pointer.\n";
 	
@@ -71,24 +71,23 @@ bool Link::merge(Link *other)
 	}
 	else
 	{
-		this->_mass += other->mass();                                                       // Add the masses together
+		this->_mass += otherLink->mass();                                                   // Add the masses together
 	
-		Pose T = other->attached_joint()->origin();                                         // Origin of the joint/link
+		Pose T = otherLink->joint()->offset();                                              // Coordinate frame of the other joint/link relative to this one
 		
-		Eigen::Matrix3f R = T.rotation_matrix();                                            // Get the rotation matrix
+		Eigen::Matrix3f R = T.rotation();                                                   // Get the rotation matrix
 		
-		Eigen::Vector3f t = T.pos() + R*other->com();                                       // Translation to other c.o.m. in THIS link's frame
+		Eigen::Vector3f t = T.position() + R*otherLink->com();                              // Transform the center of mass for the other link to THIS coordinate frame
 		
 		Eigen::Matrix3f S; S <<    0 , -t(2),  t(1), 
 		                         t(2),    0 , -t(0),
 		                        -t(1),  t(0),    0;                                         // As a skew-symmetric matrix
 		
-		this->_inertia += R*other->inertia()*R.transpose()
-		                - other->mass()*S*S;                                                // From the parallel axis theorem
+		this->_inertia += R*otherLink->inertia()*R.transpose()
+		                - otherLink->mass()*S*S;                                            // From the parallel axis theorem
 		
-		// Maybe add the transform here?
+		// Convert the other link to a transform and add it here?
 		
 		return true;
 	}
 }
-

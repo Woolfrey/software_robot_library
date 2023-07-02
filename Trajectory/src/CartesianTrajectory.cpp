@@ -18,21 +18,22 @@ CartesianTrajectory::CartesianTrajectory(const std::vector<Pose>  &waypoint,
 		throw std::logic_error(errorMessage);
 	}
 
-    std::vector<Eigen::Matrix<float,6,1>> point;                                               // 3 for translation and 3 for orientation
-	point.resize(waypoint.size());
+	std::vector<Eigen::Matrix<float,6,1>> point;                                                // 3 for translation and 3 for orientation
+	
+	point.resize(waypoint.size());                                                              // Resize object for the number of waypoints
 
 	for(int i = 0; i < waypoint.size(); i++)
 	{
-		point[i].head(3) = waypoint[i].pos();                                               // Grab the translation component directly
+		point[i].head(3) = waypoint[i].position();                                          // Grab the translation component directly
 		
-		Eigen::Vector3f epsilon = waypoint[i].quat().vec();                                 // Get the vector part of the quaternion
+		Eigen::Vector3f epsilon = waypoint[i].quaternion().vec();                           // Get the vector part of the quaternion
 		
 		float norm = epsilon.norm();                                                        // Magnitude of the vector                                               
 		
 		float angle = 2*asin(norm);                                                         // Extract angle embedded in quaternion
 		
-		if(angle == 0) point[i].tail(3) = Eigen::Vector3f::Zero();
-		else           point[i].tail(3) = angle*(epsilon/norm);                             // Angle*axis
+		if(abs(angle) < 1e-04) point[i].tail(3) = Eigen::Vector3f::Zero();
+		else                   point[i].tail(3) = angle*(epsilon/norm);                     // Angle*axis
 	}
 	
 	try
@@ -53,35 +54,36 @@ CartesianTrajectory::CartesianTrajectory(const std::vector<Pose>  &waypoint,
  //                         Get the desired state for the given time                               //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 bool CartesianTrajectory::get_state(Pose                      &pose,
-                                    Eigen::Matrix<float,6,1> &vel,
-                                    Eigen::Matrix<float,6,1> &acc,
+                                    Eigen::Matrix<float,6,1>  &vel,
+                                    Eigen::Matrix<float,6,1>  &acc,
                                     const float               &time)
 {
-	Eigen::VectorXf x(6);                                                                        // Temporary placeholder
-    Eigen::VectorXf xdot(6);
-    Eigen::VectorXf xddot(6);
+	Eigen::VectorXf x(6), xdot(6), xddot(6);                                                    // Temporary placeholder
 
 	if(this->trajectory.get_state(x,xdot,xddot,time))
 	{
-        vel = xdot;
-        acc = xddot;
-		Eigen::Vector3f pos       = x.head(3);                                              // Translation component
+        	vel = xdot;                                                                         // Twist vector
+        	
+        	acc = xddot;                                                                        // Acceleration vector
+        	
+        	Eigen::Vector3f position = x.head(3);                                               // Position / translation component
+        	
 		Eigen::Vector3f angleAxis = x.tail(3);                                              // Orientation component
 
 		float angle = angleAxis.norm();                                                     // Get the angle component
 
-		if(angle == 0)
+		if(abs(angle) <= 1e-04)
 		{
-			pose = Pose(pos,Eigen::Quaternionf(1,0,0,0));
+			pose = Pose(position,Eigen::Quaternionf(1,0,0,0));
 		}
 		else
 		{
 			Eigen::Vector3f axis = angleAxis.normalized();
 
-			pose = Pose(pos,Eigen::Quaternionf(cos(0.5*angle),
-			                                   sin(0.5*angle)*axis(0),
-			                                   sin(0.5*angle)*axis(1),
-			                                   sin(0.5*angle)*axis(2)));
+			pose = Pose(position,Eigen::Quaternionf(cos(0.5*angle),
+			                                        sin(0.5*angle)*axis(0),
+			                                        sin(0.5*angle)*axis(1),
+			                                        sin(0.5*angle)*axis(2)));
 		}
 
 		return true;
