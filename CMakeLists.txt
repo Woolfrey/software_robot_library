@@ -26,8 +26,9 @@ add_library(RobotLibrary INTERFACE)                                             
 
 ########## Other directories to add to the build ##########
 add_subdirectory(Math)
+add_subdirectory(Model)
 
-target_link_libraries(RobotLibrary INTERFACE Math)                                            # Link the subdirectories
+target_link_libraries(RobotLibrary INTERFACE Math Model)                                 # Link the subdirectories
 
 ##############################################
 # Installation instructions
@@ -36,7 +37,7 @@ include(GNUInstallDirs)
 
 set(INSTALL_CONFIGDIR ${CMAKE_INSTALL_LIBDIR}/cmake/RobotLibrary)
 
-install(TARGETS RobotLibrary Math # Specify targets to be installed
+install(TARGETS RobotLibrary Math Model                                                  # Specify targets to be installed
 	EXPORT RobotLibrary-targets
 	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 	ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}

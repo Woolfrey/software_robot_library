@@ -17,7 +17,7 @@ class RigidBody
 		// Constructor
 		RigidBody(const float           &mass,
 		          const Eigen::Matrix3f &inertia,
-		          const Eigen::Vector3f &centerOfMass;
+		          const Eigen::Vector3f &centerOfMass);
 		      
 		// Methods  
 		
@@ -25,7 +25,7 @@ class RigidBody
 		
 		Eigen::Matrix3f inertia() const { return this->_inertia; }
 		
-		Pose com()                const { return this->_centreOfMass; }                     // Get the center of mass
+		Eigen::Vector3f com()     const { return this->_centerOfMass; }                     // Get the center of mass
 		
 	
 	protected:
@@ -33,10 +33,10 @@ class RigidBody
 		float _mass = 0.0;                                               
 		
 		Eigen::Matrix3f _inertia = (Eigen::MatrixXf(3,3) << 0, 0, 0,
-		                                                    0, 0, 0,
-		                                                    0, 0, 0).finished();
+		                                                     0, 0, 0,
+		                                                     0, 0, 0).finished();
 		 
-		Eigen::Vector3f _centreOfMass = {0,0,0};
+		Eigen::Vector3f _centerOfMass = {0,0,0};
 		
 };                                                                                                  // Semicolon needed after a class declaration
 

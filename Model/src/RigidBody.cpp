@@ -6,10 +6,10 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 RigidBody::RigidBody(const float           &mass,
                      const Eigen::Matrix3f &inertia,
-                     const Eigen::Vector3f &centreOfMass)
+                     const Eigen::Vector3f &centerOfMass)
                      :
                      _mass(mass),
-                     _centreOfMass(centreOfMass)
+                     _centerOfMass(centerOfMass)
 {	
 	if(mass < 0.0)
 	{

@@ -10,7 +10,7 @@ Joint::Joint(const std::string     &name,
 	     const Pose            &offset,
 	     const float            positionLimit[2],
 	     const float           &speedLimit,
-	     const float           &forceLimit,
+	     const float           &effortLimit,
 	     const float           &damping,
 	     const float           &friction,
 	     const unsigned int    &number)
@@ -21,7 +21,7 @@ Joint::Joint(const std::string     &name,
 	     _offset(offset),
 	     _positionLimit{positionLimit[0],positionLimit[1]},
 	     _speedLimit(speedLimit),
-	     _forceLimit(forceLimit),
+	     _effortLimit(effortLimit),
 	     _damping(damping),
 	     _friction(friction),
 	     _number(number)
@@ -44,9 +44,9 @@ Joint::Joint(const std::string     &name,
 		
 		throw std::invalid_argument(message);
 	}
-	else if(forceLimit <= 0)
+	else if(effortLimit <= 0)
 	{
-		message += "Force/torque limit for " + name + " joint was " + std::to_string(forceLimit) + 
+		message += "Force/torque limit for " + name + " joint was " + std::to_string(effortLimit) + 
 		           " but it must be positive.";
 		
 		throw std::invalid_argument(message);
@@ -69,7 +69,7 @@ Joint::Joint(const std::string     &name,
 	// Make sure the type is correctly specified
 	     if(this->_type == "revolute" or this->_type == "continuous") this->isRevolute = true;
 	else if(this->_type == "prismatic")                               this->isRevolute = false;
-	else
+	else if(this->_type != "fixed")
 	{
 		message += "Joint type was " + this->_type + " but expected 'revolute', "
 		         + "'continuous', or 'prismatic'.";

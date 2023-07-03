@@ -8,9 +8,9 @@ include_directories( ${EIGEN3_INCLUDE_DIRS}   )                                 
 
 ########## List of executables to be compiled ##########
 
-#add_executable(serial_link_test serial_link_test.cpp)                                              # Create name of exe from source file
-#add_dependencies(serial_link_test RobotLibrary)                                                    # Depends on RobotLibrary (obviously)
-#target_link_libraries(serial_link_test RobotLibrary)                                               # Link RobotLibrary
+add_executable(urdf_test urdf_test.cpp)                                                            # Create name of exe from source file
+add_dependencies(urdf_test RobotLibrary)                                                           # Depends on RobotLibrary (obviously)
+target_link_libraries(urdf_test RobotLibrary)                                                      # Link RobotLibrary
 
 #add_executable(math_test math_test.cpp)
 #add_dependencies(math_test RobotLibrary)

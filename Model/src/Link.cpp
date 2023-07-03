@@ -83,10 +83,7 @@ bool Link::merge(Link *otherLink)
 		                         t(2),    0 , -t(0),
 		                        -t(1),  t(0),    0;                                         // As a skew-symmetric matrix
 		
-		this->_inertia += R*otherLink->inertia()*R.transpose()
-		                - otherLink->mass()*S*S;                                            // From the parallel axis theorem
-		
-		// Convert the other link to a transform and add it here?
+		this->_inertia += R*otherLink->inertia()*R.transpose() - otherLink->mass()*S*S;     // From the parallel axis theorem
 		
 		return true;
 	}

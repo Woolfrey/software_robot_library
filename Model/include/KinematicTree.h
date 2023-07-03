@@ -24,6 +24,8 @@ class KinematicTree
 	public:
 		KinematicTree(const std::string &pathToURDF);                                       // Constructor from URDF
 
+		// Methods
+		
 		bool update_state(const Eigen::VectorXf &jointPos,
 		                  const Eigen::VectorXf &jointVel)
 		{
@@ -47,7 +49,7 @@ class KinematicTree
 
 		Eigen::Matrix<float,6,1> _baseTwist;                                                // Linear & angular velocity of the base
 			
-		Eigen::VectorXf q, qdot;                                                            // Joint positions and velocities
+		Eigen::VectorXf _jointPosition, _jointVelocity;
 		
 		Eigen::Vector3f char_to_vector3f(const char* character);                            // Used to parse urdf properties
 		
@@ -59,9 +61,7 @@ class KinematicTree
 		
 		std::vector<Link> link;                                                             // Vector of link objects
 		
-		std::map<std::string, unsigned int> jointDictionary;                                
-		
-		std::map<std::string, unsigned int> linkDictionary;
+		std::map<std::string, ReferenceFrame> referenceFrameList;
 		
 		std::string _name;                                                                  // The name of this robot
 		

@@ -30,7 +30,7 @@ class Joint
 		      const Pose            &offset,
 		      const float            positionLimit[2],                                      // Can't use pointers & for arrays for some reason
 		      const float           &speedLimit,
-		      const float           &forceLimit,
+		      const float           &effortLimit,
 		      const float           &damping,
 		      const float           &friction,
 		      const unsigned int    &jointNumber);
@@ -46,6 +46,8 @@ class Joint
 		bool set_parent_link(Link* link);                                                   // Set pointer to parent link
 	
 		bool update_state(const Pose &previousPose, const float &position);
+		
+		Eigen::Vector3f axis() const { return this->_axis; }		
 		
 		Link* parent_link() const { return this->_parentLink; }                             // Get the pointer to parent link
 		
@@ -63,10 +65,12 @@ class Joint
 		
 		void extend_offset(Pose &other) { this->_offset = other*this->_offset; }            // Extend the offset for fixed joints when merging links
 		
-		void set_index(const unsigned int &index) { this->_index = index; }                 // Set the index in the joint vector list
+		void set_number(const unsigned int &number) { this->_number = number; }             // Set the index in the joint vector list
 		
 	private:
 	
+		bool isRevolute = true;
+		
 		Eigen::Vector3f _localAxis;                                                         // Axis of actuation in local frame
 		
 		Eigen::Vector3f _axis;                                                              // Axis of actuation in global frame
@@ -75,7 +79,7 @@ class Joint
 		
 		float _speedLimit;
 		
-		float _forceLimit;
+		float _effortLimit;
 		
 		float _damping;
 		
