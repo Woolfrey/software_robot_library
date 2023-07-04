@@ -8,7 +8,7 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
 	// NOTE: We should probably write a "check_urdf" function to ensure it is valid!
 	
 	// Variables used in this scope
-	std::map<std::string, Link*> linkList;                                                      // So we can find links later and connect them to joints
+	std::map<std::string, unsigned int> linkList;                                               // So we can find links later and connect them to joints
 	std::string errorMessage = "[ERROR] [KINEMATIC TREE] Constructor: ";                        // This is used in multiple places below
 	
 	// Check to see if the file exists
@@ -27,6 +27,9 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
 	}
 	
 	// Search through every link in the urdf and convert to RobotLibrary::Link object
+	
+	unsigned int linkNumber = 0;
+	
 	for(auto link = robot->FirstChildElement("link"); link; link = link->NextSiblingElement("link"))
 	{
 		// Default properties
@@ -76,7 +79,9 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
 		
 		this->link.emplace_back(Link(linkName, RigidBody(mass,momentOfInertia,centerOfMass))); // Create Link object and add it to the list
 		
-		linkList.emplace(linkName,&this->link.back());                                      // Add it to the list so we can find it by name later
+		linkList.emplace(linkName, linkNumber);
+		
+		linkNumber++;
 	}
 	
 	// Search through every joint
@@ -155,32 +160,26 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
 			
 			this->joint.emplace_back(Joint(jointName, jointType, axis, origin, positionLimit, velocityLimit, effortLimit, damping, friction, jointNumber));
 			
-			jointNumber++;                                                              // Increment the joint number     
+			jointNumber++;                                                              // Increment the joint number
 			
-			std::cout << jointNumber << " " << this->joint.back().name() << std::endl;      
+			// Find the parent link
+			std::string parentLinkName = jointIterator->FirstChildElement("parent")->Attribute("link");
 			
-			// Find the parent link and connect it to the joint
-			std::string parentName = jointIterator->FirstChildElement("parent")->Attribute("link"); // Get the name of the parent joint
-
-			auto temp = linkList.find(parentName);                                      // Find it in the list
+			auto temp = linkList.find(parentLinkName);
 			
-			if(temp == linkList.end()) throw std::runtime_error(errorMessage + "Could not find the parent link in the list.");
+			if(temp == linkList.end()) throw std::runtime_error(errorMessage + "Could not find the parent link of the " + jointName + " joint in the link list.");
 			
-			this->joint.back().set_parent_link(temp->second);                           // Set the pointer to the parent link
+			if(not this->joint.back().set_parent_link(&this->link[temp->second])) throw std::runtime_error(errorMessage + "Unable to set " + parentLinkName + " as the parent link of the " + jointName + " joint.");
 			
-			// Find the child link and connect it to the joint
-			std::string childName = jointIterator->FirstChildElement("child")->Attribute("link"); // Get the name of the child joint
+			// Find the child link
 			
-			std::cout << "The problem is on the line below:\n";
+			std::string childLinkName = jointIterator->FirstChildElement("child")->Attribute("link");
 			
-			temp = linkList.find(childName);                                            // Find it in the list
+			temp = linkList.find(childLinkName);
 			
-			std::cout << "lol no it isn't\n";
+			if(temp == linkList.end()) throw std::runtime_error(errorMessage + "Could not find the child link of the " + jointName + " joint in the link list.");			
 			
-			if(temp == linkList.end()) throw std::runtime_error(errorMessage + "Could not find the child link in the list.");
-			
-			this->joint.back().set_child_link(temp->second);                            // Set pointer to child link
-		
+			if(not this->joint.back().set_child_link(&this->link[temp->second])) throw std::runtime_error(errorMessage + "Unable to set " + parentLinkName + " as the parent link of the " + jointName + " joint.");
 		}
 		else
 		{
@@ -188,10 +187,10 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
 			              + "RobotLibrary::KinematicTree can only handle continuous, "
 			              + "fixed, prismatic, or revolute joints.";
 			                
-			throw std::invalid_argument(errorMessage);
+	 		throw std::invalid_argument(errorMessage);
 		}
 	}
-	
+		
 	int previousNumJoints = this->joint.size();
 
 	// FIRST PASS: For a sequence of links and joints A <-- a <-- B <-- b
@@ -242,20 +241,18 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
 	// At the same time, list joints attached to the base link
 	for(int i = 0; i < this->joint.size(); i++)
 	{
-		Joint *a = &this->joint[i];
-		Link  *A = a->parent_link();
-		Link  *B = a->child_link();
+		if(this->joint[i].type() == "fixed")
+		{
+			Link *parentLink = this->joint[i].parent_link();
+			Link *childLink  = this->joint[i].child_link();
+			
+			parentLink->merge(childLink);                                               // Merge the child link with the parent link
+			
+			ReferenceFrame frame;
+			frame.link = parentLink;
+			frame.relativePose = childLink->joint()->offset();
+			this->referenceFrameList.emplace(childLink->name(),frame);                  // Add the child link as a reference frame
 		
-		if(std::string(a->type()) == "fixed")
-		{	
-			A->merge(B);
-			
-			ReferenceFrame frame; frame.link = A; frame.relativePose = B->joint()->offset();
-			
-			this->referenceFrameList.emplace(B->name(),frame);                          // Add it to the list before erasing
-		
-			linkList.erase(B->name());
-			
 			this->joint.erase(this->joint.begin()+i);
 		}
 	}
@@ -273,7 +270,7 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
 		
 		childLink->set_previous_link(parentLink);
 		
-		joint[i].set_number(i);                                                               // Number the joint
+		joint[i].set_number(i);                                                               // New number for the joint?
 	}
 	
 	this->numJoints = this->joint.size();
@@ -283,12 +280,13 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
 	std::cout << "[INFO] [KINEMATIC TREE] Successfully parsed the `" << this->_name << "' model from the URDF. "
 	          << "There are " << this->numJoints << " joints (reduced from " << previousNumJoints << ").\n";
 	          
+	std::cout << "\nHere is a list of all the joints:\n";
+	for(int i = 0; i < this->numJoints; i++) std::cout << this->joint[i].name() << std::endl;
 	
 	std::cout << "\nHere is a list of all the reference frames on the robot:\n";
 	for(auto iterator = this->referenceFrameList.begin(); iterator != this->referenceFrameList.end(); iterator++)
 	{
-		std::cout << "The " << iterator->first << " frame is connected to the "
-		          << iterator->second.link->name() << " link.\n";
+		std::cout << "The " << iterator->first << " frame is on the " << iterator->second.link->name() << " link.\n";
 	}
 }
 
