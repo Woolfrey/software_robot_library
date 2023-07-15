@@ -4,58 +4,34 @@
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //                      Assign pointer to the joint attached to this link                        //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-bool Link::attach_joint(Joint *joint)
+bool Link::attach_joint(Joint &joint)
 {
-	if(joint == nullptr)
-	{
-		std::cerr << "[ERROR] [LINK] attach_joint(): Input is a null pointer.\n";
-
-		return false;
-	}
-	else
-	{
-		this->_joint = joint;
+		std::cout << "[INFO] [LINK] attach_joint(): Attaching the " << joint.name()
+		          << " joint to the " << this->_name << " link.\n";
+		          
+		this->_joint = &joint;
+		
+		std::cout << "    > After assignment: " << this->_joint->name() << " <-- " << this->_name << std::endl;
 		
 		return true;
-	}
 }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //                   Assign pointer to the previous link in the kinematic chain                  //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-bool Link::set_previous_link(Link *link)
+bool Link::set_previous_link(Link &link)
 {
-	if(link == nullptr)
-	{
-		std::cerr << "[ERROR] [LINK] set_previous_link(): Input was a null pointer.\n";
-		
-		return false;
-	}
-	else
-	{
-		this->previousLink = link;
+		this->previousLink = &link;
 		
 		return true;
-	}
 }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //                    Add a pointer to a proceeding link in the kinematic chain                  //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-bool Link::add_next_link(Link *link)
+bool Link::add_next_link(Link &link)
 {
-	if(link == nullptr)
-	{
-		std::cerr << "[ERROR] [LINK] add_next_link(): Input was a null pointer.\n";
-		
-		return false;
-	}
-	else
-	{
-		this->nextLinks.push_back(link);
-		
-		return true;
-	}
+	this->nextLinks.push_back(&link);
 }
   
   ////////////////////////////////////////////////////////////////////////////////////////////////////

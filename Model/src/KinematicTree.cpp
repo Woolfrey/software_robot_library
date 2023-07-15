@@ -9,6 +9,7 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
 	
 	// Variables used in this scope
 	std::map<std::string, unsigned int> linkList;                                               // So we can find links later and connect them to joints
+	
 	std::string errorMessage = "[ERROR] [KINEMATIC TREE] Constructor: ";                        // This is used in multiple places below
 	
 	// Check to see if the file exists
@@ -21,25 +22,22 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
 	
 	// Make sure a robot is defined
 	tinyxml2::XMLElement* robot = urdf.FirstChildElement("robot");
-	if(robot == nullptr)
-	{
-		throw std::runtime_error(errorMessage + "There does not appear to be a 'robot' element in the URDF.");
-	}
+	if(robot == nullptr) throw std::runtime_error(errorMessage + "There does not appear to be a 'robot' element in the URDF.");
 	
 	// Search through every link in the urdf and convert to RobotLibrary::Link object
 	
 	unsigned int linkNumber = 0;
 	
-	for(auto link = robot->FirstChildElement("link"); link; link = link->NextSiblingElement("link"))
+	for(auto linkIterator = robot->FirstChildElement("link"); linkIterator; linkIterator = linkIterator->NextSiblingElement("link"))
 	{
 		// Default properties
 		float mass = 0.0;
 		Eigen::Vector3f centerOfMass = {0,0,0};
-		std::string linkName = link->Attribute("name");
+		std::string linkName = linkIterator->Attribute("name");
 		Eigen::Matrix3f momentOfInertia = Eigen::Matrix3f::Zero();
 		
 		// Get inertia properties if they exist
-		tinyxml2::XMLElement* inertial = link->FirstChildElement("inertial");
+		tinyxml2::XMLElement* inertial = linkIterator->FirstChildElement("inertial");
 		if(inertial != nullptr)
 		{
 			mass = inertial->FloatAttribute("mass");
@@ -85,8 +83,6 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
 	}
 	
 	// Search through every joint
-	
-	unsigned int jointNumber = 0;
 	
 	for(auto jointIterator = robot->FirstChildElement("joint"); jointIterator; jointIterator = jointIterator->NextSiblingElement("joint"))
 	{
@@ -158,28 +154,19 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
 				}
 			}
 			
-			this->joint.emplace_back(Joint(jointName, jointType, axis, origin, positionLimit, velocityLimit, effortLimit, damping, friction, jointNumber));
-			
-			jointNumber++;                                                              // Increment the joint number
-			
+			this->joint.emplace_back(Joint(jointName, jointType, axis, origin, positionLimit, velocityLimit, effortLimit, damping, friction));
+		
 			// Find the parent link
+			
 			std::string parentLinkName = jointIterator->FirstChildElement("parent")->Attribute("link");
-			
-			auto temp = linkList.find(parentLinkName);
-			
-			if(temp == linkList.end()) throw std::runtime_error(errorMessage + "Could not find the parent link of the " + jointName + " joint in the link list.");
-			
-			if(not this->joint.back().set_parent_link(&this->link[temp->second])) throw std::runtime_error(errorMessage + "Unable to set " + parentLinkName + " as the parent link of the " + jointName + " joint.");
 			
 			// Find the child link
 			
 			std::string childLinkName = jointIterator->FirstChildElement("child")->Attribute("link");
 			
-			temp = linkList.find(childLinkName);
+			int number = (linkList.find(childLinkName))->second;
 			
-			if(temp == linkList.end()) throw std::runtime_error(errorMessage + "Could not find the child link of the " + jointName + " joint in the link list.");			
-			
-			if(not this->joint.back().set_child_link(&this->link[temp->second])) throw std::runtime_error(errorMessage + "Unable to set " + parentLinkName + " as the parent link of the " + jointName + " joint.");
+			this->link[number].attach_joint(this->joint.back());
 		}
 		else
 		{
@@ -190,103 +177,16 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
 	 		throw std::invalid_argument(errorMessage);
 		}
 	}
-		
-	int previousNumJoints = this->joint.size();
-
-	// FIRST PASS: For a sequence of links and joints A <-- a <-- B <-- b
-	// If joint 'a' is fixed, combine links so we have (A + B) <-- b
 	
-	// At the same time, assign the base link
-		
-//	for(auto iterator = this->jointList.begin(); iterator != this->jointList.end(); iterator++)
-	for(int i = 0; i < this->joint.size(); i++)
+	std::cout << "\nNow iterate through every link object and check its attached joint:\n";
+	for(int i = 0; i < this->link.size(); i++)
 	{
-		Joint *b = &this->joint[i];                                                         // Current joint
-		Link  *B = b->parent_link();                                                        // Its parent link
-		Joint *a = B->joint();                                                              // The joint attached to the parent
-
-		if(a == nullptr) 								    // Link B must be the base since it has no preceding joint
+		Joint *previousJoint = this->link[i].joint();
+		
+		if(previousJoint != nullptr)
 		{
-			if(this->base == nullptr) this->base = B;                                   // Pointer to the base
-			
-			else if(this->base->name() != B->name()) throw std::runtime_error(errorMessage + "More than one base link candidate. The current base link is " + this->base->name() + ", but also found " + B->name() + ".");
+			std::cout << previousJoint->name() << " <-- " << this->link[i].name() << std::endl;
 		}
-		else
-		{
-			if(std::string(a->type()) == "fixed")
-			{
-				Link *A = a->parent_link();                                         // Parent of joint A
-				     
-				A->merge(B);                                                        // Merge the links
-				
-				b->set_parent_link(A);                                              // Set Link 'A' as the new parent of joint 'b'
-				
-				Pose temp = a->offset();                                            // Pose of joint relative to parent joint
-				
-				b->extend_offset(temp);                                             // Offset the origin of joint 'b' relative to link 'A"
-				
-				ReferenceFrame frame; frame.link = A; frame.relativePose = temp;
-				
-				this->referenceFrameList.emplace(B->name(), frame);                 // Add it to the list before erasing
-				
-				this->joint.erase(this->joint.begin()+i);
-				
-				linkList.erase(B->name());                                          // Erase link 'B' from the list
-			}
-		}	
-	}
-	
-	// SECOND PASS: Merge all links with fixed joints A <-- a <-- B (assuming tree does not extend beyong B)
-	
-	// At the same time, list joints attached to the base link
-	for(int i = 0; i < this->joint.size(); i++)
-	{
-		if(this->joint[i].type() == "fixed")
-		{
-			Link *parentLink = this->joint[i].parent_link();
-			Link *childLink  = this->joint[i].child_link();
-			
-			parentLink->merge(childLink);                                               // Merge the child link with the parent link
-			
-			ReferenceFrame frame;
-			frame.link = parentLink;
-			frame.relativePose = childLink->joint()->offset();
-			this->referenceFrameList.emplace(childLink->name(),frame);                  // Add the child link as a reference frame
-		
-			this->joint.erase(this->joint.begin()+i);
-		}
-	}
-	
-	// Now connect the links so we can traverse the kinematic tree
-	// (There's probably a smarter way to put this in the above code but I'm tired)
-	
-	for(int i = 0; i < this->joint.size(); i++)
-	{
-		Link *parentLink = joint[i].parent_link();
-		
-		Link *childLink = joint[i].child_link();
-		
-		parentLink->add_next_link(childLink);
-		
-		childLink->set_previous_link(parentLink);
-		
-		joint[i].set_number(i);                                                               // New number for the joint?
-	}
-	
-	this->numJoints = this->joint.size();
-		
-	this->_name = robot->Attribute("name");
-	
-	std::cout << "[INFO] [KINEMATIC TREE] Successfully parsed the `" << this->_name << "' model from the URDF. "
-	          << "There are " << this->numJoints << " joints (reduced from " << previousNumJoints << ").\n";
-	          
-	std::cout << "\nHere is a list of all the joints:\n";
-	for(int i = 0; i < this->numJoints; i++) std::cout << this->joint[i].name() << std::endl;
-	
-	std::cout << "\nHere is a list of all the reference frames on the robot:\n";
-	for(auto iterator = this->referenceFrameList.begin(); iterator != this->referenceFrameList.end(); iterator++)
-	{
-		std::cout << "The " << iterator->first << " frame is on the " << iterator->second.link->name() << " link.\n";
 	}
 }
 
@@ -339,7 +239,7 @@ bool KinematicTree::update_state(const Eigen::VectorXf &jointPosition,
 		Pose jointOrigin;
 		
 		if(currentJoint->parent_link()->joint() == nullptr) jointOrigin = this->_basePose;
-		else                                             jointOrigin = currentJoint->parent_link()->joint()->pose();
+		else                                                jointOrigin = currentJoint->parent_link()->joint()->pose();
 
 		if(not currentJoint->update_state(jointOrigin, jointPosition(jointNum)))
 		{

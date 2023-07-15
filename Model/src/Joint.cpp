@@ -12,8 +12,7 @@ Joint::Joint(const std::string     &name,
 	     const float           &speedLimit,
 	     const float           &effortLimit,
 	     const float           &damping,
-	     const float           &friction,
-	     const unsigned int    &number)
+	     const float           &friction)
 	     :
 	     _name(name),
 	     _type(type),
@@ -23,8 +22,7 @@ Joint::Joint(const std::string     &name,
 	     _speedLimit(speedLimit),
 	     _effortLimit(effortLimit),
 	     _damping(damping),
-	     _friction(friction),
-	     _number(number)
+	     _friction(friction)
 {
 	// Check that the inputs are sound
 	std::string message = "[ERROR] [JOINT] Constructor: ";
@@ -81,41 +79,21 @@ Joint::Joint(const std::string     &name,
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //                             Set the pointer to the parent link                                //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-bool Joint::set_parent_link(Link* link)
+bool Joint::set_parent_link(Link &link)
 {
-	if(link == nullptr)
-	{
-		std::cerr << "[ERROR] [JOINT] set_parent_link(): Reference is a null pointer.\n";
-		
-		return false;
-	}
-	else
-	{
-		this->_parentLink = link;
-		
-		return true;
-	}
+	this->_parentLink = &link;
+	
+	return true;
 }
  
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //                            Set the pointer to the child link                                  //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-bool Joint::set_child_link(Link *link)
+bool Joint::set_child_link(Link &link)
 {
-	if(link == nullptr)
-	{
-		std::cerr << "[ERROR] [JOINT] set_child_link(): Reference is a null pointer.\n";
+		this->_childLink = &link;                                                             // Set pointer to child
 		
-		return false;
-	}
-	else
-	{
-		this->_childLink = link;                                                             // Set pointer to child
-		
-		link->attach_joint(this);                                                           // Add pointer to this object in the link
-
 		return true;
-	}
 }
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////

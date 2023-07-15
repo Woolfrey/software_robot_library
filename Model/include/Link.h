@@ -23,12 +23,12 @@ class Link : public RigidBody
 		// Methods
 		
 		bool merge(Link *otherLink);                                                        // Merge the properties of the other link with this one
+	
+		bool attach_joint(Joint &joint);                                                    // Specify a pointer to the preceding joint
 		
-		bool attach_joint(Joint *joint);                                                    // Specify a pointer to the preceding joint
+		bool set_previous_link(Link &link);
 		
-		bool set_previous_link(Link *link);
-		
-		bool add_next_link(Link *link);
+		bool add_next_link(Link &link);
 		
 		Joint* joint() const { return this->_joint; }                                       // Get the pointer to the joint
 		
@@ -50,7 +50,7 @@ class Link : public RigidBody
 		
 		std::vector<Link*> nextLinks {};                                                    // Pointer to next links in the kinematic chain
 		
-		std::string _name;
+		std::string _name = "unnamed";
 };                                                                                                  // Semicolon needed at the end of class declaration
 
 #endif

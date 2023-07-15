@@ -21,7 +21,7 @@ class Joint
 		      const Eigen::Vector3f &axis,
 		      const float            positionLimit[2])
 		:
-		Joint(name, type, axis, Pose(), positionLimit, 100*2*M_PI/60, 10.0, 1.0, 0.0, 0) {}
+		Joint(name, type, axis, Pose(), positionLimit, 100*2*M_PI/60, 10.0, 1.0, 0.0) {}
 
 		// Full constructor
 		Joint(const std::string     &name,
@@ -32,8 +32,7 @@ class Joint
 		      const float           &speedLimit,
 		      const float           &effortLimit,
 		      const float           &damping,
-		      const float           &friction,
-		      const unsigned int    &jointNumber);
+		      const float           &frictionS);
 		
 		// Methods
 	
@@ -41,9 +40,9 @@ class Joint
 		
 		bool is_revolute() const { return this->isRevolute; }
 		
-		bool set_child_link(Link* link);                                                    // Set pointer to child link
+		bool set_child_link(Link &link);                                                    // Set pointer to child link
 		
-		bool set_parent_link(Link* link);                                                   // Set pointer to parent link
+		bool set_parent_link(Link &link);                                                   // Set pointer to parent link
 	
 		bool update_state(const Pose &previousPose, const float &position);
 		
@@ -93,9 +92,9 @@ class Joint
 
 		Pose _pose;                                                                         // Pose of the joint in global frame
 		
-		std::string _type;
+		std::string _type = "unknown";
 		
-		std::string _name;                                                                  // Unique identifier
+		std::string _name = "unnamed";                                                      // Unique identifier
 		
 		unsigned int _number = 0;                                                           // The number in the joint list
 };                                                                                                  // Semicolon needed after a class declaration
