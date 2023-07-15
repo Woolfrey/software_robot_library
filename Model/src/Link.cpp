@@ -5,13 +5,8 @@
  //                      Assign pointer to the joint attached to this link                        //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 bool Link::attach_joint(Joint &joint)
-{
-		std::cout << "[INFO] [LINK] attach_joint(): Attaching the " << joint.name()
-		          << " joint to the " << this->_name << " link.\n";
-		          
+{	          
 		this->_joint = &joint;
-		
-		std::cout << "    > After assignment: " << this->_joint->name() << " <-- " << this->_name << std::endl;
 		
 		return true;
 }

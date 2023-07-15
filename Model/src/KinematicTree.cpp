@@ -164,9 +164,18 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
 			
 			std::string childLinkName = jointIterator->FirstChildElement("child")->Attribute("link");
 			
-			int number = (linkList.find(childLinkName))->second;
 			
-			this->link[number].attach_joint(this->joint.back());
+			//int number = (linkList.find(childLinkName))->second;
+			
+			//this->link[number].attach_joint(this->joint.back());
+			
+			for(int j = 0; j < this->link.size(); j++)
+			{
+				if(this->link[j].name() == childLinkName)
+				{
+					this->link[j].attach_joint(this->joint.back());
+				}
+			}
 		}
 		else
 		{
