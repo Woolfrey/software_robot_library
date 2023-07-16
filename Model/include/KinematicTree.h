@@ -37,12 +37,17 @@ class KinematicTree
 		                  const Pose                     &basePose,
 		                  const Eigen::Matrix<float,6,1> &baseTwist);
 		                  
-		std::string name() const { return this->_name; }
+		Eigen::MatrixXf time_derivative(const Eigen::MatrixXf &J);                          // Time derivative of a Jacobian
+		
+		Eigen::MatrixXf partial_derivative(const Eigen::MatrixXf &J,
+		                                   const unsigned int &jointNumber);                // Partial derivative of a Jacobian
 		
 		int number_of_joints() const { return this->numJoints; }
 		
-		Eigen::MatrixXf time_derivative(const Eigen::MatrixXf &jacobian);
-		   
+		Pose frame_pose(const std::string &frameName);                                      // Return the pose for a reference frame on the robot
+		
+		std::string name() const { return this->_name; }                                    // Return the name of this robot
+		
 	private:
 		
 		// Properties
