@@ -71,10 +71,10 @@ Pose Pose::operator* (const Pose &other)
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                                Multiply this pose in place                                     //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-Pose Pose::operator*= (const Pose &other)
+void Pose::operator*= (const Pose &other)
 {
-	return Pose(this->_position + this->_quaternion.toRotationMatrix()*other.position(),
-	            this->_quaternion*other.quaternion());
+	this->_position += this->_quaternion.toRotationMatrix()*other.position(),
+	this->_quaternion *= other.quaternion();
 }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
