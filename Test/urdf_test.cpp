@@ -51,15 +51,17 @@ int main(int argc, char **argv)
 	try
 	{
 		KinematicTree model(pathToURDF);
-/*		
+		
 		int numJoints = model.number_of_joints();
+		
+		std::cout << "\nTraversing the kinematic tree..\n";
 		
 		if(not model.update_state(Eigen::VectorXf::Zero(numJoints),
 		                          Eigen::VectorXf::Zero(numJoints)))
 		{
 			std::cout << "[ERROR] [URDF TEST] Couldn't update the state for some reason.\n";
 		}
-*/	
+			
 		return 0;
 	}
 	catch(std::exception &error)

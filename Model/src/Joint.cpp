@@ -67,7 +67,8 @@ Joint::Joint(const std::string     &name,
 	// Make sure the type is correctly specified
 	     if(this->_type == "revolute" or this->_type == "continuous") this->isRevolute = true;
 	else if(this->_type == "prismatic")                               this->isRevolute = false;
-	else if(this->_type != "fixed")
+	else if(this->_type == "fixed")                                   this->isFixed = true;
+	else
 	{
 		message += "Joint type was " + this->_type + " but expected 'revolute', "
 		         + "'continuous', or 'prismatic'.";
@@ -76,31 +77,18 @@ Joint::Joint(const std::string     &name,
 	}
 }
 
-  ///////////////////////////////////////////////////////////////////////////////////////////////////
- //                             Set the pointer to the parent link                                //
-///////////////////////////////////////////////////////////////////////////////////////////////////
-bool Joint::set_parent_link(Link &link)
-{
-	this->_parentLink = &link;
-	
-	return true;
-}
- 
-  ///////////////////////////////////////////////////////////////////////////////////////////////////
- //                            Set the pointer to the child link                                  //
-///////////////////////////////////////////////////////////////////////////////////////////////////
-bool Joint::set_child_link(Link &link)
-{
-		this->_childLink = &link;                                                             // Set pointer to child
-		
-		return true;
-}
-
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //             Update the pose of the joint with respect to the global frame of reference         //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 bool Joint::update_state(const Pose &previousPose, const float &position)
 {
+	if(this->isFixed)
+	{
+		std::cerr << "[FLAGRANT SYSTEM ERROR] [JOINT] update_state(): "
+		          << "The '" << this->_name << "' joint is fixed.\n";
+		
+		return false;
+	}
 	if(position <= this->_positionLimit[0])
 	{
 		std::cerr << "[FLAGRANT SYSTEM ERROR] [JOINT] update_state(): "
@@ -119,11 +107,13 @@ bool Joint::update_state(const Pose &previousPose, const float &position)
 	}
 	else
 	{
-/*		this->_pose = previousPose * this->_offset;
+		// NOTE: previousPose is 'const' so we need to do this 2-step operation
+		this->_pose = previousPose;
+		this->_pose *= this->_offset;
 		
 		if(this->isRevolute)
 		{
-			this->_pose *= Pose(Eigen::Vector3f::Zero,
+			this->_pose *= Pose(Eigen::Vector3f::Zero(),
 				            Eigen::Quaternionf(cos(0.5*position),
 				                               sin(0.5*position)*this->_localAxis(0),
 				                               sin(0.5*position)*this->_localAxis(1),
@@ -132,8 +122,46 @@ bool Joint::update_state(const Pose &previousPose, const float &position)
 		else // prismatic
 		{
 			this->_pose *= Pose(position*this->_localAxis, Eigen::Quaternionf(1, 0, 0, 0));
-		}*/
+		}
 	
+		return true;
+	}
+}
+
+  ///////////////////////////////////////////////////////////////////////////////////////////////////
+ //                      Set the preceding link in the kinematic chain                            //
+///////////////////////////////////////////////////////////////////////////////////////////////////
+bool Joint::set_parent_link(Link *link)
+{
+	if(link == nullptr)
+	{
+		std::cerr << "[ERROR] [JOINT] set_parent_link(): Input argument was a null pointer.\n";
+		
+		return false;
+	}
+	else
+	{
+		this->_parentLink = link;
+		
+		return true;
+	}
+}
+
+  ///////////////////////////////////////////////////////////////////////////////////////////////////
+ //                      Set the proceeding link in the kinematic chain                            //
+///////////////////////////////////////////////////////////////////////////////////////////////////
+bool Joint::set_child_link(Link *link)
+{
+	if(link == nullptr)
+	{
+		std::cerr << "[ERROR] [JOINT] set_child_link(): Input argument was a null pointer.\n";
+		
+		return false;
+	}
+	else
+	{
+		this->_childLink = link;
+		
 		return true;
 	}
 }

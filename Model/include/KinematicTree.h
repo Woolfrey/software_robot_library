@@ -40,7 +40,9 @@ class KinematicTree
 		std::string name() const { return this->_name; }
 		
 		int number_of_joints() const { return this->numJoints; }
-		                  
+		
+		Eigen::MatrixXf time_derivative(const Eigen::MatrixXf &jacobian);
+		   
 	private:
 		
 		// Properties
@@ -49,7 +51,8 @@ class KinematicTree
 
 		Eigen::Matrix<float,6,1> _baseTwist;                                                // Linear & angular velocity of the base
 			
-		Eigen::VectorXf _jointPosition, _jointVelocity;
+		Eigen::VectorXf _jointPosition,
+		                _jointVelocity;
 		
 		Eigen::Vector3f char_to_vector3f(const char* character);                            // Used to parse urdf properties
 		
@@ -65,12 +68,18 @@ class KinematicTree
 		
 		std::string _name;                                                                  // The name of this robot
 		
+		Eigen::MatrixXf jointInertiaMatrix,
+		                jointCoriolisMatrix;
+		                
+		Eigen::VectorXf jointGravityVector;
+		
+		Eigen::Vector3f gravityVector = {0,0,-9.81};
+		
 		// Methods
 		
-		Eigen::Matrix3f jacobian(Joint *joint,
+		Eigen::MatrixXf jacobian(Joint *joint,                                              
 		                         const Eigen::Vector3f &point,
-		                         const unsigned int &numberOfJoints);
-		                         
+		                         const unsigned int &numberOfColumns);	                         
 };                                                                                                  // Semicolon needed after class declarations
 
 #endif

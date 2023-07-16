@@ -23,32 +23,28 @@ class Link : public RigidBody
 		// Methods
 		
 		bool merge(Link *otherLink);                                                        // Merge the properties of the other link with this one
-	
-		bool attach_joint(Joint &joint);                                                    // Specify a pointer to the preceding joint
+
+		bool add_child_joint(Joint *joint);
 		
-		bool set_previous_link(Link &link);
+		bool set_parent_joint(Joint *joint);
 		
-		bool add_next_link(Link &link);
+		Eigen::Vector3f angular_velocity() const { return this->angularVelocity; }
 		
-		Joint* joint() const { return this->_joint; }                                       // Get the pointer to the joint
+		Joint* parent_joint() const { return this->parentJoint; }
 		
-		Link* previous_link() const { return this->previousLink; }
-		
-		std::vector<Link*> next_links() const { return this->nextLinks; }
+		std::vector<Joint*> child_joints() const { return this->childJoint; }
 		
 		std::string name() const { return this->_name; }                                    // Return the name of this link
 		
-		// Properties
-		
-		Eigen::Vector3f angularVelocity = {0, 0, 0};
+		void set_angular_velocity(const Eigen::Vector3f &velocity) { this->angularVelocity = velocity; }
 		
 	private:
+
+		Eigen::Vector3f angularVelocity = {0, 0, 0};
 		
-		Joint *_joint = nullptr;                                                            // Pointer to the attached joint
+		Joint* parentJoint = nullptr;
 		
-		Link *previousLink = nullptr;                                                       // Pointer to previous link in the kinematic chain
-		
-		std::vector<Link*> nextLinks {};                                                    // Pointer to next links in the kinematic chain
+		std::vector<Joint*> childJoint = {};	
 		
 		std::string _name = "unnamed";
 };                                                                                                  // Semicolon needed at the end of class declaration

@@ -1,34 +1,7 @@
 #include <Joint.h>
 #include <Link.h>
 
-  ///////////////////////////////////////////////////////////////////////////////////////////////////
- //                      Assign pointer to the joint attached to this link                        //
-///////////////////////////////////////////////////////////////////////////////////////////////////
-bool Link::attach_joint(Joint &joint)
-{	          
-		this->_joint = &joint;
-		
-		return true;
-}
 
-  ///////////////////////////////////////////////////////////////////////////////////////////////////
- //                   Assign pointer to the previous link in the kinematic chain                  //
-///////////////////////////////////////////////////////////////////////////////////////////////////
-bool Link::set_previous_link(Link &link)
-{
-		this->previousLink = &link;
-		
-		return true;
-}
-
-  ///////////////////////////////////////////////////////////////////////////////////////////////////
- //                    Add a pointer to a proceeding link in the kinematic chain                  //
-///////////////////////////////////////////////////////////////////////////////////////////////////
-bool Link::add_next_link(Link &link)
-{
-	this->nextLinks.push_back(&link);
-}
-  
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                              Merge another link with this one                                  //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -44,7 +17,7 @@ bool Link::merge(Link *otherLink)
 	{
 		this->_mass += otherLink->mass();                                                   // Add the masses together
 	
-		Pose T = otherLink->joint()->offset();                                              // Coordinate frame of the other joint/link relative to this one
+		Pose T = otherLink->parent_joint()->offset();                                       // Coordinate frame of the other joint/link relative to this one
 		
 		Eigen::Matrix3f R = T.rotation();                                                   // Get the rotation matrix
 		
@@ -55,6 +28,44 @@ bool Link::merge(Link *otherLink)
 		                        -t(1),  t(0),    0;                                         // As a skew-symmetric matrix
 		
 		this->_inertia += R*otherLink->inertia()*R.transpose() - otherLink->mass()*S*S;     // From the parallel axis theorem
+		
+		return true;
+	}
+}
+
+  ///////////////////////////////////////////////////////////////////////////////////////////////////
+ //                      Set the preceding joint in the kinematic chain                           //
+///////////////////////////////////////////////////////////////////////////////////////////////////
+bool Link::set_parent_joint(Joint *joint)
+{
+	if(joint == nullptr)
+	{
+		std::cerr << "[ERROR] [LINK] set_parent_joint(): Argument was a null pointer.\n";
+		
+		return false;
+	}
+	else
+	{
+		this->parentJoint = joint;
+		
+		return true;
+	}
+}
+
+  ///////////////////////////////////////////////////////////////////////////////////////////////////
+ //                                  Add a proceeding joint                                       //
+///////////////////////////////////////////////////////////////////////////////////////////////////
+bool Link::add_child_joint(Joint *joint)
+{
+	if(joint == nullptr)
+	{
+		std::cerr << "[ERROR] [LINK] add_child_joint(): Argument was a null pointer.\n";
+	
+		return false;
+	}
+	else
+	{
+		this->childJoint.push_back(joint);
 		
 		return true;
 	}

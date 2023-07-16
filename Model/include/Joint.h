@@ -32,18 +32,20 @@ class Joint
 		      const float           &speedLimit,
 		      const float           &effortLimit,
 		      const float           &damping,
-		      const float           &frictionS);
+		      const float           &friction);
 		
 		// Methods
-	
+		
+		bool is_fixed() const { return this->isFixed; }
+		
 		bool is_prismatic() const { return not this->isRevolute; }                          // Because I'm lazy
 		
 		bool is_revolute() const { return this->isRevolute; }
-		
-		bool set_child_link(Link &link);                                                    // Set pointer to child link
-		
-		bool set_parent_link(Link &link);                                                   // Set pointer to parent link
 	
+		bool set_parent_link(Link *link);
+		
+		bool set_child_link(Link *link);
+		
 		bool update_state(const Pose &previousPose, const float &position);
 		
 		Eigen::Vector3f axis() const { return this->_axis; }		
@@ -65,10 +67,14 @@ class Joint
 		void extend_offset(Pose &other) { this->_offset = other*this->_offset; }            // Extend the offset for fixed joints when merging links
 		
 		void set_number(const unsigned int &number) { this->_number = number; }             // Set the index in the joint vector list
+				
+		void position_limits(float &lower, float &upper) { lower = this->_positionLimit[0]; upper = this->_positionLimit[1]; }
 		
 	private:
 	
 		bool isRevolute = true;
+		
+		bool isFixed = false;
 		
 		Eigen::Vector3f _localAxis;                                                         // Axis of actuation in local frame
 		

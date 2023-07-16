@@ -5,8 +5,6 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 KinematicTree::KinematicTree(const std::string &pathToURDF)
 {
-	// NOTE: We should probably write a "check_urdf" function to ensure it is valid!
-	
 	// Variables used in this scope
 	std::map<std::string, unsigned int> linkList;                                               // So we can find links later and connect them to joints
 	
@@ -23,6 +21,8 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
 	// Make sure a robot is defined
 	tinyxml2::XMLElement* robot = urdf.FirstChildElement("robot");
 	if(robot == nullptr) throw std::runtime_error(errorMessage + "There does not appear to be a 'robot' element in the URDF.");
+	
+	this->_name = robot->Attribute("name");                                                     // Assign the name
 	
 	// Search through every link in the urdf and convert to RobotLibrary::Link object
 	
@@ -83,6 +83,8 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
 	}
 	
 	// Search through every joint
+	
+	int jointNumber = 0;
 	
 	for(auto jointIterator = robot->FirstChildElement("joint"); jointIterator; jointIterator = jointIterator->NextSiblingElement("joint"))
 	{
@@ -156,24 +158,64 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
 			
 			this->joint.emplace_back(Joint(jointName, jointType, axis, origin, positionLimit, velocityLimit, effortLimit, damping, friction));
 		
-			// Find the parent link
+			this->joint.back().set_number(jointNumber);
+			
+			jointNumber++;
+		
+			// Find and set the parent link
 			
 			std::string parentLinkName = jointIterator->FirstChildElement("parent")->Attribute("link");
 			
-			// Find the child link
+			auto linkIterator = linkList.find(parentLinkName);
+			
+			if(linkIterator == linkList.end())
+			{
+				throw std::runtime_error(errorMessage + "Could not find '" + parentLinkName + "' in the link list.");
+			}
+			else
+			{
+				unsigned int number = linkIterator->second;
+				
+				if(not this->joint.back().set_parent_link(&this->link[number]))     // Allows us to traverse backward to base link
+				{
+					errorMessage += "Unable to set the parent link for the '"
+					              + this->joint.back().name() + "' joint.";
+					              
+					throw std::runtime_error(errorMessage);
+				}
+				
+				// NOTE: We will eventually remove 'fixed' joints, and 
+				//       setting any child joints of the link here will
+				//       mess things up...
+			} 		
+		
+			// Find and set the child link
 			
 			std::string childLinkName = jointIterator->FirstChildElement("child")->Attribute("link");
 			
+			linkIterator = linkList.find(childLinkName);
 			
-			//int number = (linkList.find(childLinkName))->second;
-			
-			//this->link[number].attach_joint(this->joint.back());
-			
-			for(int j = 0; j < this->link.size(); j++)
+			if(linkIterator == linkList.end())
 			{
-				if(this->link[j].name() == childLinkName)
+				throw std::runtime_error(errorMessage + "Could not find '" + childLinkName + "' in the link list.");
+			}
+			else
+			{
+				unsigned int number = linkIterator->second;
+				
+				if(not this->joint.back().set_child_link(&this->link[number]))       // Allows use to traverse forward through a branch          
 				{
-					this->link[j].attach_joint(this->joint.back());
+					errorMessage += "Unable to set the child link for the '"
+					              + this->joint.back().name() + "' joint.";
+					
+					throw std::runtime_error(errorMessage);
+				}
+				else if(not this->link[number].set_parent_joint(&this->joint.back())) // Allows us to traverse backward to base link
+				{
+					errorMessage += "Unable to set the parent joint for the '"
+					              + this->link[number].name() + "' link.";
+					
+					throw std::runtime_error(errorMessage);
 				}
 			}
 		}
@@ -187,15 +229,123 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
 		}
 	}
 	
-	std::cout << "\nNow iterate through every link object and check its attached joint:\n";
-	for(int i = 0; i < this->link.size(); i++)
+	int prevNumJoints = this->joint.size();
+	
+	// NOTE: I know this code below is horribly inefficient, but I have spent *FAR* too long
+	// trying to figure out something smarter... And at least efficiency isn't critical in the constructor...
+
+	// FIRST PASS: Merge links connected by fixed joints
+
+	for(int i = 0; i < this->joint.size(); i++)
 	{
-		Joint *previousJoint = this->link[i].joint();
-		
-		if(previousJoint != nullptr)
+		if(this->joint[i].is_fixed())
 		{
-			std::cout << previousJoint->name() << " <-- " << this->link[i].name() << std::endl;
+			Link *parentLink = this->joint[i].parent_link();
+		
+			Link *childLink = this->joint[i].child_link();
+			
+			parentLink->merge(childLink);                                               // Merge the links connected by the fixed joint
+			
+			// Save the child link as a reference frame
+			// so we can search for it later
+			ReferenceFrame frame;
+			frame.link = parentLink;
+			frame.relativePose = this->joint[i].offset();	
+			this->referenceFrameList.emplace(childLink->name(), frame);		
 		}
+	}
+	
+	// SECOND PASS: For a sequence Link <-- Fixed Joint <-- Merged Link <-- Joint
+	//              Set the beginning link as the parent of the end joint
+	
+	for(int i = 0; i < this->joint.size(); i++)
+	{
+		Link *parentLink = this->joint[i].parent_link();
+		
+		Joint *previousJoint = parentLink->parent_joint();
+		
+		if(previousJoint != nullptr and previousJoint->is_fixed())
+		{
+			Link *rootLink = previousJoint->parent_link();
+			
+			this->joint[i].set_parent_link(rootLink);
+			
+			
+		}
+	}
+	
+	// THIRD PASS: Renumber joints, delete fixed ones, set the base
+	int i = 0;
+	while(i < this->joint.size())
+	{
+		if(this->joint[i].is_fixed())
+		{
+			this->joint.erase(this->joint.begin() + i);                                 // Remove the joint
+		}
+		else
+		{
+			this->joint[i].set_number(i);                                               // Set new number
+			
+			Link *parentLink = this->joint[i].parent_link();        
+			                      
+			parentLink->add_child_joint(&this->joint[i]);
+			
+			Link *childLink = this->joint[i].child_link();
+			
+			childLink->set_parent_joint(&this->joint[i]);                               // Need to reassign after deleting joints
+			
+			Joint *previousJoint = parentLink->parent_joint();
+			
+			// Set the base link
+			if(previousJoint == nullptr)
+			{
+				if(this->base == nullptr)
+				{
+					this->base = parentLink;                                    // This must be the base!
+				}
+				else if(this->base->name() != parentLink->name())
+				{
+					errorMessage += "More than one candidate base link found: '"
+					              + this->base->name() + "' and '"
+					              + parentLink->name() + "'.\n";
+					              
+					throw std::runtime_error(errorMessage);
+				}
+			}
+				
+			i++;
+		}
+	}
+	
+	this->numJoints = this->joint.size();                                                       // ACTUAL number of actuated joints
+	
+	// Resize the relevant tensors
+	std::cout << this->numJoints <<  " So far so good\n";
+	this->jointInertiaMatrix.resize(this->numJoints,this->numJoints);
+	this->jointCoriolisMatrix.resize(this->numJoints,this->numJoints);
+	this->jointGravityVector.resize(this->numJoints);
+	
+	std::cout << "[INFO] [KINEMATIC TREE] Successfully created the '" << this->_name << "' robot."
+	          << " It has " << this->numJoints << " joints (reduced from " << prevNumJoints << ").\n";
+	          
+	// Debugging stuff:
+	
+	if(this->base == nullptr)
+	{
+		std::cerr << "\n[FLAGRANT SYSTEM ERROR] The base link has not been set!\n";
+	}
+	else	std::cout << "\nI believe that '" << this->base->name() << "' is the base link.\n";
+	
+	std::cout << "\nHere is the list of joints:\n";
+	for(int i = 0; i < this->joint.size(); i++)
+	{
+		std::cout << i+1 << ". " <<  this->joint[i].name() << std::endl;
+	}
+	
+	std::cout << "\nHere are the reference frames on the robot:\n";
+	for(auto iterator = this->referenceFrameList.begin(); iterator != this->referenceFrameList.end(); iterator++)
+	{	
+		std::cout << " - '" << iterator->first << "' is on the '" << iterator->second.link->name() << "' link.\n";
 	}
 }
 
@@ -223,82 +373,91 @@ bool KinematicTree::update_state(const Eigen::VectorXf &jointPosition,
 	this->_jointVelocity = jointVelocity;
 	
 	// Update the base properties
+	
 	this->_basePose  = basePose;
 	
 	this->_baseTwist = baseTwist;
 	
-	this->base->angularVelocity = this->_baseTwist.tail(3);                                     // We need this for the inverse dynamics algorithm
+	this->base->set_angular_velocity(this->_baseTwist.tail(3));                                 // We need this for the inverse dynamics algorithm
 	
-	std::vector<Link*> candidateList = this->base->next_links();
-	
-	std::cout << "\nTraversing the kinematic tree...\n";
+	std::vector<Joint*> candidateList = this->base->child_joints();
 	
 	while(candidateList.size() > 0)
 	{
-	        ///////////////////////////// Forward Kinematics ///////////////////////////////////
-	        
-		Link *currentLink = candidateList.back();                                           // Get the link at the end of the list
+		//////////////////////////// Forward Kinematics ///////////////////////////////////
+	
+		// Get all the current and previous links and joints in the chain
+		Joint *currentJoint = candidateList.back();                                         // Current link in the tree
 		
-		candidateList.pop_back();                                                           // Remove it from the list
+		Link *currentLink = currentJoint->child_link();                                     // The link attached to this joint
 		
-		Joint *currentJoint = currentLink->joint();                                         // Get the joint attached to this link
+		Link *previousLink = currentJoint->parent_link();
 		
-		unsigned int jointNum = currentJoint->number();                                     // Get the joint index
+		Joint *previousJoint = previousLink->parent_joint();
 		
+		candidateList.pop_back();                                                           // Remove the current joint from the candidate list
+		
+		unsigned int jointNumber = currentJoint->number();
+		
+		// Update the pose for the current joint relative to base frame
 		Pose jointOrigin;
 		
-		if(currentJoint->parent_link()->joint() == nullptr) jointOrigin = this->_basePose;
-		else                                                jointOrigin = currentJoint->parent_link()->joint()->pose();
-
-		if(not currentJoint->update_state(jointOrigin, jointPosition(jointNum)))
+		if(previousJoint == nullptr) jointOrigin = this->_basePose;
+		else                         jointOrigin = previousJoint->pose();
+		
+		if(not currentJoint->update_state(jointOrigin, jointPosition(jointNumber)))
 		{
-			std::cerr << "[ERROR] [KINEMATIC TREE] update_state(): Unable to update the "
-			          << "state for the " << currentJoint->name() << " joint.\n";
+			std::cerr << "[ERROR] [KINEMATIC TREE] update_state(): Unable to update "
+			          << "the state for the " << currentJoint->name() << " joint.\n";
 			
 			return false;
 		}
 		
-		currentLink->angularVelocity = currentLink->previous_link()->angularVelocity;       // Propagate the angular velocity
-		
+		// Propagate the angular velocity
+		Eigen::Vector3f angularVelocity = previousLink->angular_velocity();                 // We also need this for inverse dynamics
+			
 		if(currentJoint->is_revolute())
 		{
-			currentLink->angularVelocity += jointVelocity(jointNum)*currentJoint->axis();  // Add on effect of joint
+			angularVelocity += jointVelocity(jointNumber)*currentJoint->axis();
+			
+			currentLink->set_angular_velocity(angularVelocity);
 		}
-	
+		
 		///////////////////////////// Inverse Dynamics ////////////////////////////////////
 		
-		/*
 		float mass = currentLink->mass();
 		
-		Pose com = currentJoint->pose() * currentLink->com();                               // Pose to the center of mass of the current link
+		Eigen::Vector3f com = currentJoint->pose() * currentLink->com();                    // Center of mass of current link in base frame
 		
-		Eigen::Matrix3f R = com.rotation();                                                 // Orientation as SO(3)                                               
+		Eigen::Matrix3f R = currentJoint->pose().rotation();
+
+		Eigen::Matrix3f I = R*currentLink->inertia()*R.transpose();                         // Rotate the inertia from local frame to base frame
 		
-		Eigen::Matrix3f I = R*currentLink.inertia()*R.transpose();                          // Rotate inertia to global frame
+		//Eigen::Matrix3f Idot = angularVelocity.cross(I); // THIS DOESN'T WORK? FUCK YOU (ノಠ益ಠ)ノ彡┻━┻
 		
-		Eigen::Matrix3f Idot = currentLink->angularVelocity.cross(I);                       // Time derivative
+		Eigen::Matrix3f Idot;
+		for(int i = 0; i < 3; i++) Idot.col(i) = angularVelocity.cross(I.col(i));
 		
-		Eigen::MatrixXf J = jacobian(currentJoint, com.position(), jointNum);                  // Get Jacobian to center of mass
+		Eigen::MatrixXf J = jacobian(currentJoint, com, jointNumber+1);                     // Get Jacobian to center of mass of this current link/joint
 		
 		Eigen::MatrixXf Jdot = time_derivative(J);                                          // As it says
 		
-		Eigen::MatrixXf Jv = J.block(0,0,3,index);                                          // Linear component
+		Eigen::MatrixXf Jv = J.block(0,0,3,jointNumber);                                    // Linear component
 		
-		Eigen::MatrixXf Jw = J.block(3,0,3,index);                                          // Angular component
+		Eigen::MatrixXf Jw = J.block(3,0,3,jointNumber);                                    // Angular component
 		
-		this->jointInertiaMatrix.block(0,0,index,index) += mass*Jv.transpose()*Jv + Jw.transpose()*I*Jw;
+		this->jointInertiaMatrix.block(0,0,jointNumber,jointNumber) += mass*Jv.transpose()*Jv + Jw.transpose()*I*Jw;
 		                                                
-		this->jointCoriolisMatrix.block(0,0,index,index) += mass*Jv.transpose()*Jdot.block(0,0,3,index)
-		                                                  + Jw.transpose()*(Idot*Jw + I*Jdot.block(3,0,3,index));
+		this->jointCoriolisMatrix.block(0,0,jointNumber,jointNumber) += mass*Jv.transpose()*Jdot.block(0,0,3,jointNumber)
+		                                                              + Jw.transpose()*(Idot*Jw + I*Jdot.block(3,0,3,jointNumber));
 		
-		this->jointGravityVector.head(index) += mass*Jv.transpose()*this->gravityVector;
+		this->jointGravityVector.head(jointNumber) -= mass*Jv.transpose()*this->gravityVector; // We need to NEGATE gravity
 		
-		std::vector<Link*> temp = currentLink->next_links();                                // Get the links following this one
+		////////////////////////////////////////////////////////////////////////////////////
+		
+		std::vector<Joint*> temp = currentLink->child_joints();
 		
 		if(temp.size() != 0) candidateList.insert(candidateList.end(), temp.begin(), temp.end()); // Add them to the search list
-	
-		std::cout << "This is the " << currentLink->name() << " link.\n";
-		*/
 	}
 	
 	return true;
@@ -307,44 +466,55 @@ bool KinematicTree::update_state(const Eigen::VectorXf &jointPosition,
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //                            Compute the Jacobian to a given point                              //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::MatrixXf jacobian(Joint *joint, const Eigen::Vector3f &point, const unsigned int &numberOfJoints)
+Eigen::MatrixXf KinematicTree::jacobian(Joint *joint,                                               // Starting point in the kinematic tree
+                                        const Eigen::Vector3f &point,                               // A point in the given joint frame
+                                        const unsigned int &numberOfColumns)                        // Must be less than or equal to number of joints in model
 {
 
-	Eigen::MatrixXf J(6,numberOfJoints);
-/*	
-	Joint *currentJoint = joint;
+	Eigen::MatrixXf J(6,numberOfColumns); J.setZero();                                          // Value to be returned
 	
-	while(currentJoint != nullptr)
+	if(joint->number() > numberOfColumns)
 	{
-		const unsigned int i = joint->index();
-		
-		if(currentJoint->is_revolute())
-		{
-			// J_i = [ a_i x r_i ]
-			//       [    a_i    ]
-		
-			J.block(0,i,3,1) = currentJoint->axis().cross(point - currentJoints->pose().position()); // Linear component
-			J.block(3,i,3,1) = currentJoint->axis();                                                 // Angular component
-		}
-		else // prismatic
-		{
-			// J_i = [ a_i ]
-			//       [  0  ]
-			
-			J.block(0,i,3,1) = currentJoint->axis();                                    // Linear component
-			J.block(3,i,3,1).setZero();                                                 // Angular component
-		}
-		
-		currentJoint = currentJoint->parent_link()->joint();                                // Get the next link down the chain
+		std::cerr << "[ERROR] [KINEMATIC TREE] jacobian(): Joint number is greater than "
+		          << "the number of columns (" << joint->number() << " > "
+		          << numberOfColumns << ".\n";
 	}
-*/
+	else
+	{
+		Joint *currentJoint = joint;                                                        // Used to iterate toward the base
+				
+		while(currentJoint != nullptr)
+		{
+			unsigned int i = currentJoint->number();
+		
+			if(currentJoint->is_revolute())
+			{
+				// J_i = [ a_i x r_i ]
+				//       [    a_i    ]
+			
+				J.block(0,i,3,1) = currentJoint->axis().cross(point - currentJoint->pose().position()); // Linear component
+				J.block(3,i,3,1) = currentJoint->axis();                                                // Angular component
+			}
+			else // prismatic
+			{
+				// J_i = [ a_i ]
+				//       [  0  ]
+				
+				J.block(0,i,3,1) = currentJoint->axis();                            // Linear component
+				J.block(3,i,3,1).setZero();                                         // Angular component
+			}
+			
+			currentJoint = currentJoint->parent_link()->parent_joint();                 // Move to next joint toward the base	
+		}
+	}
+	
 	return J;
 }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //                         Get the time derivative of a given Jacobian                           //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::MatrixXf time_derivative(const Eigen::MatrixXf &J)
+Eigen::MatrixXf KinematicTree::time_derivative(const Eigen::MatrixXf &J)
 {
 	if(J.rows() != 6)
 	{
@@ -352,52 +522,56 @@ Eigen::MatrixXf time_derivative(const Eigen::MatrixXf &J)
 	}
 	
 	Eigen::MatrixXf Jdot(6,J.cols()); Jdot.setZero();                                           // Value to be returned
-/*
+
 	for(int i = 0; i < J.cols(); i++)
 	{
 		for(int j = 0; j <= i; j++)
 		{
 			// Compute dJ(i)/dq(j)
-			if(this->joint[j].is_revolute())				            // J_j = [a_j x r_j; a_j]
+			if(this->joint[j].is_revolute())
 			{
+				float qdot = this->_jointVelocity(j);                               // Makes things a little easier
+				
 				// qdot_j * ( a_j x (a_i x r_i) )
-				Jdot(0,i) += this->qdot(j)*(J(4,j)*J(2,i) - J(5,j)*J(1,i));
-				Jdot(1,i) += this->qdot(j)*(J(5,j)*J(0,i) - J(3,j)*J(2,i));
-				Jdot(2,i) += this->qdot(j)*(J(3,j)*J(1,i) - J(4,j)*J(0,i));
+				Jdot(0,i) += qdot*(J(4,j)*J(2,i) - J(5,j)*J(1,i));
+				Jdot(1,i) += qdot*(J(5,j)*J(0,i) - J(3,j)*J(2,i));
+				Jdot(2,i) += qdot*(J(3,j)*J(1,i) - J(4,j)*J(0,i));
 				
 				if(this->joint[i].is_revolute())			            // J_i = [a_i x r_i; a_i]
 				{
 					// qdot_j * ( a_j x a_i )
-					Jdot(3,i) += this->qdot(j)*(J(4,j)*J(5,i) - J(5,j)*J(4,i));
-					Jdot(4,i) += this->qdot(j)*(J(5,j)*J(3,i) - J(3,j)*J(5,i));
-					Jdot(5,i) += this->qdot(j)*(J(3,j)*J(4,i) - J(4,j)*J(3,i));
+					Jdot(3,i) += qdot*(J(4,j)*J(5,i) - J(5,j)*J(4,i));
+					Jdot(4,i) += qdot*(J(5,j)*J(3,i) - J(3,j)*J(5,i));
+					Jdot(5,i) += qdot*(J(3,j)*J(4,i) - J(4,j)*J(3,i));
 				}	
 			}
 			
 			// Compute dJ(j)/dq(i)
 			if(i != j && this->joint[j].is_revolute())			            // J_j = [a_j x r_j; a_j]
 			{
+				float qdot = this->_jointVelocity(i);                               // Makes things a little easier
+				
 				if(this->joint[i].is_revolute())			            // J_i = [a_i x r_i; a_i]
 				{
 					// qdot_i * ( a_i x (a_j x r_j) )
 					// Jdot(0,j) += this->qdot(i)*(J(4,i)*J(2,j) - J(5,i)*J(1,j));
 					// Jdot(1,j) += this->qdot(i)*(J(5,i)*J(0,j) - J(3,i)*J(2,j));
 					// Jdot(2,j) += this->qdot(i)*(J(3,i)*J(1,j) - J(4,i)*J(0,j));
-					Jdot(0,j) += this->qdot(i)*(J(4,j)*J(2,i) - J(5,j)*J(1,i));
-					Jdot(1,j) += this->qdot(i)*(J(5,j)*J(0,i) - J(3,j)*J(2,i));
-					Jdot(2,j) += this->qdot(i)*(J(3,j)*J(1,i) - J(4,j)*J(0,i));
+					Jdot(0,j) += qdot*(J(4,j)*J(2,i) - J(5,j)*J(1,i));
+					Jdot(1,j) += qdot*(J(5,j)*J(0,i) - J(3,j)*J(2,i));
+					Jdot(2,j) += qdot*(J(3,j)*J(1,i) - J(4,j)*J(0,i));
 				}
 				else // this->link[i].is_prismatic()			            // J_i = [a_i ; 0]
 				{
 					// qdot_i * ( a_i x (a_j x r_j) )
-					Jdot(0,j) += this->qdot(i)*(J(1,i)*J(2,j) - J(2,i)*J(1,j));
-					Jdot(1,j) += this->qdot(i)*(J(2,i)*J(0,j) - J(0,i)*J(2,j));
-					Jdot(2,j) += this->qdot(i)*(J(0,i)*J(1,j) - J(1,i)*J(0,j));
+					Jdot(0,j) += qdot*(J(1,i)*J(2,j) - J(2,i)*J(1,j));
+					Jdot(1,j) += qdot*(J(2,i)*J(0,j) - J(0,i)*J(2,j));
+					Jdot(2,j) += qdot*(J(0,i)*J(1,j) - J(1,i)*J(0,j));
 				}
 			}
 		}
 	}
-*/
+	
 	return Jdot;
 }
 
