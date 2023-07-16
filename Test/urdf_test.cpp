@@ -40,8 +40,17 @@ int main(int argc, char **argv)
 		std::cout << "\nIt took " << time*1000 << " milliseconds (" << 1/time << " Hz) "
 		          << "to compute the inverse dynamics.\n";
 		          
-		std::cout << "\nHere is the pose of the 'right_hand':\n";
+		std::cout << "\nHere is the pose of the 'right_hand':\n\n";
 		std::cout << model.frame_pose("right_hand").as_matrix() << std::endl;
+		
+		std::cout << "\nHere is the inertia matrix:\n\n";
+		std::cout << model.joint_inertia_matrix() << std::endl;
+		
+		std::cout << "\nHere is the joint Coriolis matrix:\n\n";
+		std::cout << model.joint_coriolis_matrix() << std::endl;
+		
+		std::cout << "\nHere is the joint gravity torque vector:\n\n";
+		std::cout << model.joint_gravity_vector().transpose() << std::endl;
 			
 		return 0;
 	}
