@@ -7,7 +7,7 @@
 #ifndef RIGIDBODY_H_
 #define RIGIDBODY_H_
 
-#include <Frame.h>
+#include <string>
 
 class Joint;                                                                                        // Forward declaration since RigidBody and Joint are mutually referential
 
