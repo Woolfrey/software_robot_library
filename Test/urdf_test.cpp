@@ -1,41 +1,10 @@
-#include <iostream>                                                                                 // std::cerr, std::cout
-#include <KinematicTree.h>
+#include <iostream>                                                                                  // std::cerr, std::cout
+#include <KinematicTree.h>                                                                           // Custom class for robot physics
+#include <time.h>                                                                                    // Timer
 
-/*
-const char *extractAttribute(tinyxml2::XMLElement *xml_object, const char *element_name, const char *attribute_name)
-{
-    tinyxml2::XMLElement *element_xml = xml_object->FirstChildElement(element_name);
-    if (element_xml == nullptr) {
-        std::cout << "test" << std::endl;
-        return nullptr;
-    }
-
-    return element_xml->Attribute(attribute_name);
-
-}
-
-Eigen::VectorXf convert_to_eigen(const char *attribute, const int numExpectedValues = 0)
-{
-	
-	std::vector<float> temporaryAttribute;
-	
-	char* endPointer;
-	
-	for(char* p = (char *) attribute; *p != '\0'; p = endPointer)
-	{
-		temporaryAttribute.push_back(strtof(p,&endPointer));
-	}
-	
-	for(auto it = temporaryAttribute.begin(); it != temporaryAttribute.end(); it++)
-	{
-		auto i = std::distance(temporaryAttribute.begin(),it);
-		eigenAttribute(i) = temporaryAttribute(i);
-	}
-	
-	return temporaryAttribute.size() == numExpectedValues
-	       (tempAttribute.size() > 1 and numExpectedValues == 0) ? eigenAttribute : Eigen::Vector3f::Zero();
-}*/
-
+  ///////////////////////////////////////////////////////////////////////////////////////////////////
+ //                                          MAIN                                                 //
+///////////////////////////////////////////////////////////////////////////////////////////////////
 int main(int argc, char **argv)
 {
 	if(argc != 2)
@@ -54,13 +23,25 @@ int main(int argc, char **argv)
 		
 		int numJoints = model.number_of_joints();
 		
-		std::cout << "\nTraversing the kinematic tree..\n";
+		clock_t timer;
+		
+		timer = clock();                                                                    // Start the timer
 		
 		if(not model.update_state(Eigen::VectorXf::Zero(numJoints),
 		                          Eigen::VectorXf::Zero(numJoints)))
 		{
 			std::cout << "[ERROR] [URDF TEST] Couldn't update the state for some reason.\n";
 		}
+		
+		timer = clock() - timer;                                                            // Difference from the start
+		
+		float time = (float)timer/CLOCKS_PER_SEC;                                           // Convert
+		
+		std::cout << "\nIt took " << time*1000 << " milliseconds (" << 1/time << " Hz) "
+		          << "to compute the inverse dynamics.\n";
+		          
+		std::cout << "\nHere is the pose of the 'right_hand':\n";
+		std::cout << model.frame_pose("right_hand").as_matrix() << std::endl;
 			
 		return 0;
 	}
