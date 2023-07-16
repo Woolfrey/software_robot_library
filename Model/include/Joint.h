@@ -7,7 +7,9 @@
 #ifndef JOINT_H_
 #define JOINT_H_
 
-#include <Frame.h>                                                                                  // Custom class for a coordinate frame
+#include <Eigen/Core>
+#include <Pose.h>
+#include <string>
 #include <vector>
 
 class Link;                                                                                         // Forward declaration since Joint and RigidBody are mutually referential
