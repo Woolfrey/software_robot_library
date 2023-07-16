@@ -37,7 +37,7 @@ class Pose
 		
 		Pose operator*(const Pose &other);                                                  // Multiply this Pose with another
 		
-		Pose operator*=(const Pose &other);
+		void operator*=(const Pose &other);
 		
 		Eigen::Vector3f operator*(const Eigen::Vector3f &other);                            // Transform a translation vector
 		
