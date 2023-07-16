@@ -40,14 +40,14 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
 		tinyxml2::XMLElement* inertial = linkIterator->FirstChildElement("inertial");
 		if(inertial != nullptr)
 		{
-			mass = inertial->FloatAttribute("mass");
+			mass = inertial->FirstChildElement("mass")->FloatAttribute("value");
 			
-			float ixx = inertial->FloatAttribute("ixx");
-			float ixy = inertial->FloatAttribute("ixy");
-			float ixz = inertial->FloatAttribute("ixz");
-			float iyy = inertial->FloatAttribute("iyy");
-			float iyz = inertial->FloatAttribute("iyz");
-			float izz = inertial->FloatAttribute("izz");
+			float ixx = inertial->FirstChildElement("inertia")->FloatAttribute("ixx");
+			float ixy = inertial->FirstChildElement("inertia")->FloatAttribute("ixy");
+			float ixz = inertial->FirstChildElement("inertia")->FloatAttribute("ixz");
+			float iyy = inertial->FirstChildElement("inertia")->FloatAttribute("iyy");
+			float iyz = inertial->FirstChildElement("inertia")->FloatAttribute("iyz");
+			float izz = inertial->FirstChildElement("inertia")->FloatAttribute("izz");
 			
 			momentOfInertia << ixx, ixy, ixz,
 			                   ixy, iyy, iyz,
@@ -369,8 +369,12 @@ bool KinematicTree::update_state(const Eigen::VectorXf &jointPosition,
 	}
 	
 	this->_jointPosition = jointPosition;
-	
 	this->_jointVelocity = jointVelocity;
+	
+	// Need to clear for new loop
+	this->jointInertiaMatrix.setZero();
+	this->jointCoriolisMatrix.setZero();
+	this->jointGravityVector.setZero();
 	
 	// Update the base properties
 	
@@ -381,6 +385,7 @@ bool KinematicTree::update_state(const Eigen::VectorXf &jointPosition,
 	this->base->set_angular_velocity(this->_baseTwist.tail(3));                                 // We need this for the inverse dynamics algorithm
 	
 	std::vector<Joint*> candidateList = this->base->child_joints();
+	
 	
 	while(candidateList.size() > 0)
 	{
@@ -397,7 +402,7 @@ bool KinematicTree::update_state(const Eigen::VectorXf &jointPosition,
 		
 		candidateList.pop_back();                                                           // Remove the current joint from the candidate list
 		
-		unsigned int jointNumber = currentJoint->number();
+		unsigned int j = currentJoint->number();
 		
 		// Update the pose for the current joint relative to base frame
 		Pose jointOrigin;
@@ -405,7 +410,7 @@ bool KinematicTree::update_state(const Eigen::VectorXf &jointPosition,
 		if(previousJoint == nullptr) jointOrigin = this->_basePose;
 		else                         jointOrigin = previousJoint->pose();
 		
-		if(not currentJoint->update_state(jointOrigin, jointPosition(jointNumber)))
+		if(not currentJoint->update_state(jointOrigin, jointPosition(j)))
 		{
 			std::cerr << "[ERROR] [KINEMATIC TREE] update_state(): Unable to update "
 			          << "the state for the " << currentJoint->name() << " joint.\n";
@@ -413,15 +418,12 @@ bool KinematicTree::update_state(const Eigen::VectorXf &jointPosition,
 			return false;
 		}
 		
-		std::cout << "Pose for the '" << currentJoint->name() << "' joint:\n";
-		std::cout << currentJoint->pose().as_matrix() << std::endl;
-		
 		// Propagate the angular velocity
 		Eigen::Vector3f angularVelocity = previousLink->angular_velocity();                 // We also need this for inverse dynamics
 			
 		if(currentJoint->is_revolute())
 		{
-			angularVelocity += jointVelocity(jointNumber)*currentJoint->axis();
+			angularVelocity += jointVelocity(j)*currentJoint->axis();
 			
 			currentLink->set_angular_velocity(angularVelocity);
 		}
@@ -441,20 +443,20 @@ bool KinematicTree::update_state(const Eigen::VectorXf &jointPosition,
 		Eigen::Matrix3f Idot;
 		for(int i = 0; i < 3; i++) Idot.col(i) = angularVelocity.cross(I.col(i));
 		
-		Eigen::MatrixXf J = jacobian(currentJoint, com, jointNumber+1);                     // Get Jacobian to center of mass of this current link/joint
+		Eigen::MatrixXf J = jacobian(currentJoint, com, j+1);                               // Get Jacobian to center of mass of this current link/joint
 		
 		Eigen::MatrixXf Jdot = time_derivative(J);                                          // As it says
 		
-		Eigen::MatrixXf Jv = J.block(0,0,3,jointNumber);                                    // Linear component
+		Eigen::MatrixXf Jv = J.block(0,0,3,j+1);                                             // Linear component
 		
-		Eigen::MatrixXf Jw = J.block(3,0,3,jointNumber);                                    // Angular component
+		Eigen::MatrixXf Jw = J.block(3,0,3,j+1);                                             // Angular component
 		
-		this->jointInertiaMatrix.block(0,0,jointNumber,jointNumber) += mass*Jv.transpose()*Jv + Jw.transpose()*I*Jw;
+		this->jointInertiaMatrix.block(0,0,j+1,j+1) += mass*Jv.transpose()*Jv + Jw.transpose()*I*Jw;
 		                                                
-		this->jointCoriolisMatrix.block(0,0,jointNumber,jointNumber) += mass*Jv.transpose()*Jdot.block(0,0,3,jointNumber)
-		                                                              + Jw.transpose()*(Idot*Jw + I*Jdot.block(3,0,3,jointNumber));
+		this->jointCoriolisMatrix.block(0,0,j+1,j+1) += mass*Jv.transpose()*Jdot.block(0,0,3,j+1)
+		                                                              + Jw.transpose()*(Idot*Jw + I*Jdot.block(3,0,3,j+1));
 		
-		this->jointGravityVector.head(jointNumber) -= mass*Jv.transpose()*this->gravityVector; // We need to NEGATE gravity
+		this->jointGravityVector.head(j+1) -= mass*Jv.transpose()*this->gravityVector; // We need to NEGATE gravity
 		
 		////////////////////////////////////////////////////////////////////////////////////
 		
