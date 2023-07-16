@@ -320,7 +320,6 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
 	this->numJoints = this->joint.size();                                                       // ACTUAL number of actuated joints
 	
 	// Resize the relevant tensors
-	std::cout << this->numJoints <<  " So far so good\n";
 	this->jointInertiaMatrix.resize(this->numJoints,this->numJoints);
 	this->jointCoriolisMatrix.resize(this->numJoints,this->numJoints);
 	this->jointGravityVector.resize(this->numJoints);
@@ -329,7 +328,7 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
 	          << " It has " << this->numJoints << " joints (reduced from " << prevNumJoints << ").\n";
 	          
 	// Debugging stuff:
-	
+/*	
 	if(this->base == nullptr)
 	{
 		std::cerr << "\n[FLAGRANT SYSTEM ERROR] The base link has not been set!\n";
@@ -347,6 +346,7 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
 	{	
 		std::cout << " - '" << iterator->first << "' is on the '" << iterator->second.link->name() << "' link.\n";
 	}
+*/
 }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -413,6 +413,9 @@ bool KinematicTree::update_state(const Eigen::VectorXf &jointPosition,
 			return false;
 		}
 		
+		std::cout << "Pose for the '" << currentJoint->name() << "' joint:\n";
+		std::cout << currentJoint->pose().as_matrix() << std::endl;
+		
 		// Propagate the angular velocity
 		Eigen::Vector3f angularVelocity = previousLink->angular_velocity();                 // We also need this for inverse dynamics
 			
@@ -475,9 +478,9 @@ Eigen::MatrixXf KinematicTree::jacobian(Joint *joint,                           
 	
 	if(joint->number() > numberOfColumns)
 	{
-		std::cerr << "[ERROR] [KINEMATIC TREE] jacobian(): Joint number is greater than "
-		          << "the number of columns (" << joint->number() << " > "
-		          << numberOfColumns << ".\n";
+		throw std::runtime_error("[ERROR] [KINEMATIC TREE] jacobian(): "
+		                         "Number of columns is too small. The starting joint is "
+		                         "too high in the kinematic chain.");
 	}
 	else
 	{
@@ -578,7 +581,8 @@ Eigen::MatrixXf KinematicTree::time_derivative(const Eigen::MatrixXf &J)
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //             Get the partial derivative of a Jacobian with respect to a given joint            //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::MatrixXf partial_derivative(const Eigen::MatrixXf &J, const unsigned int &jointNum)
+Eigen::MatrixXf KinematicTree::partial_derivative(const Eigen::MatrixXf &J,
+                                                  const unsigned int &jointNumber)
 {
 	// E. D. Pohl and H. Lipkin, "A new method of robotic rate control near singularities,"
 	// Proceedings. 1991 IEEE International Conference on Robotics and Automation,
@@ -586,63 +590,87 @@ Eigen::MatrixXf partial_derivative(const Eigen::MatrixXf &J, const unsigned int 
 	
 	if(J.rows() != 6)
 	{
-		throw std::invalid_argument("[ERROR] [KINEMATIC TREE] partial_derivative(): Expected the input Jacobian to have 6 rows but it had " + std::to_string(J.rows()) + ".");
+		throw std::invalid_argument("[ERROR] [KINEMATIC TREE] partial_derivative(): "
+		                            "Expected the input Jacobian to have 6 rows but it had " 
+		                          + std::to_string(J.rows()) + ".");
 	}
-	else if(jointNum > J.cols())
+	else if(jointNumber >= J.cols())
 	{
-		throw std::invalid_argument("[ERROR] [KINEMATIC TREE] partial_derivative(): Cannot take the partial derivative with respect to joint " + std::to_string(jointNum) + " as the Jacobian has only " + std::to_string(J.cols()) + " columns.");
+		throw std::invalid_argument("[ERROR] [KINEMATIC TREE] partial_derivative(): "
+		                            "Joint number must be strictly less than the number of columns "
+		                            "(" + std::to_string(jointNumber) + " >= "+ std::to_string(J.cols()) + ").");
 	}
 
-	Eigen::MatrixXf dJ(6,J.cols()); dJ.setZero();                                              // Value to be returned
-/*	
+	Eigen::MatrixXf dJ(6,J.cols()); dJ.setZero();                                               // Value to be returned
+	
+	int j = jointNumber;                                                                        // Makes things a little easier
+	
 	for(int i = 0; i < J.cols(); i++)
 	{
-		if(this->joint[i].is_revolute())					           // J_i = [a_i x r_i ; a_i]
+		if(this->joint[i].is_revolute())					            // J_i = [a_i x r_i ; a_i]
 		{
-			if(this->joint[jointNum].is_revolute()) 			           // J_i = [a_j x r_j; a_j]
+			if(this->joint[j].is_revolute()) 			                    // J_i = [a_j x r_j; a_j]
 			{
-				if (jointNum < i)
+				if (j < i)
 				{
 					// a_j x (a_i x a_i)
-					dJ(0,i) = J(4,jointNum)*J(2,i) - J(5,jointNum)*J(1,i);
-					dJ(1,i) = J(5,jointNum)*J(0,i) - J(3,jointNum)*J(2,i);
-					dJ(2,i) = J(3,jointNum)*J(1,i) - J(4,jointNum)*J(0,i);
+					dJ(0,i) = J(4,j)*J(2,i) - J(5,j)*J(1,i);
+					dJ(1,i) = J(5,j)*J(0,i) - J(3,j)*J(2,i);
+					dJ(2,i) = J(3,j)*J(1,i) - J(4,j)*J(0,i);
 
 					// a_j x a_i
-					dJ(3,i) = J(4,jointNum)*J(5,i) - J(5,jointNum)*J(4,i);
-					dJ(4,i) = J(5,jointNum)*J(3,i) - J(3,jointNum)*J(5,i);
-					dJ(5,i) = J(3,jointNum)*J(4,i) - J(4,jointNum)*J(3,i);
+					dJ(3,i) = J(4,j)*J(5,i) - J(5,j)*J(4,i);
+					dJ(4,i) = J(5,j)*J(3,i) - J(3,j)*J(5,i);
+					dJ(5,i) = J(3,j)*J(4,i) - J(4,j)*J(3,i);
 				}
 				else
 				{
 					// a_i x (a_j x a_j)
-					dJ(0,i) = J(4,i)*J(2,jointNum) - J(5,i)*J(1,jointNum);
-					dJ(1,i) = J(5,i)*J(0,jointNum) - J(3,i)*J(2,jointNum);
-					dJ(2,i) = J(3,i)*J(1,jointNum) - J(4,i)*J(0,jointNum);
+					dJ(0,i) = J(4,i)*J(2,j) - J(5,i)*J(1,j);
+					dJ(1,i) = J(5,i)*J(0,j) - J(3,i)*J(2,j);
+					dJ(2,i) = J(3,i)*J(1,j) - J(4,i)*J(0,j);
 				}
 			}
-			else if(this->joint[jointNum].is_prismatic() && jointNum > i)	            // J_j = [a_j ; 0]
+			else if(this->joint[j].is_prismatic() && j > i)	                            // J_j = [a_j ; 0]
 			{
 				// a_j x a_i
-				dJ(0,i) = J(1,jointNum)*J(2,i) - J(2,jointNum)*J(1,i);
-				dJ(1,i) = J(2,jointNum)*J(0,i) - J(0,jointNum)*J(2,i);
-				dJ(2,i) = J(0,jointNum)*J(1,i) - J(1,jointNum)*J(0,i);
+				dJ(0,i) = J(1,j)*J(2,i) - J(2,j)*J(1,i);
+				dJ(1,i) = J(2,j)*J(0,i) - J(0,j)*J(2,i);
+				dJ(2,i) = J(0,j)*J(1,i) - J(1,j)*J(0,i);
 			}
 		}
-		else if(this->joint[i].is_prismatic()					           // J_i = [a_i ; 0]
-			&& this->joint[jointNum].is_revolute()				           // J_j = [a_j x r_j; a_j]
-			&& jointNum < i)
+		else if(this->joint[i].is_prismatic()					            // J_i = [a_i ; 0]
+		    and this->joint[j].is_revolute()				                    // J_j = [a_j x r_j; a_j]
+	            and j < i)
 		{
 			// a_j x a_i
-			dJ(0,i) = J(4,jointNum)*J(2,i) - J(5,jointNum)*J(1,i);
-			dJ(1,i) = J(5,jointNum)*J(0,i) - J(3,jointNum)*J(2,i);
-			dJ(2,i) = J(3,jointNum)*J(1,i) - J(4,jointNum)*J(0,i);
+			dJ(0,i) = J(4,j)*J(2,i) - J(5,j)*J(1,i);
+			dJ(1,i) = J(5,j)*J(0,i) - J(3,j)*J(2,i);
+			dJ(2,i) = J(3,j)*J(1,i) - J(4,j)*J(0,i);
 		}
 	}
-*/	
+	
 	return dJ;
 }
 
+  ////////////////////////////////////////////////////////////////////////////////////////////////////
+ //                          Get the a reference frame on the robot                                //
+////////////////////////////////////////////////////////////////////////////////////////////////////
+Pose KinematicTree::frame_pose(const std::string &frameName)
+{
+	auto container = this->referenceFrameList.find(frameName);
+	
+	if(container == this->referenceFrameList.end())
+	{
+		throw std::runtime_error("[ERROR] [KINEMATIC TREE] get_reference_frame(): Could not find '"
+		                        + frameName + "' in the list.");
+	}
+	else
+	{
+		return container->second.link->parent_joint()->pose()                               // Pose for the *origin* of the associated link
+		      *container->second.relativePose;                                              // Pose of the frame relative to the link/joint
+	}
+}
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //                   Convert a char of numbers to an Eigen::Vector3f object                      //
