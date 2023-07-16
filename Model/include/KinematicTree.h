@@ -36,13 +36,21 @@ class KinematicTree
 		                  const Eigen::VectorXf          &jointVelocity,
 		                  const Pose                     &basePose,
 		                  const Eigen::Matrix<float,6,1> &baseTwist);
+		        
+		Eigen::MatrixXf joint_inertia_matrix() const { return this->jointInertiaMatrix; }
+		
+		Eigen::MatrixXf joint_coriolis_matrix() const { return this->jointCoriolisMatrix; }   
 		                  
 		Eigen::MatrixXf time_derivative(const Eigen::MatrixXf &J);                          // Time derivative of a Jacobian
 		
 		Eigen::MatrixXf partial_derivative(const Eigen::MatrixXf &J,
 		                                   const unsigned int &jointNumber);                // Partial derivative of a Jacobian
 		
-		int number_of_joints() const { return this->numJoints; }
+		Eigen::VectorXf joint_gravity_vector() const { return this->jointGravityVector; }
+		
+		Eigen::VectorXf joint_velocities() const { return this->_jointVelocity; }
+		
+		unsigned int number_of_joints() const { return this->numJoints; }
 		
 		Pose frame_pose(const std::string &frameName);                                      // Return the pose for a reference frame on the robot
 		
@@ -52,7 +60,7 @@ class KinematicTree
 		
 		// Properties
 		
-		int numJoints;
+		unsigned int numJoints;
 
 		Eigen::Matrix<float,6,1> _baseTwist;                                                // Linear & angular velocity of the base
 			
