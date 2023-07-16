@@ -16,7 +16,7 @@ Joint::Joint(const std::string     &name,
 	     :
 	     _name(name),
 	     _type(type),
-	     _axis(axis.normalized()),                                                              // Ensure unit norm for good measure
+	     _localAxis(axis.normalized()),                                                         // Ensure unit norm for good measure
 	     _offset(offset),
 	     _positionLimit{positionLimit[0],positionLimit[1]},
 	     _speedLimit(speedLimit),
@@ -107,10 +107,15 @@ bool Joint::update_state(const Pose &previousPose, const float &position)
 	}
 	else
 	{
-		// NOTE: previousPose is 'const' so we need to do this 2-step operation
-		this->_pose = previousPose;
-		this->_pose *= this->_offset;
+		this->_pose = previousPose;                                                         // previousPose is const so we need to assign first
 		
+		this->_pose *= this->_offset;                                                       // Origin relative to previous reference frame
+		
+		
+		this->_axis = this->_pose.quaternion().toRotationMatrix()*this->_localAxis;         // Update the axis relative to the base
+		this->_axis.normalize();
+		
+		// Now add on the dynamic component from the joint position
 		if(this->isRevolute)
 		{
 			this->_pose *= Pose(Eigen::Vector3f::Zero(),
