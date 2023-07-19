@@ -26,9 +26,12 @@ int main(int argc, char **argv)
 		clock_t timer;
 		
 		timer = clock();                                                                    // Start the timer
-		
-		if(not model.update_state(Eigen::VectorXf::Zero(numJoints),
-		                          Eigen::VectorXf::Zero(numJoints)))
+
+        Eigen::VectorXf q = Eigen::VectorXf::Random(numJoints);			// Create random joint positions
+        Eigen::VectorXf qd = Eigen::VectorXf::Random(numJoints);			// Create random joint velocities
+
+		if(not model.update_state(q,
+		                          qd))
 		{
 			std::cout << "[ERROR] [URDF TEST] Couldn't update the state for some reason.\n";
 		}
@@ -42,13 +45,19 @@ int main(int argc, char **argv)
 		          
 		std::cout << "\nHere is the pose of the 'right_hand':\n\n";
 		std::cout << model.frame_pose("right_hand").as_matrix() << std::endl;
-		
+
+        std::cout << "\nHere is the Jacobian to the 'right_hand': \n\n";
+        std::cout << model.jacobian("right_hand") << std::endl;
+
 		std::cout << "\nHere is the inertia matrix:\n\n";
 		std::cout << model.joint_inertia_matrix() << std::endl;
 		
 		std::cout << "\nHere is the joint Coriolis matrix:\n\n";
 		std::cout << model.joint_coriolis_matrix() << std::endl;
-		
+
+        std::cout << "\nHere is the joint Coriolis vector:\n\n";
+        std::cout << (model.joint_coriolis_matrix()*qd).transpose() << std::endl;
+
 		std::cout << "\nHere is the joint gravity torque vector:\n\n";
 		std::cout << model.joint_gravity_vector().transpose() << std::endl;
 			

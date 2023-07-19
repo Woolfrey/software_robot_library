@@ -53,7 +53,7 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
 			                   ixy, iyy, iyz,
 			                   ixz, iyz, izz;
 			
-			tinyxml2::XMLElement* origin = inertial->NextSiblingElement("origin");
+			tinyxml2::XMLElement* origin = inertial->FirstChildElement("origin");
 			
 			if(origin != nullptr)
 			{
@@ -113,10 +113,10 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
 			{
 				Eigen::Vector3f xyz = char_to_vector3f(originElement->Attribute("xyz"));
 				Eigen::Vector3f rpy = char_to_vector3f(originElement->Attribute("rpy"));
-				
-				origin = Pose(xyz, Eigen::AngleAxisf(rpy(0),Eigen::Vector3f::UnitX())
+
+				origin = Pose(xyz, Eigen::AngleAxisf(rpy(2),Eigen::Vector3f::UnitZ())
 						  *Eigen::AngleAxisf(rpy(1),Eigen::Vector3f::UnitY())
-						  *Eigen::AngleAxisf(rpy(2),Eigen::Vector3f::UnitZ()));
+						  *Eigen::AngleAxisf(rpy(0),Eigen::Vector3f::UnitX()));
 			}
 
 			// Get joint properties for non-fixed type
@@ -653,6 +653,27 @@ Eigen::MatrixXf KinematicTree::partial_derivative(const Eigen::MatrixXf &J,
 	}
 	
 	return dJ;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+//                         Compute the Jacobian to a given frame                                  //
+////////////////////////////////////////////////////////////////////////////////////////////////////
+Eigen::MatrixXf KinematicTree::jacobian(const std::string &frameName)
+{
+    auto container = this->referenceFrameList.find(frameName);
+
+    if(container == this->referenceFrameList.end())
+    {
+        throw std::runtime_error("[ERROR] [KINEMATIC TREE] get_reference_frame(): Could not find '"
+                                 + frameName + "' in the list.");
+    }
+    else
+    {
+        Pose framePose = frame_pose(frameName);
+        return jacobian(container->second.link->parent_joint()
+                        , framePose.position()
+                        , container->second.link->parent_joint()->number()+1);
+    }
 }
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////

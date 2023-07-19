@@ -51,7 +51,9 @@ class KinematicTree
 		Eigen::VectorXf joint_velocities() const { return this->_jointVelocity; }
 		
 		unsigned int number_of_joints() const { return this->numJoints; }
-		
+
+        Eigen::MatrixXf jacobian(const std::string &frameName);
+
 		Pose frame_pose(const std::string &frameName);                                      // Return the pose for a reference frame on the robot
 		
 		std::string name() const { return this->_name; }                                    // Return the name of this robot
