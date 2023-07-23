@@ -53,9 +53,9 @@ class QPSolver
 		float alpha0   = 1.0;                                                               // Scalar for Newton step
 		float alphaMod = 0.5;                                                               // Modify step size when constraint violated
 		float beta0    = 0.01;                                                              // Rate of decreasing barrier function
-		float tol      = 1e-2;                                                              // Tolerance on step size
+		float tol      = 1e-4;                                                              // Tolerance on step size
 		float u0       = 100;                                                               // Scalar on barrier function
-		int   steps    = 20;                                                                // No. of steps to run interior point method
+		int   steps    = 30;                                                                // No. of steps to run interior point method
 		
 		Eigen::VectorXf lastSolution;
 };                                                                                                  // Semicolon needed after class declaration
