@@ -269,8 +269,6 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
 			Link *rootLink = previousJoint->parent_link();
 			
 			this->joint[i].set_parent_link(rootLink);
-			
-			
 		}
 	}
 	
@@ -439,9 +437,8 @@ bool KinematicTree::update_state(const Eigen::VectorXf &jointPosition,
 		Eigen::Matrix3f I = R*currentLink->inertia()*R.transpose();                         // Rotate the inertia from local frame to base frame
 		
 		//Eigen::Matrix3f Idot = angularVelocity.cross(I); // THIS DOESN'T WORK? FUCK YOU (ノಠ益ಠ)ノ彡┻━┻
-		
-		Eigen::Matrix3f Idot;
-		for(int i = 0; i < 3; i++) Idot.col(i) = angularVelocity.cross(I.col(i));
+	
+		Eigen::Matrix3f Idot; for(int i = 0; i < 3; i++) Idot.col(i) = angularVelocity.cross(I.col(i));
 		
 		Eigen::MatrixXf J = jacobian(currentJoint, com, j+1);                               // Get Jacobian to center of mass of this current link/joint
 		
@@ -655,8 +652,8 @@ Eigen::MatrixXf KinematicTree::partial_derivative(const Eigen::MatrixXf &J,
 	return dJ;
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
-//                         Compute the Jacobian to a given frame                                  //
+  ////////////////////////////////////////////////////////////////////////////////////////////////////
+ //                         Compute the Jacobian to a given frame                                  //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 Eigen::MatrixXf KinematicTree::jacobian(const std::string &frameName)
 {
