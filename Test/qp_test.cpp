@@ -113,17 +113,17 @@ int main(int argc, char *argv[])
 	m = 12;
 	n = 17;
 	
-	x = 2*Eigen::VectorXf::Random(n);
+	x = Eigen::VectorXf::Random(n);
 	A = Eigen::MatrixXf::Random(m,n);
 	y = A*x;
 	
 	xMin = -5*Eigen::VectorXf::Ones(n);
 	xMax =  5*Eigen::VectorXf::Ones(n);
 	
-	x0 = x + 0.1*Eigen::VectorXf::Random(n);
-//	x0 = 0.5*(xMin + xMax);
+//	x0 = x + 0.1*Eigen::VectorXf::Random(n);
+	x0 = 0.5*(xMin + xMax);
 	
-	xd = 100*Eigen::VectorXf::Ones(n);	
+	xd = 4.9*Eigen::VectorXf::Ones(n);	
 	
 	timer = clock();
 	xHat  = solver.redundant_least_squares(xd,Eigen::MatrixXf::Identity(n,n),y,A,xMin,xMax,x0);
