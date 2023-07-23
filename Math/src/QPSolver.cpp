@@ -6,7 +6,6 @@
 Eigen::VectorXf QPSolver::solve(const Eigen::MatrixXf &H,
                                 const Eigen::VectorXf &f)
 {
-	
 	if(H.rows() != H.cols())
 	{
 		std::string message = "[ERROR] [QP SOLVER] solve(): "
@@ -116,7 +115,11 @@ Eigen::VectorXf QPSolver::solve(const Eigen::MatrixXf &H,
 				
 				if(d[j] <= 0)
 				{
-					if(i == 0) throw std::runtime_error("[ERROR] [QP SOLVER] solve(): Start point x0 is outside the constraints!");
+					if(i == 0)
+					{
+						throw std::runtime_error("[ERROR] [QP SOLVER] solve(): "
+					                                 "Start point x0 is outside the constraints.");
+					}
 		
 					d[j] = 1e-03;                                               // Set a small, non-zero value
 					u *= 100;                                                   // Increase the barrier function
@@ -375,6 +378,52 @@ Eigen::VectorXf QPSolver::redundant_least_squares(const Eigen::VectorXf &xd,
         }
 	else
 	{
+		Eigen::VectorXf temp = 0.5*(x0-xd);
+		
+		for(int i = 0; i < n; i++)
+		{
+			     if(temp(i) <= xMin(i)) temp(i) = xMin(i) + 0.01;
+			else if(temp(i) >= xMax(i)) temp(i) = xMax(i) - 0.01;
+		}
+		
+		// Primal:
+		// min 0.5*(xd - x)'*W*(xd - x)
+		// subject to: A*x = y
+		//             B*x > z
+		
+		// B = [ -I ]
+		//     [  I ]
+		Eigen::MatrixXf B(2*n,n);                                                           
+		B.block(0,0,n,n) = -Eigen::MatrixXf::Identity(n,n);
+		B.block(n,0,n,n).setIdentity();
+		
+		// z = [ -xMax ]
+		//     [  xMin ]
+		Eigen::VectorXf z(2*n);
+		z.head(n) = -xMax;
+		z.tail(n) =  xMin;
+		
+		// Dual:
+		// min 0.5*lambda'*A*W^-1*A'*lambda - lambda'*(y - A*xd)
+		// subject to B*x > z
+		
+		// where: x = xd - W^-1*A'*lambda
+		
+		Eigen::MatrixXf invWAt = W.partialPivLu().solve(A.transpose());                     // Makes calcs a little easier
+		
+		Eigen::MatrixXf H = A*invWAt;                                                       // Alternative Hessian
+		
+		Eigen::VectorXf f = y - A*xd;                                                       // Alternative vector
+		
+		Eigen::MatrixXf newB = -B*invWAt;                                                   // Map to lagrange multiplier
+		
+		Eigen::VectorXf newz = z - B*xd;                                                    // Map to lagrange muliplie
+		
+		Eigen::VectorXf lambda0 = -H.partialPivLu().solve(A*temp);                          // Initial value for lagrange multiplier
+		
+		return xd - invWAt*solve(H, f, newB, newz, lambda0);                                // Solve lagrange multiplier and return
+		
+		/*
 		// Convert to standard form 0.5*x'*H*x + x'*f subject to B*x >= z
 		// where "x" is now [lambda' x' ]'
 		
@@ -410,5 +459,22 @@ Eigen::VectorXf QPSolver::redundant_least_squares(const Eigen::VectorXf &xd,
 		startPoint.tail(n) = x0;
 		
 		return (solve(H,f,B,z,startPoint)).tail(n);                                         // Convert to standard form and solve
+		*/
 	}
-}                  
+}
+
+/*
+  ///////////////////////////////////////////////////////////////////////////////////////////////////
+ //          Solve problem of the form 0.5*(xd-x)'*W*(xd-x) s.t. A*x = y, B*x > z                 //
+///////////////////////////////////////////////////////////////////////////////////////////////////
+Eigen::VectorXf QPSolver::redundant_least_squares(const Eigen::VectorXf &xd,
+                                                  const Eigen::MatrixXf &W,
+                                                  const Eigen::VectorXf &y,
+                                                  const Eigen::MatrixXf &A,
+                                                  const Eigen::VectorXf &z,
+                                                  const Eigen::MatrixXf &B,
+                                                  const Eigen::VectorXf &x0)
+{
+
+}
+*/         
