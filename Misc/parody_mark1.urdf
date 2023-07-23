@@ -1,0 +1,434 @@
+<?xml version="1.0" ?>
+
+<robot name="parody-mark1">
+
+  <!-- Colors -->
+  <material name="Red">
+    <color rgba="1 0 0 1.0"/>      
+  </material>
+  <material name="Light Green">
+    <color rgba="0.6 1.0 0.6 1.0"/>      
+  </material>
+  <material name="Light Blue">
+    <color rgba="0.6 1.0 1.0 1.0"/>      
+  </material>
+  <material name="Middle Blue">
+    <color rgba="0.4 0.8 1.0 1.0"/>      
+  </material>
+  <material name="Distal Blue">
+    <color rgba="0.6 0.8 1.0 1.0"/>      
+  </material>
+  <material name="White">
+    <color rgba="1.0 1.0 1.0 1.0"/>      
+  </material>
+
+  <!-- Body -->
+
+  <link name="body">
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <mass value="3.549"/>
+      <inertia ixx="0.0189268" ixy="0.0005387" ixz="-0.0098654" iyy="0.0559330" iyz="-0.0000031" izz="0.0649898"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="Body.STEP"/>
+      </geometry>
+      <material name="Light Green"/>
+    </visual>
+  </link>
+
+  <!-- Left Leg -->
+
+  <joint name="joint1" type="continuous">
+    <parent link="body"/>
+    <child link="left_proximal"/>
+    <origin rpy="0 0 -1.570796326794897" xyz="-0.1 -0.1 0"/>
+    <axis xyz="0 0 1"/>
+  </joint>
+  <link name="left_proximal">
+    <inertial>
+      <origin rpy="0 0 0" xyz="0.0544406 -0.0078896 0.0100639"/>
+      <mass value="1.0637477"/>
+      <inertia ixx="0.0011450" ixy="0.0011448" ixz="-0.0006310" iyy="0.0099644" iyz="0.0000877" izz="0.0103628"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="LinkL1.STEP"/>
+      </geometry>
+      <material name="Light Blue"/>
+    </visual>
+  </link>
+
+  <joint name="joint2" type="continuous">
+    <parent link="left_proximal"/>
+    <child link="left_medial"/>
+    <origin rpy="0 0 0" xyz="0.3 0 0.02397"/>
+    <axis xyz="0 0 1"/>
+  </joint>
+  <link name="left_medial">
+    <inertial>
+      <origin rpy="0 0 0" xyz="0.0235637 0 0.0032756"/>
+      <mass value="0.3414201"/>
+      <inertia ixx="0.0001166" ixy="0" ixz="0.0000264" iyy="0.0003987" iyz="0" izz="0.0004157"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="LinkL2.STEP"/>
+      </geometry>
+      <material name="Middle Blue"/>
+    </visual>
+  </link>
+
+  <joint name="joint3" type="continuous">
+    <parent link="left_medial"/>
+    <child link="left_distal"/>
+    <origin rpy="0 0 0" xyz="0.0745 0 0"/>
+    <axis xyz="1 0 0"/>
+  </joint>
+  <link name="left_distal">
+    <inertial>
+      <origin rpy="0 0 0" xyz="0.1586412 0 0.004"/>
+      <mass value="0.2615387"/>
+      <inertia ixx="0.0000714" ixy="0.0000044" ixz="-0.0000914" iyy="0.0027456" iyz="0.0000005" izz="0.0027529"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="LinkL3.STEP"/>
+      </geometry>
+      <material name="Distal Blue"/>
+    </visual>
+  </link>
+
+  <joint name="joint4" type="continuous">
+    <parent link="left_distal"/>
+    <child link="left_gripper"/>
+    <origin rpy="0 0 1.570796326794897" xyz="0.24675 0 0.02075"/>
+    <axis xyz="0 0 1"/>
+  </joint>
+  <link name="left_gripper">
+    <inertial>
+      <origin rpy="0 0 0" xyz="0.00943 0 0.01792"/>
+      <mass value="0.0785245"/>
+      <inertia ixx="0.0000559" ixy="0" ixz="-0.0000119" iyy="0.0000429" iyz="0" izz="0.0000464"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0.0125 0 0.0345"/>
+      <geometry>
+        <mesh filename="Link4.STEP"/>
+      </geometry>
+      <material name="White"/>
+    </visual>
+  </link>
+
+<!-- Right Leg -->
+
+  <joint name="joint5" type="continuous">
+    <parent link="body"/>
+    <child link="right_proximal"/>
+    <origin rpy="0 0 1.570796326794897" xyz="-0.1 0.1 0"/>
+    <axis xyz="0 0 -1"/>
+  </joint>
+  <link name="right_proximal">
+    <inertial>
+      <origin rpy="0 0 0" xyz="0.0547265 0.0079197 0.0101588"/>
+      <mass value="1.0665426"/>
+      <inertia ixx="0.0013265" ixy="-0.0016120" ixz="-0.0012294" iyy="0.0132800" iyz="-0.0001756" izz="0.0136324"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="LinkR1.STEP"/>
+      </geometry>
+      <material name="Light Blue"/>
+    </visual>
+  </link>
+
+  <joint name="joint6" type="continuous">
+    <parent link="right_proximal"/>
+    <child link="right_medial"/>
+    <origin rpy="0 0 0" xyz="0.3 0 0.02397"/>
+    <axis xyz="0 0 -1"/>
+  </joint>
+  <link name="right_medial">
+    <inertial>
+      <origin rpy="0 0 0" xyz="0.0235637 0 0.0033434"/>
+      <mass value="0.34142"/>
+      <inertia ixx="0.00011674" ixy="0.00000004" ixz="0.00002690" iyy="0.00039889" iyz="0" izz="0.00041573"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="LinkR2.STEP"/>
+      </geometry>
+      <material name="Middle Blue"/>
+    </visual>
+  </link>
+
+  <joint name="joint7" type="continuous">
+    <parent link="right_medial"/>
+    <child link="right_distal"/>
+    <origin rpy="0 0 0" xyz="0.0745 0 0"/>
+    <axis xyz="1 0 0"/>
+  </joint>
+  <link name="right_distal">
+    <inertial>
+      <origin rpy="0 0 0" xyz="0.157 0 0.004"/>
+      <mass value="0.2615387"/>
+      <inertia ixx="0.0000714" ixy="-0.0000044" ixz="-0.0000914" iyy="0.0027456" iyz="-0.0000005" izz="0.0027529"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="LinkR3.STEP"/>
+      </geometry>
+      <material name="Distal Blue"/>
+    </visual>
+  </link>
+
+  <joint name="joint8" type="continuous">
+    <parent link="right_distal"/>
+    <child link="right_gripper"/>
+    <origin rpy="0 0 -1.570796326794897" xyz="0.24675 0 0.02075"/>
+    <axis xyz="0 0 -1"/>
+  </joint>
+  <link name="right_gripper">
+    <inertial>
+      <origin rpy="0 0 0" xyz="0.00943 0 0.01792"/>
+      <mass value="0.0785245"/>
+      <inertia ixx="0.0000559" ixy="0" ixz="-0.0000119" iyy="0.0000429" iyz="0" izz="0.0000464"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0.0125 0 0.0345"/>
+      <geometry>
+        <mesh filename="Link4.STEP"/>
+      </geometry>
+      <material name="White"/>
+    </visual>
+  </link>
+
+<!-- Neck -->
+
+  <joint name="joint9" type="continuous">
+    <parent link="body"/>
+    <child link="neck_rotation"/>
+    <origin rpy="0 0 0" xyz="0.2 0 0"/>
+    <axis xyz="0 0 1"/>
+  </joint>
+  <link name="neck_rotation">
+    <inertial>
+      <origin rpy="0 0 0" xyz="0.000 -0.035 -0.025"/>
+      <mass value="0.7683982"/>
+      <inertia ixx="0.00079254" ixy="0.00000065" ixz="0.00000038" iyy="0.00106900" iyz="-0.00010315" izz="0.00061192"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="LinkB1.STEP"/>
+      </geometry>
+      <material name="White"/>
+    </visual>
+  </link>
+
+  <joint name="joint10" type="continuous">
+    <parent link="neck_rotation"/>
+    <child link="neck_proximal"/>
+    <origin rpy="0 0 0" xyz="0 0 -0.0385"/>
+    <axis xyz="0 1 0"/>
+  </joint>
+  <link name="neck_proximal">
+    <inertial>
+      <origin rpy="0 0 0" xyz="0.0513844 0.0131544 0.0001649"/>
+      <mass value="1.0442611"/>
+      <inertia ixx="0.0011111" ixy="0.0008025" ixz="-0.0000114" iyy="0.0083295" iyz="0.0000023" izz="0.0083456"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="LinkB2v2.STEP"/>
+      </geometry>
+      <material name="Light Blue"/>
+    </visual>
+  </link>
+
+  <joint name="joint11" type="continuous">
+    <parent link="neck_proximal"/>
+    <child link="neck_medial"/>
+    <origin rpy="0 0 0" xyz=".2735 0 0"/>
+    <axis xyz="0 -1 0"/>
+  </joint>
+  <link name="neck_medial">
+    <inertial>
+      <origin rpy="0 0 0" xyz="0.1180558 0 -0.0245442"/>
+      <mass value="0.6603433"/>
+      <inertia ixx="0.0004926" ixy="0.0000032" ixz="0.0013018" iyy="0.0122308" iyz="-0.0000007" izz="0.0119272"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="LinkB3v2.STEP"/>
+      </geometry>
+      <material name="Middle Blue"/>
+    </visual>
+  </link>
+
+  <joint name="joint12" type="continuous">
+    <parent link="neck_medial"/>
+    <child link="neck_distal"/>
+    <origin rpy="0 0 0" xyz=".307 0 -0.0433"/>
+    <axis xyz="0 0 1"/>
+  </joint>
+  <link name="neck_distal">
+    <inertial>
+      <origin rpy="0 0 0" xyz="0.0303485 0 0.0052298"/>
+      <mass value="0.1696383"/>
+      <inertia ixx="0.0000538" ixy="0" ixz="0.0000218" iyy="-0.0000846" iyz="0" izz="-0.0000791"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="LinkB4.STEP"/>
+      </geometry>
+      <material name="Distal Blue"/>
+    </visual>
+  </link>
+
+  <joint name="joint13" type="continuous">
+    <parent link="neck_distal"/>
+    <child link="neck_gripper"/>
+    <origin rpy="0 0 0" xyz="0.052 0 0"/>
+    <axis xyz="1 0 0"/>
+  </joint>
+  <link name="neck_gripper">
+    <inertial>
+      <origin rpy="0 0 0" xyz="0.02188915 -0.00003657 -0.01453140"/>
+      <mass value="0.15982688"/>
+      <inertia ixx="0.00012496" ixy="-0.00000002" ixz="0.00000351" iyy="0.00014537" iyz="0.00000024" izz="0.00009391"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="LinkB5.STEP"/>
+      </geometry>
+      <material name="White"/>
+    </visual>
+  </link>
+
+<!-- Tail -->
+
+  <joint name="joint14" type="continuous">
+    <parent link="body"/>
+    <child link="tail"/>
+    <origin rpy="0 0 0" xyz="-0.1055 0 0"/>
+    <axis xyz="0 1 0"/>
+  </joint>
+  <link name="tail">
+    <inertial>
+      <origin rpy="0 0 0" xyz="-0.0869217 0.0005492 0.0238491"/>
+      <mass value="0.1358102"/>
+      <inertia ixx="0.0001491" ixy="0.0000018" ixz="0.0002851" iyy="0.0031848" iyz="0.0000004" izz="0.0030841"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="LinkT1v2.STEP"/>
+      </geometry>
+      <material name="White"/>
+    </visual>
+  </link>
+
+<!-- End-effectors -->
+
+  <joint name="LeftJoint_EE" type="fixed">
+    <parent link="left_gripper"/>
+    <child link="Left_EE"/>
+    <origin rpy="0 0 0" xyz="0.0125 0 0.0345"/>
+    <axis xyz="1 0 0"/>
+  </joint>
+    <!-- Left End-Effector -->
+  <link name="Left_EE">
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <mass value="0"/>
+      <inertia ixx="0" ixy="0" ixz="0" iyy="0" iyz="0" izz="0"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <sphere radius="0.01"/>
+      </geometry>
+      <material name="Red"/>
+    </visual>
+  </link>
+
+  <joint name="RightJoint_EE" type="fixed">
+    <parent link="right_gripper"/>
+    <child link="Right_EE"/>
+    <origin rpy="0 0 0" xyz="0.0125 0 0.0345"/>
+    <axis xyz="1 0 0"/>
+  </joint>
+    <!-- Right End-Effector -->
+  <link name="Right_EE">
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <mass value="0"/>
+      <inertia ixx="0" ixy="0" ixz="0" iyy="0" iyz="0" izz="0"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <sphere radius="0.01"/>
+      </geometry>
+      <material name="Red"/>
+    </visual>
+  </link>
+
+  <joint name="BeakJoint_EE" type="fixed">
+    <parent link="neck_gripper"/>
+    <child link="Beak_EE"/>
+    <origin rpy="0 0 0" xyz="0.045 0 0.009"/>
+    <axis xyz="1 0 0"/>
+  </joint>
+    <!-- End-Effector -->
+  <link name="Beak_EE">
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <mass value="0"/>
+      <inertia ixx="0" ixy="0" ixz="0" iyy="0" iyz="0" izz="0"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <sphere radius="0.01"/>
+      </geometry>
+      <material name="Red"/>
+    </visual>
+  </link>
+
+  <joint name="TailJoint_EE" type="fixed">
+    <parent link="tail"/>
+    <child link="Tail_EE"/>
+    <origin rpy="0 0 0" xyz="-0.4 0 0.048"/>
+    <axis xyz="1 0 0"/>
+  </joint>
+    <!-- End-Effector -->
+  <link name="Tail_EE">
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <mass value="0"/>
+      <inertia ixx="0" ixy="0" ixz="0" iyy="0" iyz="0" izz="0"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <sphere radius="0.01"/>
+      </geometry>
+      <material name="Red"/>
+    </visual>
+  </link>
+
+</robot>
