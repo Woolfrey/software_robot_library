@@ -378,50 +378,54 @@ Eigen::VectorXf QPSolver::redundant_least_squares(const Eigen::VectorXf &xd,
         }
 	else
 	{
-		Eigen::VectorXf temp = 0.5*(x0-xd);
-		
-		for(int i = 0; i < n; i++)
-		{
-			     if(temp(i) <= xMin(i)) temp(i) = xMin(i) + 0.01;
-			else if(temp(i) >= xMax(i)) temp(i) = xMax(i) - 0.01;
-		}
-		
 		// Primal:
 		// min 0.5*(xd - x)'*W*(xd - x)
 		// subject to: A*x = y
 		//             B*x > z
 		
-		// B = [ -I ]
-		//     [  I ]
-		Eigen::MatrixXf B(2*n,n);                                                           
-		B.block(0,0,n,n) = -Eigen::MatrixXf::Identity(n,n);
-		B.block(n,0,n,n).setIdentity();
-		
-		// z = [ -xMax ]
-		//     [  xMin ]
-		Eigen::VectorXf z(2*n);
-		z.head(n) = -xMax;
-		z.tail(n) =  xMin;
-		
 		// Dual:
 		// min 0.5*lambda'*A*W^-1*A'*lambda - lambda'*(y - A*xd)
 		// subject to B*x > z
 		
-		// where: x = xd - W^-1*A'*lambda
+		Eigen::MatrixXf invWAt = W.ldlt().solve(A.transpose());                             // Makes calcs a little easier
 		
-		Eigen::MatrixXf invWAt = W.partialPivLu().solve(A.transpose());                     // Makes calcs a little easier
+		Eigen::MatrixXf H = A*invWAt;                                                       // Hessian matrix for dual problem
 		
-		Eigen::MatrixXf H = A*invWAt;                                                       // Alternative Hessian
+		Eigen::LDLT<Eigen::MatrixXf> Hdecomp; Hdecomp.compute(H);
 		
-		Eigen::VectorXf f = y - A*xd;                                                       // Alternative vector
+		// B = [ -I  ]
+		//     [  I  ]
 		
-		Eigen::MatrixXf newB = -B*invWAt;                                                   // Map to lagrange multiplier
+		Eigen::MatrixXf B(2*n,n);
+		B.block(0,0,n,n) = -Eigen::MatrixXf::Identity(n,n);
+		B.block(n,0,n,n).setIdentity();
 		
-		Eigen::VectorXf newz = z - B*xd;                                                    // Map to lagrange muliplie
+		// z = [ -xMax  ]
+		//     [  xMin  ]
+				
+		Eigen::VectorXf z(2*n);
+		z.head(n) = -xMax;
+		z.tail(n) =  xMin;
 		
-		Eigen::VectorXf lambda0 = -H.partialPivLu().solve(A*temp);                          // Initial value for lagrange multiplier
+		// NEED TO CHECK THAT THE NULL SPACE PROJECTION N*xd IS WITHIN LIMITS
 		
-		return xd - invWAt*solve(H, f, newB, newz, lambda0);                                // Solve lagrange multiplier and return
+		Eigen::VectorXf xn = (Eigen::MatrixXf::Identity(n,n) - A.transpose()*Hdecomp.solve(A))*xd;
+		
+		float alpha = 1.0;
+		
+		for(int i = 0; i < n; i++)
+		{	
+			     if(xn(i) >= xMax(i)) alpha = std::min((float)0.9*xMax(i)/xn(i), alpha);
+			else if(xn(i) <= xMin(i)) alpha = std::min((float)0.9*xMin(i)/xn(i), alpha);
+		}
+			
+		Eigen::VectorXf new_xd = alpha*xd;
+		
+		Eigen::VectorXf f = y - A*new_xd;
+		
+		Eigen::VectorXf lambda0 = -Hdecomp.solve(A*(x0-new_xd));
+		
+		return new_xd - invWAt*solve(H,f,-B*invWAt,z-B*new_xd,lambda0);
 		
 		/*
 		// Convert to standard form 0.5*x'*H*x + x'*f subject to B*x >= z
