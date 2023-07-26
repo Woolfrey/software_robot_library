@@ -23,7 +23,7 @@ Eigen::VectorXf QPSolver::solve(const Eigen::MatrixXf &H,
 		                      
 		throw std::runtime_error(message);
 	}
-	else 	return H.partialPivLu().solve(-f);                                                  // Too easy lol ᕙ(▀̿̿ĺ̯̿̿▀̿ ̿) ᕗ
+	else 	return H.ldlt().solve(-f);                                                          // Too easy lol ᕙ(▀̿̿ĺ̯̿̿▀̿ ̿) ᕗ
 }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -122,7 +122,7 @@ Eigen::VectorXf QPSolver::solve(const Eigen::MatrixXf &H,
 					}
 		
 					d[j] = 1e-03;                                               // Set a small, non-zero value
-					u *= 100;                                                   // Increase the barrier function
+					u   *= 100;                                                 // Increase the barrier function
 				}
 						
 				g += -(u/d[j])*bt[j];                                               // Add up gradient vector
@@ -131,7 +131,7 @@ Eigen::VectorXf QPSolver::solve(const Eigen::MatrixXf &H,
 			
 			g += H*x + f;                                                               // Finish summation of gradient vector
 
-			dx = I.partialPivLu().solve(-g);                                            // LU decomposition seems most stable
+			dx = I.ldlt().solve(-g);                                                    // Robust Cholesky decomp
 			
 			// Ensure the next position is within the constraint
 			alpha = this->alpha0;                                                       // Reset the scalar for the step size
@@ -198,7 +198,7 @@ Eigen::VectorXf QPSolver::least_squares(const Eigen::VectorXf &y,
 
 		throw std::runtime_error(message);	
 	}
-	else	return (A.transpose()*W*A).partialPivLu().solve(A.transpose()*W*y);                 // x = (A'*W*A)^-1*A'*W*y
+	else	return (A.transpose()*W*A).ldlt().solve(A.transpose()*W*y);                         // x = (A'*W*A)^-1*A'*W*y
 }
   
   ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -311,20 +311,9 @@ Eigen::VectorXf QPSolver::redundant_least_squares(const Eigen::VectorXf &xd,
 		int m = A.rows();
 		int n = A.cols();
 		
-		Eigen::MatrixXf H(m+n,m+n);
-		H.block(0,0,m,m).setZero();
-		H.block(0,m,m,n) = A;
-		H.block(m,0,n,m) = A.transpose();
-		H.block(m,m,n,n) = W;
+		Eigen::MatrixXf B = W.ldlt().solve(A.transpose());                                  // Makes calcs a little easier
 		
-		Eigen::VectorXf f(m+n);
-		f.head(m) = y;
-		f.tail(n) = W*xd;
-		
-		// NOTE: We could be smarter here and skip solving the Lagrange multipliers using
-		// QR decomposition...
-		
-		return (H.partialPivLu().solve(f)).tail(n);
+		return xd - B*(A*B).ldlt().solve(y - A*xd);                                         // xd - W^-1*A'*(A*W^-1*A')^-1*(y-A*xd)
 	}
 }
 
@@ -383,6 +372,8 @@ Eigen::VectorXf QPSolver::redundant_least_squares(const Eigen::VectorXf &xd,
 		// subject to: A*x = y
 		//             B*x > z
 		
+		// Lagrangian L = 0.5*(xd - x)'*W*(xd - x) + lambda'*(y - A*xd)
+		
 		// Dual:
 		// min 0.5*lambda'*A*W^-1*A'*lambda - lambda'*(y - A*xd)
 		// subject to B*x > z
@@ -391,25 +382,23 @@ Eigen::VectorXf QPSolver::redundant_least_squares(const Eigen::VectorXf &xd,
 		
 		Eigen::MatrixXf H = A*invWAt;                                                       // Hessian matrix for dual problem
 		
-		Eigen::LDLT<Eigen::MatrixXf> Hdecomp; Hdecomp.compute(H);
+		Eigen::LDLT<Eigen::MatrixXf> H_decomp; H_decomp.compute(H);                         // Perform robust Cholesky decomposition
 		
-		// B = [ -I  ]
-		//     [  I  ]
+		// B*x= [ -I  ] * x > z = [ -xMax ]
+		//      [  I  ]           [  xMin ]
 		
 		Eigen::MatrixXf B(2*n,n);
 		B.block(0,0,n,n) = -Eigen::MatrixXf::Identity(n,n);
 		B.block(n,0,n,n).setIdentity();
-		
-		// z = [ -xMax  ]
-		//     [  xMin  ]
 				
 		Eigen::VectorXf z(2*n);
 		z.head(n) = -xMax;
 		z.tail(n) =  xMin;
 		
-		// NEED TO CHECK THAT THE NULL SPACE PROJECTION N*xd IS WITHIN LIMITS
+		// Ensure the null space projection of the desired solution xd
+		// is feasible or the dual method will fail
 		
-		Eigen::VectorXf xn = (Eigen::MatrixXf::Identity(n,n) - A.transpose()*Hdecomp.solve(A))*xd;
+		Eigen::VectorXf xn = xd - invWAt*H_decomp.solve(A*xd);
 		
 		float alpha = 1.0;
 		
@@ -423,7 +412,7 @@ Eigen::VectorXf QPSolver::redundant_least_squares(const Eigen::VectorXf &xd,
 		
 		Eigen::VectorXf f = y - A*new_xd;
 		
-		Eigen::VectorXf lambda0 = -Hdecomp.solve(A*(x0-new_xd));
+		Eigen::VectorXf lambda0 = -H_decomp.solve(A*(x0-new_xd));
 		
 		return new_xd - invWAt*solve(H,f,-B*invWAt,z-B*new_xd,lambda0);
 		
