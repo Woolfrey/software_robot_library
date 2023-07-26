@@ -93,23 +93,6 @@ int main(int argc, char *argv[])
 	std::cout << "\n************************************************************\n"
 	          <<   "*                 OVERDETERMINED SYSTEMS                   *\n"
 	          <<   "************************************************************\n" << std::endl;
-/*	          
-	m = 1;
-	n = 2;
-	
-	A.resize(m,n); A << 1, -1;
-	y.resize(m); y << -2;
-	
-	xMin.resize(2); xMin << -3, -3;
-	xMax.resize(2); xMax <<  3 , 3;
-	
-	xd.resize(2); xd << 0, 0;
-	
-	x0 = 0.5*(xMin+xMax);
-	
-	std::cout << "xd1: " << xd(0) << " xd2: " << xd(1) << " y: " << y(0) << std::endl;
-*/	
-
 	m = 12;
 	n = 17;
 	
@@ -120,10 +103,9 @@ int main(int argc, char *argv[])
 	xMin = -5*Eigen::VectorXf::Ones(n);
 	xMax =  5*Eigen::VectorXf::Ones(n);
 	
-//	x0 = x + 0.1*Eigen::VectorXf::Random(n);
 	x0 = 0.5*(xMin + xMax);
 	
-	xd = 4.9*Eigen::VectorXf::Ones(n);	
+	xd = -6*Eigen::VectorXf::Ones(n);	
 	
 	try
 	{
@@ -133,11 +115,10 @@ int main(int argc, char *argv[])
 		time  = (float)timer/CLOCKS_PER_SEC;
 	
 		std::cout << "\nHere is xMin, x, xHat, and xMax:\n" << std::endl;
-		comparison.resize(n,4);
+		comparison.resize(n,3);
 		comparison.col(0) = xMin;
-		comparison.col(1) = x;
-		comparison.col(2) = xHat;
-		comparison.col(3) = xMax;
+		comparison.col(1) = xHat;
+		comparison.col(2) = xMax;
 		std::cout << comparison << std::endl;
 
 		std::cout << "\nThe error norm ||y - A*x|| is " << (y-A*xHat).norm() << ". "
