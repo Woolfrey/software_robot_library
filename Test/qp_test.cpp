@@ -125,20 +125,28 @@ int main(int argc, char *argv[])
 	
 	xd = 4.9*Eigen::VectorXf::Ones(n);	
 	
-	timer = clock();
-	xHat  = solver.redundant_least_squares(xd,Eigen::MatrixXf::Identity(n,n),y,A,xMin,xMax,x0);
-	timer = clock() - timer;
-	time  = (float)timer/CLOCKS_PER_SEC;
+	try
+	{
+		timer = clock();
+		xHat  = solver.redundant_least_squares(xd,Eigen::MatrixXf::Identity(n,n),y,A,xMin,xMax,x0);
+		timer = clock() - timer;
+		time  = (float)timer/CLOCKS_PER_SEC;
 	
-	std::cout << "\nHere is xMin, x, and xMax:\n" << std::endl;
-	comparison.resize(n,3);
-	comparison.col(0) = xMin;
-	comparison.col(1) = xHat;
-	comparison.col(2) = xMax;
-	std::cout << comparison << std::endl;
+		std::cout << "\nHere is xMin, x, xHat, and xMax:\n" << std::endl;
+		comparison.resize(n,4);
+		comparison.col(0) = xMin;
+		comparison.col(1) = x;
+		comparison.col(2) = xHat;
+		comparison.col(3) = xMax;
+		std::cout << comparison << std::endl;
 
-	std::cout << "\nThe error norm ||y - A*x|| is " << (y-A*xHat).norm() << ". "
-	          << "It took " << time*1000 << " ms to solve (" << 1/time << " Hz)." << std::endl;
+		std::cout << "\nThe error norm ||y - A*x|| is " << (y-A*xHat).norm() << ". "
+			  << "It took " << time*1000 << " ms to solve (" << 1/time << " Hz)." << std::endl;
+	}
+	catch(const std::exception &exception)
+	{
+		std::cout << exception.what() << std::endl;
+	}
 	
 	return 0; 
 }
