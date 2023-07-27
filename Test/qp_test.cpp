@@ -1,6 +1,7 @@
-#include <iostream>
-#include <QPSolver.h>
-#include <time.h>
+#include <iostream>                                                                                 // std::cout
+#include <fstream>                                                                                  // std::ofstream
+#include <QPSolver.h>                                                                               // Custom cass
+#include <time.h>                                                                                   // clock_t
 
 int main(int argc, char *argv[])
 {
@@ -95,7 +96,7 @@ int main(int argc, char *argv[])
 	          <<   "************************************************************\n" << std::endl;
 	m = 12;
 	n = 17;
-	
+
 	x = Eigen::VectorXf::Random(n);
 	A = Eigen::MatrixXf::Random(m,n);
 	y = A*x;
@@ -105,7 +106,7 @@ int main(int argc, char *argv[])
 	
 	x0 = 0.5*(xMin + xMax);
 	
-	xd = -6*Eigen::VectorXf::Ones(n);	
+	xd = 10*Eigen::VectorXf::Random(n);
 	
 	try
 	{
@@ -128,6 +129,28 @@ int main(int argc, char *argv[])
 	{
 		std::cout << exception.what() << std::endl;
 	}
-	
+/*
+	// Record statistics on performance
+	std::ofstream out("qp_test_data.csv");
+	for(int i = 0; i < 100; i++)
+	{
+		x = Eigen::VectorXf::Random(n);
+		A = Eigen::MatrixXf::Random(m,n);
+		y = A*x;
+		
+		xMin = -5*Eigen::VectorXf::Ones(n);
+		xMax =  5*Eigen::VectorXf::Ones(n);
+		
+		x0 = 0.5*(xMin + xMax);
+		
+		xd = 10*Eigen::VectorXf::Random(n);
+		
+		timer = clock();
+		xHat  = solver.redundant_least_squares(xd,Eigen::MatrixXf::Identity(n,n),y,A,xMin,xMax,x0);
+		timer = clock() - timer;
+		
+		out << (float)timer/CLOCKS_PER_SEC << "," << (y-A*xHat).norm() << "\n";
+	}
+*/
 	return 0; 
 }
