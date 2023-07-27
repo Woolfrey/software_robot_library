@@ -45,6 +45,14 @@ class QPSolver
 		                                        const Eigen::VectorXf &xMin,
 		                                        const Eigen::VectorXf &xMax,
 		                                        const Eigen::VectorXf &x0);
+		                                        
+		Eigen::VectorXf redundant_least_squares(const Eigen::VectorXf &xd,
+		                                        const Eigen::MatrixXf &W,
+		                                        const Eigen::VectorXf &y,
+		                                        const Eigen::MatrixXf &A,
+		                                        const Eigen::VectorXf &z,
+		                                        const Eigen::MatrixXf &B,
+		                                        const Eigen::VectorXf &x0);
 		
 		Eigen::VectorXf last_solution() const { return this->lastSolution; }
 		
