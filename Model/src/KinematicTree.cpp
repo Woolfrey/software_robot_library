@@ -387,28 +387,26 @@ bool KinematicTree::update_state(const Eigen::VectorXf &jointPosition,
 	
 	while(candidateList.size() > 0)
 	{
-		//////////////////////////// Forward Kinematics ///////////////////////////////////
-	
 		// Get all the current and previous links and joints in the chain
 		Joint *currentJoint = candidateList.back();                                         // Current link in the tree
 		
 		Link *currentLink = currentJoint->child_link();                                     // The link attached to this joint
 		
-		Link *previousLink = currentJoint->parent_link();
+		Link *previousLink = currentJoint->parent_link();                                   // The link before this one in the chain
 		
-		Joint *previousJoint = previousLink->parent_joint();
+		Joint *previousJoint = previousLink->parent_joint();                                // The joint before this one in the chain
 		
 		candidateList.pop_back();                                                           // Remove the current joint from the candidate list
 		
-		unsigned int j = currentJoint->number();
+		unsigned int k = currentJoint->number();                                            // Makes indexing a little neater
 		
 		// Update the pose for the current joint relative to base frame
 		Pose jointOrigin;
 		
-		if(previousJoint == nullptr) jointOrigin = this->_basePose;
+		if(previousJoint == nullptr) jointOrigin = this->_basePose;                         // Use pose of base link
 		else                         jointOrigin = previousJoint->pose();
 		
-		if(not currentJoint->update_state(jointOrigin, jointPosition(j)))
+		if(not currentJoint->update_state(jointOrigin, jointPosition(k)))
 		{
 			std::cerr << "[ERROR] [KINEMATIC TREE] update_state(): Unable to update "
 			          << "the state for the " << currentJoint->name() << " joint.\n";
@@ -419,47 +417,60 @@ bool KinematicTree::update_state(const Eigen::VectorXf &jointPosition,
 		// Propagate the angular velocity
 		Eigen::Vector3f angularVelocity = previousLink->angular_velocity();                 // We also need this for inverse dynamics
 			
-		if(currentJoint->is_revolute())
-		{
-			angularVelocity += jointVelocity(j)*currentJoint->axis();
+		if(currentJoint->is_revolute()) angularVelocity += jointVelocity(k)*currentJoint->axis(); // Add the effect of the joint motion
 			
-			currentLink->set_angular_velocity(angularVelocity);
-		}
+		currentLink->set_angular_velocity(angularVelocity);                                 // Update the angular velocity of this link
 		
-		///////////////////////////// Inverse Dynamics ////////////////////////////////////
-		
-		float mass = currentLink->mass();
+		// Compute inertial properties of current link relative to base
+		float mass = currentLink->mass();                                                   // As it says on the label
 		
 		Eigen::Vector3f com = currentJoint->pose() * currentLink->com();                    // Center of mass of current link in base frame
 		
-		Eigen::Matrix3f R = currentJoint->pose().rotation();
+		Eigen::Matrix3f R = currentJoint->pose().rotation();                                // Rotation as SO(3) matrix
 
 		Eigen::Matrix3f I = R*currentLink->inertia()*R.transpose();                         // Rotate the inertia from local frame to base frame
 		
 		//Eigen::Matrix3f Idot = angularVelocity.cross(I); // THIS DOESN'T WORK? FUCK YOU (ノಠ益ಠ)ノ彡┻━┻
-	
 		Eigen::Matrix3f Idot; for(int i = 0; i < 3; i++) Idot.col(i) = angularVelocity.cross(I.col(i));
 		
-		Eigen::MatrixXf J = jacobian(currentJoint, com, j+1);                               // Get Jacobian to center of mass of this current link/joint
+		Eigen::MatrixXf J = jacobian(currentJoint, com, k+1);                               // Get Jacobian to center of mass of this current link/joint
 		
 		Eigen::MatrixXf Jdot = time_derivative(J);                                          // As it says
 		
-		Eigen::MatrixXf Jv = J.block(0,0,3,j+1);                                             // Linear component
+		Eigen::MatrixXf Jv = J.block(0,0,3,k+1);                                            // Linear component
 		
-		Eigen::MatrixXf Jw = J.block(3,0,3,j+1);                                             // Angular component
+		Eigen::MatrixXf Jw = J.block(3,0,3,k+1);                                            // Angular component
 		
-		this->jointInertiaMatrix.block(0,0,j+1,j+1) += mass*Jv.transpose()*Jv + Jw.transpose()*I*Jw;
+		// Compute the upper-right triangle of the inertia matrix
+		for(int i = 0; i < k+1; i++)
+		{
+			for(int j = i; j < k+1; j++)
+			{
+				this->jointInertiaMatrix(i,j) += mass*Jv.col(i).dot(Jv.col(j))
+			                                       + Jw.col(i).dot(I*Jw.col(j));
+			}
+		}
+		
+		//this->jointInertiaMatrix.block(0,0,k+1,k+1) += mass*Jv.transpose()*Jv + Jw.transpose()*I*Jw;
 		                                                
-		this->jointCoriolisMatrix.block(0,0,j+1,j+1) += mass*Jv.transpose()*Jdot.block(0,0,3,j+1)
-		                                                              + Jw.transpose()*(Idot*Jw + I*Jdot.block(3,0,3,j+1));
+		this->jointCoriolisMatrix.block(0,0,k+1,k+1) += mass*Jv.transpose()*Jdot.block(0,0,3,k+1)
+		                                              + Jw.transpose()*(Idot*Jw + I*Jdot.block(3,0,3,k+1));
 		
-		this->jointGravityVector.head(j+1) -= mass*Jv.transpose()*this->gravityVector; // We need to NEGATE gravity
+		this->jointGravityVector.head(k+1) -= mass*Jv.transpose()*this->gravityVector;      // We need to NEGATE gravity
 		
-		////////////////////////////////////////////////////////////////////////////////////
+		// Add the next immediate links/joints in the kinematic chain to the list
 		
 		std::vector<Joint*> temp = currentLink->child_joints();
 		
-		if(temp.size() != 0) candidateList.insert(candidateList.end(), temp.begin(), temp.end()); // Add them to the search list
+		if(temp.size() != 0) candidateList.insert(candidateList.end(),
+		                                          temp.begin(),
+		                                          temp.end());                              // Add them to the search list
+	}
+	
+	// Complete the lower-left triangle of the inertia matrix
+	for(int i = 1; i < this->numJoints; i++)
+	{
+		for(int j = 0; j < i; j++) this->jointInertiaMatrix(i,j) = this->jointInertiaMatrix(j,i);
 	}
 	
 	return true;
@@ -717,6 +728,7 @@ Eigen::Vector3f KinematicTree::char_to_vector3f(const char* character)
 	
 	// Get the last number in the char array
 	for(int i = startPoint; i < strlen(character); i++) numberAsString += character[i];
+	
 	numberAsVector.push_back(std::stof(numberAsString));
 
 	return Eigen::Vector3f(numberAsVector.data());                                              // Return the extracted data
