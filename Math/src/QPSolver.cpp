@@ -246,44 +246,27 @@ Eigen::VectorXf QPSolver::redundant_least_squares(const Eigen::VectorXf &xd,
 {
 	if(W.rows() != W.cols())
 	{
-		std::string message = "[ERROR] [QP SOLVER] redundant_least_squares(): "
-		                      "Expected the weighting matrix to be square but it was "
-		                    + std::to_string(W.rows()) + "x" + std::to_string(W.cols()) + ".";
-		
-		throw std::runtime_error(message);
+		throw std::invalid_argument("[ERROR] [QP SOLVER] redundant_least_squares(): "
+		                            "Expected the weighting matrix to be square but it was "
+		                            + std::to_string(W.rows()) + "x" + std::to_string(W.cols()) + ".");
 	}
 	else if(xd.size() != W.rows() or W.cols() != A.cols())
 	{	
-		std::string message = "[ERROR] [QP SOLVER] redundant_least_squares(): "
-		                      "Dimensions for the decision variable do not match. "
-		                      "The desired vector xd had " + std::to_string(xd.size()) + " elements, "
-		                      "the weighting matrix was " + std::to_string(W.rows()) + "x" + std::to_string(W.cols()) + ", and "
-		                      "the constraint matrix A had " + std::to_string(A.cols()) + " columns.";
-		
-		throw std::runtime_error(message);
+		throw std::invalid_argument("[ERROR] [QP SOLVER] redundant_least_squares(): "
+		                            "Dimensions for the decision variable do not match. "
+		                            "The desired vector xd had " + std::to_string(xd.size()) + " elements, "
+		                            "the weighting matrix was " + std::to_string(W.rows()) + "x" + std::to_string(W.cols()) + ", and "
+		                            "the constraint matrix A had " + std::to_string(A.cols()) + " columns.");
         }
         else if(y.size() != A.rows())
         {    	
-        	std::string message = "[ERROR] [QP SOLVER] redundant_least_squares(): "
-        	                      "Dimensions for the equality constraint do not match. "
-        	                      "The y vector had " + std::to_string(y.size()) + " elements, and "
-        	                      "the constraint matrix had " + std::to_string(A.rows()) + " rows.";
-        	                      
-        	throw std::runtime_error(message);
+        	throw std::invalid_argument("[ERROR] [QP SOLVER] redundant_least_squares(): "
+        	                            "Dimensions for the equality constraint do not match. "
+        	                            "The y vector had " + std::to_string(y.size()) + " elements, and "
+        	                            "the constraint matrix had " + std::to_string(A.rows()) + " rows.");
         }
         else
-        {   	
-		// Lagrangian L = 0.5*x'*W*x - x'*W*xd + (A*x - y)'*lambda,
-		// Solution exists for:
-		//
-		// [ dL/dlambda ]  =  [ 0   A ][ lambda ] - [   y  ] = [ 0 ]
-		// [   dL/dx    ]     [ A'  W ][   x    ]   [ W*xd ]   [ 0 ]
-		//
-		// but we can speed up calcs and skip solving lambda if we are clever.
-		
-		int m = A.rows();
-		int n = A.cols();
-		
+        {   		
 		Eigen::MatrixXf B = W.ldlt().solve(A.transpose());                                  // Makes calcs a little easier
 		
 		return xd - B*(A*B).ldlt().solve(y - A*xd);                                         // xd - W^-1*A'*(A*W^-1*A')^-1*(y-A*xd)
@@ -385,7 +368,6 @@ Eigen::VectorXf QPSolver::redundant_least_squares(const Eigen::VectorXf &xd,
 		
 		return this->lastSolution;
 		
-		
 		// Old method - slow but robust
 		/*
 		// Convert to standard form 0.5*x'*H*x + x'*f subject to B*x >= z
@@ -476,8 +458,28 @@ Eigen::VectorXf QPSolver::redundant_least_squares(const Eigen::VectorXf &xd,
         }
         else
         {
-        	std::cout << "[ERROR] [QP SOLVER] redundant_least_squares(): This function hasn't been completed!\n";
-    		return x0;
+		try
+		{
+			Eigen::MatrixXf invWAt = W.ldlt().solve(A.transpose());                     // Makes calcs a little easier
+			
+			Eigen::MatrixXf H = A*invWAt;                                               // Hessian
+			
+			this->lastSolution = xd - invWAt * solve(H,
+				                                 y - A*xd,                          // Vector f
+				                                -B*invWAt,                          // Modified matrix B
+				                                 z - B*xd,                          // Modified constraint vector
+				                                -H.ldlt().solve(A*(x0-xd)));        // Start point for solver
+			
+			return this->lastSolution;
+		}
+		catch(const std::exception &exception)
+		{
+			std::cout << exception.what() << std::endl;                                 // Print lower-level error
+			
+			throw std::runtime_error("[ERROR] [QP SOLVER] redundant_least_squares(): "
+			                         "Ensure that the projection of the desired value xd "
+			                         "satisfies the constraints.");
+		}
 	}	
 }
     
