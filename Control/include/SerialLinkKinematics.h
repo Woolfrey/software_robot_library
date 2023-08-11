@@ -1,3 +1,5 @@
+#ifndef SERIALLINKKINEMATICS_H_
+#define SERIALLINKKINEMATICS_H_
 
 #include <SerialLinkBase.h>
 
@@ -20,6 +22,8 @@ class SerialLinkKinematics : public SerialLinkBase
 													   		
 	protected:
 	
-		bool compute_joint_limits(float &lower, float &upper, const unsigned int &jointNumber);
+		bool compute_control_limits(float &lower, float &upper, const unsigned int &jointNumber);
 	
 };                                                                                                  // Semicolon needed after a class declaration
+
+#endif
