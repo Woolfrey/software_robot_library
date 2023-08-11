@@ -23,7 +23,7 @@ Eigen::Matrix<float,6,1> Pose::error(const Pose &desired)
 	
 	float angle = this->_quaternion.angularDistance(desired.quaternion());                      // Distance between vectors (i.e. dot product)
 	
-	if(angle < M_PI)
+	if(angle <= M_PI)
 	{
 		error.tail(3) = this->_quaternion.w() * desired.quaternion().vec()
 		              - desired.quaternion().w() * this->_quaternion.vec()
