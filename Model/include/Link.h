@@ -43,7 +43,7 @@ class Link : public RigidBody<DataType>
 		
 		Vector<DataType,3> angular_velocity() const { return this->angularVelocity; }
 		
-		void clear_parent_link() { this->parentLink == nullptr; }
+		void clear_parent_link() { this->parentLink = nullptr; }
 		
 	private:
 		
@@ -85,7 +85,7 @@ bool Link<DataType>::set_parent_link(Link *parent)
 
 	this->parentLink = parent;
 	
-	return parent->add_child_link(this);
+	return true;
 }
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -96,21 +96,10 @@ void Link<DataType>::merge(const Link &otherLink)
 {
 	RigidBody<DataType>::combine_inertia(otherLink, otherLink.joint.offset());                            // Add the inertia of the other link to this one
 	
-	// Erase the other link from the list of child link references
-	for(int i = 0; i < this->childLinks.size(); i++)
-	{
-		if(this->childLinks[i]->name() == otherLink.name())
-		{
-			this->childLinks.erase(this->childLinks.begin()+i);
-			break;
-		}
-	}
-	
 	// Set this link as the parent link for all child links of the other link
 	std::vector<Link*> otherChildLinks = otherLink.child_links();
 	
-	for(int i = 0; i < otherChildLinks.size(); i++) otherChildLinks[i]->set_parent_link(this);
-		
+	for(int i = 0; i < otherChildLinks.size(); i++) otherChildLinks[i]->set_parent_link(this);	
 }
 
 #endif

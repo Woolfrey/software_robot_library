@@ -293,17 +293,12 @@ KinematicTree<DataType>::KinematicTree(const string &pathToURDF)
 	if(rigidBodyList.size() == 1)
 	{
 		auto container = rigidBodyList.begin();
-		
 		this->_base = container->second;
-		
-		std::cout << "I believe that '" << this->_base.name() << "' is the base.\n";
 	}
 	else
 	{
 		string message = "[ERROR] [KINEMATIC TREE] Constructor: More than one candidate for the base:\n";
-		
 		for(auto iterator = rigidBodyList.begin(); iterator != rigidBodyList.end(); iterator++) message + "   - " + iterator->first + "\n";
-		
 		throw std::runtime_error(message);
 	}
 	
@@ -333,50 +328,42 @@ KinematicTree<DataType>::KinematicTree(const string &pathToURDF)
 			unsigned int j = otherContainer->second;
 			
 			this->link[i].set_parent_link(&this->link[j]);
+			this->link[j].add_child_link(&this->link[i]);
 		}
 	}
 	
-	// Remove all the fixed joints from the model, merge the connected links
+	// Merge all the properties of links connected by fixed joints
 	for(int i = 0; i < this->link.size(); i++)
 	{
 		if(this->link[i].joint.is_fixed())
-		{
-			//std::cout << "The '" << this->link[i].joint.name() << "' joint is fixed and "
-			//          << "the '" << this->link[i].name() << "' link needs to merge in to ";
-			          
+		{     
 			Link<DataType> *parentLink = this->link[i].parent_link();
 			          
-			if(parentLink == nullptr)                                  // It must be the base!
+			if(parentLink == nullptr)                                                        // It must be the base!
 			{
-			//	std::cout << "the base.\n";
-			
-				this->_base.combine_inertia(this->link[i],this->link[i].joint.offset());
+				this->_base.combine_inertia(this->link[i],this->link[i].joint.offset()); // Combine the inertia of this link with the base
 				
-				this->link[i].clear_parent_link();
-				
-				this->baseLinks.push_back(&this->link[i]);
+				std::vector<Link<DataType>*> childLinks = this->link[i].child_links();   // Get all the links attached to this one
+				          
+				for(int j = 0; j < childLinks.size(); j++)                               // Get all the links following this one
+				{
+					childLinks[j]->clear_parent_link();
+					
+					this->baseLinks.push_back(childLinks[j]);
+				}
 			}
-			else
-			{
-			//	std::cout << "the '" << this->link[i].parent_link()->name() << "' link.\n";
-				
-				parentLink->merge(this->link[i]);
-			}
+			else parentLink->merge(this->link[i]);
 		}
 	}
 	
+	/* This doesn't work since the pointers are all mixed up:
+	
+	// Generate a new list of links with only active joints
+	std::vector<Link<DataType>> newLink;
 	for(int i = 0; i < this->link.size(); i++)
 	{
-		if(not this->link[i].joint.is_fixed())
-		{
-			Link<DataType> *parentLink = this->link[i].parent_link();
-			
-			if(parentLink == nullptr) std::cout << this->_base.name();
-			else                      std::cout << parentLink->name();
-		
-			std::cout << " <--- " << this->link[i].name() << std::endl;
-		}
-	}
+		if(not this->link[i].joint.is_fixed()) newLink.push_back(this->link[i]);
+	}*/
 /*	
 	// Remove all the fixed joints from the model
 	for(int i = 0; i < this->link.size(); i++)
