@@ -20,7 +20,7 @@ int main(int argc, char **argv)
 	
 	try
 	{
-		KinematicTree model(pathToURDF);
+		KinematicTree<float> model(pathToURDF);
 		
 		int numJoints = model.number_of_joints();
 		
@@ -29,10 +29,11 @@ int main(int argc, char **argv)
 		timer = clock();                                                                    // Start the timer
 
 		srand((unsigned int) time(0));					                    // Random seed generator
-        	Eigen::VectorXf q = Eigen::VectorXf::Random(numJoints);			            // Create random joint positions
+        	
+        	Eigen::VectorXf q  = Eigen::VectorXf::Random(numJoints);			    // Create random joint positions
         	Eigen::VectorXf qd = Eigen::VectorXf::Random(numJoints);			    // Create random joint velocities
 
-		if(not model.update_state(q, qd))
+/*		if(not model.update_state(q, qd))
 		{
 			std::cout << "[ERROR] [URDF TEST] Couldn't update the state for some reason.\n";
 		}
@@ -61,7 +62,7 @@ int main(int argc, char **argv)
 
 		std::cout << "\nHere is the joint gravity torque vector:\n\n";
 		std::cout << model.joint_gravity_vector().transpose() << std::endl;
-		
+*/
 		/*
 		clock_t timer;
 		

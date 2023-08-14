@@ -7,46 +7,110 @@
 #ifndef LINK_H_
 #define LINK_H_
 
+#include <Joint.h>
+#include <Pose.h>
 #include <RigidBody.h>                                                                              // Custom class
+#include <vector>                                                                                   // std::vector
 
-class Joint;                                                                                        // Forward declaration
+using namespace Eigen;                                                                              // Eigen::Matrix, Eigen::Vector
+using namespace std;                                                                                // std::cerr, std::vector, std::string
  
-class Link : public RigidBody
+template <class DataType>
+class Link : public RigidBody<DataType>
 {
 	public:
-		Link(const std::string &name,
-		     const RigidBody   &rigidBody)
+		Link(const RigidBody<DataType> &rigidBody,
+		     const Joint<DataType>     &_joint)
 		:
-		_name(name),
-		RigidBody(rigidBody) {}
+		RigidBody<DataType>(rigidBody),
+		joint(_joint) {}
+	
+		// Properties
+		
+		Joint<DataType> joint;
 		
 		// Methods
 		
-		bool merge(Link *otherLink);                                                        // Merge the properties of the other link with this one
+		void merge(const Link &otherLink);                                                        // Merge the properties of the other link with this one
 
-		bool add_child_joint(Joint *joint);
+		bool set_parent_link(Link *parent);
 		
-		bool set_parent_joint(Joint *joint);
+		bool add_child_link(Link *child);
 		
-		Eigen::Vector3f angular_velocity() const { return this->angularVelocity; }
+		Link* parent_link() const { return this->parentLink; }
 		
-		Joint* parent_joint() const { return this->parentJoint; }
+		vector<Link*> child_links() const { return this->childLinks; }
 		
-		std::vector<Joint*> child_joints() const { return this->childJoint; }
+		Vector<DataType,3> angular_velocity() const { return this->angularVelocity; }
 		
-		std::string name() const { return this->_name; }                                    // Return the name of this link
-		
-		void set_angular_velocity(const Eigen::Vector3f &velocity) { this->angularVelocity = velocity; }
+		void clear_parent_link() { this->parentLink == nullptr; }
 		
 	private:
-
-		Eigen::Vector3f angularVelocity = {0, 0, 0};
 		
-		Joint* parentJoint = nullptr;
+		Link* parentLink = nullptr;
 		
-		std::vector<Joint*> childJoint = {};	
-		
-		std::string _name = "unnamed";
+		vector<Link*> childLinks = {};
 };                                                                                                  // Semicolon needed at the end of class declaration
+
+  ///////////////////////////////////////////////////////////////////////////////////////////////////
+ //                          Add a proceeding link in the kinematic chain                         //
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template <class DataType>
+bool Link<DataType>::add_child_link(Link *child)
+{
+	if(child == nullptr)
+	{
+		cerr << "[ERROR] [LINK] connect_link(): Input is a null pointer.\n";
+		
+		return false;
+	}
+	
+	this->childLinks.push_back(child);
+	
+	return true;
+}
+
+  ///////////////////////////////////////////////////////////////////////////////////////////////////////
+ //                              Connect a preceding link with this one                               //
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+template <class DataType>
+bool Link<DataType>::set_parent_link(Link *parent)
+{
+	if(parent == nullptr)
+	{
+		cerr << "[ERROR] [LINK] connect_link(): Input is a null pointer.\n";
+		
+		return false;
+	}
+
+	this->parentLink = parent;
+	
+	return parent->add_child_link(this);
+}
+
+  ////////////////////////////////////////////////////////////////////////////////////////////////////
+ //                              Merge another link with this one                                  //
+////////////////////////////////////////////////////////////////////////////////////////////////////
+template <class DataType>
+void Link<DataType>::merge(const Link &otherLink)
+{
+	RigidBody<DataType>::combine_inertia(otherLink, otherLink.joint.offset());                            // Add the inertia of the other link to this one
+	
+	// Erase the other link from the list of child link references
+	for(int i = 0; i < this->childLinks.size(); i++)
+	{
+		if(this->childLinks[i]->name() == otherLink.name())
+		{
+			this->childLinks.erase(this->childLinks.begin()+i);
+			break;
+		}
+	}
+	
+	// Set this link as the parent link for all child links of the other link
+	std::vector<Link*> otherChildLinks = otherLink.child_links();
+	
+	for(int i = 0; i < otherChildLinks.size(); i++) otherChildLinks[i]->set_parent_link(this);
+		
+}
 
 #endif
