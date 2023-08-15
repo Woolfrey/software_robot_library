@@ -46,13 +46,11 @@ class Joint
 		
 		bool is_revolute() const { return this->isRevolute; }
 		
-		bool update_state(const Pose<DataType> &previousPose, const DataType &position);
+		Vector<DataType,3> axis() const { return this->_axis; }		                    // Axis in LOCAL frame
 		
-		Vector<DataType,3> axis() const { return this->_axis; }		
+		Pose<DataType> pose(const DataType &position);                                      // Return local transform given position	
 		
 		Pose<DataType> offset() const { return this->_offset; }                             // Get the pose of the joint relative to pose of joint on parent link
-		
-		Pose<DataType> pose() const { return this->_pose; }                                 // Get the pose of the joint in the parent frame
 		
 		string type() const { return this->_type; }
 		
@@ -60,9 +58,7 @@ class Joint
 		
 		unsigned int number() const { return this->_number; }                               // Get the index for this joint in the joint vector
 		
-		void extend_offset(Pose<DataType> &other) { this->_offset = other*this->_offset; }  // Extend the offset for fixed joints when merging links
-		
-		void set_number(const unsigned int &number) { this->_number = number; }             // Set the index in the joint vector list
+		void extend_offset(const Pose<DataType> &other) { this->_offset = other*this->_offset; }  // Extend the offset for fixed joints when merging links
 				
 		void position_limits(DataType &lower, DataType &upper) { lower = this->_positionLimit[0];
 		                                                         upper = this->_positionLimit[1]; }
@@ -73,9 +69,7 @@ class Joint
 		
 		bool isFixed = false;
 		
-		Vector<DataType,3> _localAxis;                                                      // Axis of actuation in local frame
-		
-		Vector<DataType,3> _axis;                                                           // Axis of actuation in global frame
+		Vector<DataType,3> _axis;                                                           // Axis of actuation in LOCAL frame
 
 		DataType _positionLimit[2];
 		
@@ -88,14 +82,11 @@ class Joint
 		DataType _friction;
 		
 		Pose<DataType> _offset;                                                             // Pose with respect to joint of parent link
-
-		Pose<DataType> _pose;                                                               // Pose of the joint in global frame
 		
 		string _type = "unknown";
 		
 		string _name = "unnamed";                                                           // Unique identifier
 		
-		unsigned int _number = 0;                                                           // The number in the joint list
 };                                                                                                  // Semicolon needed after a class declaration
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -114,7 +105,7 @@ Joint<DataType>::Joint(const string               &name,
 		       :
 		       _name(name),
 		       _type(type),
-		       _localAxis(axis.normalized()),                                               // Ensure unit norm for good measure
+		       _axis(axis.normalized()),                                               // Ensure unit norm for good measure
 		       _offset(offset),
 		       _positionLimit{positionLimit[0],positionLimit[1]},
 		       _speedLimit(speedLimit),
@@ -167,61 +158,21 @@ Joint<DataType>::Joint(const string               &name,
 	}
 }
 
-  ////////////////////////////////////////////////////////////////////////////////////////////////////
- //             Update the pose of the joint with respect to the global frame of reference         //
-////////////////////////////////////////////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////////////////////////////////////////
+ //                       Get the local transform due to the joint position                       //
+///////////////////////////////////////////////////////////////////////////////////////////////////
 template <class DataType> inline
-bool Joint<DataType>::update_state(const Pose<DataType> &previousPose, const DataType &position)
+Pose<DataType> Joint<DataType>::pose(const DataType &position)
 {
-	if(this->isFixed)
+	if(this->isRevolute)
 	{
-		cerr << "[FLAGRANT SYSTEM ERROR] [JOINT] update_state(): "
-		     << "The '" << this->_name << "' joint is fixed.\n";
-		
-		return false;
+		return Pose<DataType>(Eigen::Vector3f::Zero(),
+		                      Eigen::Quaternionf(cos(0.5*position),
+				                         sin(0.5*position)*this->_axis(0),
+				                         sin(0.5*position)*this->_axis(1),
+				                         sin(0.5*position)*this->_axis(2)));
 	}
-	if(position <= this->_positionLimit[0])
-	{
-		cerr << "[FLAGRANT SYSTEM ERROR] [JOINT] update_state(): "
-		     << "Position for the " << this->_name << " joint is below the lower limit ("
-		     << position << " < " << this->_positionLimit[0] << ").\n";
-		
-		return false;
-	}
-	else if(position >= this->_positionLimit[1])
-	{
-		cerr << "[FLAGRANT SYSTEM ERROR] [JOINT] update_state(): "
-		     << "Position for the " << this->_name << " joint is above the lower limit ("
-		     << position << " > " << this->_positionLimit[1] << ").\n";
-		
-		return false;
-	}
-	else
-	{
-		this->_pose = previousPose;                                                         // previousPose is const so we need to assign first
-		
-		this->_pose *= this->_offset;                                                       // Origin relative to previous reference frame
-		
-		
-		this->_axis = this->_pose.quaternion().toRotationMatrix()*this->_localAxis;         // Update the axis relative to the base
-		this->_axis.normalize();
-		
-		// Now add on the dynamic component from the joint position
-		if(this->isRevolute)
-		{
-			this->_pose *= Pose<DataType>(Vector<DataType,3>::Zero(),
-				                      Quaternionf(cos(0.5*position),
-				                                  sin(0.5*position)*this->_localAxis(0),
-				                                  sin(0.5*position)*this->_localAxis(1),
-				                                  sin(0.5*position)*this->_localAxis(2)));
-		}
-		else // prismatic
-		{
-			this->_pose *= Pose<DataType>(position*this->_localAxis, Quaternionf(1, 0, 0, 0));
-		}
-	
-		return true;
-	}
+	else  return Pose<DataType>(position*this->_axis, Eigen::Quaternionf(1, 0, 0, 0));
 }
 
 #endif

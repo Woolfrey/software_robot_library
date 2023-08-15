@@ -35,7 +35,8 @@ class KinematicTree
 		bool update_state(const Vector<DataType, Dynamic> &jointPos,
 		                  const Vector<DataType, Dynamic> &jointVel)
 		{
-			return update_state(jointPos, jointVel, this->_basePose, Vector<DataType, Dynamic>::Zero());
+			
+			return update_state(jointPos, jointVel, this->_basePose, Vector<DataType,6>::Zero());
 		}
 		                  
 		bool update_state(const Vector<DataType, Dynamic> &jointPosition,
@@ -45,22 +46,22 @@ class KinematicTree
 
 		unsigned int number_of_joints() const { return this->numJoints; }
 				        
-		Matrix<DataType, Dynamic, Dynamic> joint_inertia_matrix() const { return this->jointInertiaMatrix; }
+		Matrix<DataType,Dynamic,Dynamic> joint_inertia_matrix() const { return this->jointInertiaMatrix; }
 		
-		Matrix<DataType, Dynamic, Dynamic> joint_coriolis_matrix() const { return this->jointCoriolisMatrix; } 
+		Matrix<DataType,Dynamic,Dynamic> joint_coriolis_matrix() const { return this->jointCoriolisMatrix; } 
 
-                Matrix<DataType, 6, Dynamic> jacobian(const string &frameName); 
+                Matrix<DataType,6,Dynamic> jacobian(const string &frameName); 
 		                 
-		Matrix<DataType, 6, Dynamic> time_derivative(const Matrix<DataType, 6, Dynamic> &J); // Time derivative of a Jacobian
+		Matrix<DataType,6,Dynamic> time_derivative(const Matrix<DataType, 6, Dynamic> &J); // Time derivative of a Jacobian
 		
-		Matrix<DataType, 6, Dynamic> partial_derivative(const Matrix<DataType, 6, Dynamic> &J,
+		Matrix<DataType,6,Dynamic> partial_derivative(const Matrix<DataType, 6, Dynamic> &J,
 		                                                const unsigned int &jointNumber);   // Partial derivative of a Jacobian
 
 		Pose<DataType> frame_pose(const string &frameName);                                 // Return the pose for a reference frame on the robot
 				
-		Vector<DataType, Dynamic> joint_gravity_vector() const { return this->jointGravityVector; }
+		Vector<DataType,Dynamic> joint_gravity_vector() const { return this->jointGravityVector; }
 		
-		Vector<DataType, Dynamic> joint_velocities() const { return this->_jointVelocity; }
+		Vector<DataType,Dynamic> joint_velocities() const { return this->_jointVelocity; }
 		
 		string name() const { return this->_name; }                                         // Return the name of this robot
 		
@@ -72,12 +73,16 @@ class KinematicTree
 		
 		Matrix<DataType, Dynamic, Dynamic> jointInertiaMatrix,
 		                                   jointCoriolisMatrix;
+		                                   
+		Pose<DataType> _basePose;
 
 		RigidBody<DataType> _base;
 		
 		unsigned int numJoints;
 
 		Vector<DataType, 3> gravityVector = {0,0,-9.81};
+		
+		Vector<DataType, 6> _baseTwist;
 			
 		Vector<DataType, Dynamic> _jointPosition,
 		                          _jointVelocity;
@@ -305,6 +310,7 @@ KinematicTree<DataType>::KinematicTree(const string &pathToURDF)
 	// Form the connections between all the links
 	for(int i = 0; i < this->link.size(); i++)
 	{
+		// Get the name for the parent of this link
 		auto container = connectionList.find(this->link[i].name());
 		
 		if(container == connectionList.end())
@@ -315,6 +321,7 @@ KinematicTree<DataType>::KinematicTree(const string &pathToURDF)
 			
 		std::string parentLinkName = container->second;
 		
+		// Set the parent and child
 		if(parentLinkName != this->_base.name())
 		{
 			auto otherContainer = linkList.find(parentLinkName);
@@ -325,19 +332,21 @@ KinematicTree<DataType>::KinematicTree(const string &pathToURDF)
 					            "Could not find the '" + parentLinkName + "' link in the link list");
 			}
 			
-			unsigned int j = otherContainer->second;
+			unsigned int j = otherContainer->second;                                    // Get the number
 			
-			this->link[i].set_parent_link(&this->link[j]);
-			this->link[j].add_child_link(&this->link[i]);
+			this->link[i].set_parent_link(&this->link[j]);                              // Set parent/child relationship
 		}
 	}
 	
-	// Merge all the properties of links connected by fixed joints
+	unsigned int prevNumJoints = this->link.size();
+	unsigned int count = 0;
+	
+	// Merge the dynamic properties of all the links connected by fixed joints
 	for(int i = 0; i < this->link.size(); i++)
 	{
 		if(this->link[i].joint.is_fixed())
 		{     
-			Link<DataType> *parentLink = this->link[i].parent_link();
+			Link<DataType> *parentLink = this->link[i].parent_link();                        // Pointer to the parent link of this one
 			          
 			if(parentLink == nullptr)                                                        // It must be the base!
 			{
@@ -347,35 +356,61 @@ KinematicTree<DataType>::KinematicTree(const string &pathToURDF)
 				          
 				for(int j = 0; j < childLinks.size(); j++)                               // Get all the links following this one
 				{
-					childLinks[j]->clear_parent_link();
+					childLinks[j]->clear_parent_link();                              // Clear parent; it is attached to base
 					
-					this->baseLinks.push_back(childLinks[j]);
+					this->baseLinks.push_back(childLinks[j]);                        // Add this to list of links attached to base
 				}
 			}
-			else parentLink->merge(this->link[i]);
+			else parentLink->merge(this->link[i]);                                           // Merge this link in to the other
+		
+			// Save this link as a reference frame so we can search it later
+			ReferenceFrame<DataType> frame;
+			frame.link = parentLink;                                                         // The frame is on the parent link
+			frame.relativePose = this->link[i].joint.offset();	                         // Pose of the frame relative to parent link
+			this->referenceFrameList.emplace(this->link[i].name(), frame);	                 // Add to list
+		}
+		else
+		{
+			this->link[i].set_number(count);                                                 // Give this link/joint a number
+			count++;                                                                         // Count up the number of 
 		}
 	}
 	
-	/* This doesn't work since the pointers are all mixed up:
+	this->numJoints = count;
 	
-	// Generate a new list of links with only active joints
-	std::vector<Link<DataType>> newLink;
-	for(int i = 0; i < this->link.size(); i++)
+	// Resize the relevant matrices, vectors accordingly
+	this->_jointPosition.resize(this->numJoints);
+	this->_jointVelocity.resize(this->numJoints);
+	this->jointInertiaMatrix.resize(this->numJoints, this->numJoints);
+	this->jointCoriolisMatrix.resize(this->numJoints, this->numJoints);
+	this->jointGravityVector.resize(this->numJoints);
+	
+	std::cout << "[INFO] [KINEMATIC TREE] Successfully created the '" << this->_name << "' robot."
+	          << " It has " << this->numJoints << " joints (reduced from " << prevNumJoints << ").\n";
+	
+/*	Debugging stuff:
+	std::cout << "\nHere is a list of all the joints on the robot:\n";		
+	vector<Link<DataType>*> candidateList = this->baseLinks;                                         // Start with links connect to base
+	while(candidateList.size() > 0)
 	{
-		if(not this->link[i].joint.is_fixed()) newLink.push_back(this->link[i]);
-	}*/
-/*	
-	// Remove all the fixed joints from the model
-	for(int i = 0; i < this->link.size(); i++)
-	{
-		if(this->link[i].joint.type() == "fixed")
-		{
-			Link *parentLink = this->link[i].parent_link();
-			
-			parentLink->merge(this->link[i]);
-			
-			// 
-		}
+		Link<DataType> *currentLink = candidateList.back();                                      // Get the one at the end
+		
+		candidateList.pop_back();                                                                // Delete it from the search list
+		
+		std::cout << " - " << currentLink->joint.name() << std::endl;
+		
+		vector<Link<DataType>*> temp = currentLink->child_links();                               // All the links attached to the current link
+		
+		if(temp.size() != 0) candidateList.insert(candidateList.end(), temp.begin(), temp.end());
+	}
+	
+	std::cout << "\nHere are the reference frames on the robot:\n";
+	for(auto iterator = this->referenceFrameList.begin(); iterator != this->referenceFrameList.end(); iterator++)
+	{	
+		std::cout << " - '" << iterator->first << "' is on the ";
+		
+		if(iterator->second.link == nullptr) std::cout << this->_base.name() << ".\n";
+		else                                 std::cout << "'" << iterator->second.link->name() << "' link.\n";
 	}
 */
 }
@@ -389,7 +424,6 @@ bool KinematicTree<DataType>::update_state(const Vector<DataType, Dynamic> &join
                                            const Pose<DataType>            &basePose,
                                            const Vector<DataType, 6>       &baseTwist)
 {
-/*
 	if(jointPosition.size() != this->numJoints
 	or jointVelocity.size() != this->numJoints)
 	{
@@ -404,111 +438,55 @@ bool KinematicTree<DataType>::update_state(const Vector<DataType, Dynamic> &join
 	this->_jointPosition = jointPosition;
 	this->_jointVelocity = jointVelocity;
 	
+	this->_basePose  = basePose;
+	this->_baseTwist = baseTwist;
+	
 	// Need to clear for new loop
 	this->jointInertiaMatrix.setZero();
 	this->jointCoriolisMatrix.setZero();
 	this->jointGravityVector.setZero();
 	
-	// Update the base properties
-	
-	this->_basePose  = basePose;
-	
-	this->_baseTwist = baseTwist;
-	
-	this->base->set_angular_velocity(this->_baseTwist.tail(3));                                 // We need this for the inverse dynamics algorithm
-	
-	vector<Joint*> candidateList = this->base->child_joints();
+	vector<Link<DataType>*> candidateList = this->baseLinks;                                    // Start with links attached to base
 	
 	while(candidateList.size() > 0)
 	{
-		// Get all the current and previous links and joints in the chain
-		Joint *currentJoint = candidateList.back();                                         // Current link in the tree
+		Link<DataType> *currentLink = candidateList.back();                                 // Get last link in the list...
 		
-		Link *currentLink = currentJoint->child_link();                                     // The link attached to this joint
-		
-		Link *previousLink = currentJoint->parent_link();                                   // The link before this one in the chain
-		
-		Joint *previousJoint = previousLink->parent_joint();                                // The joint before this one in the chain
-		
-		candidateList.pop_back();                                                           // Remove the current joint from the candidate list
-		
-		unsigned int k = currentJoint->number();                                            // Makes indexing a little neater
-		
-		// Update the pose for the current joint relative to base frame
-		Pose jointOrigin;
-		
-		if(previousJoint == nullptr) jointOrigin = this->_basePose;                         // Use pose of base link
-		else                         jointOrigin = previousJoint->pose();
-		
-		if(not currentJoint->update_state(jointOrigin, jointPosition(k)))
-		{
-			cerr << "[ERROR] [KINEMATIC TREE] update_state(): "
-			     << "Unable to update the state for the " << currentJoint->name() << " joint.\n";
-			
-			return false;
-		}
-		
-		// Propagate the angular velocity
-		Vector<DataType,  3> angularVelocity = previousLink->angular_velocity();            // We also need this for inverse dynamics
-			
-		if(currentJoint->is_revolute()) angularVelocity += jointVelocity(k)*currentJoint->axis(); // Add the effect of the joint motion
-			
-		currentLink->set_angular_velocity(angularVelocity);                                 // Update the angular velocity of this link
-		
-		// Compute inertial properties of current link relative to base
-		DataType mass = currentLink->mass();                                                // As it says on the label
-		
-		Vector<DataType,  3> com = currentJoint->pose() * currentLink->com();               // Center of mass of current link in base frame
-		
-		Matrix<DataType,3,3> R = currentJoint->pose().rotation();                           // Rotation as SO(3) matrix
+		candidateList.pop_back();                                                           // ... and remove it
 
-		Matrix<DataType,3,3> I = R*currentLink->inertia()*R.transpose();                    // Rotate the inertia from local frame to base frame
+		unsigned int k = currentLink->number();                                             // The number of this link/joint
 		
-		//Matrix<DataType,3,3> Idot = angularVelocity.cross(I); // THIS DOESN'T WORK? FUCK YOU (ノಠ益ಠ)ノ彡┻━┻
-		Matrix<DataType,3,3> Idot; for(int i = 0; i < 3; i++) Idot.col(i) = angularVelocity.cross(I.col(i));
-		
-		Matrix<DataType, Dynamic, Dynamic> J = jacobian(currentJoint, com, k+1);            // Get Jacobian to center of mass of this current link/joint
-		
-		Matrix<DataType, Dynamic, Dynamic> Jdot = time_derivative(J);                       // As it says
-		
-		Matrix<DataType, Dynamic, Dynamic> Jv = J.block(0,0,3,k+1);                         // Linear component
-		
-		Matrix<DataType, Dynamic, Dynamic> Jw = J.block(3,0,3,k+1);                         // Angular component
-		
-		// Compute the upper-right triangle of the inertia matrix
-		for(int i = 0; i < k+1; i++)
-		{
-			for(int j = i; j < k+1; j++)
-			{
-				this->jointInertiaMatrix(i,j) += mass*Jv.col(i).dot(Jv.col(j))
-			                                       + Jw.col(i).dot(I*Jw.col(j));
-			}
-		}
-		
-		//this->jointInertiaMatrix.block(0,0,k+1,k+1) += mass*Jv.transpose()*Jv + Jw.transpose()*I*Jw;
-		                                                
-		this->jointCoriolisMatrix.block(0,0,k+1,k+1) += mass*Jv.transpose()*Jdot.block(0,0,3,k+1)
-		                                              + Jw.transpose()*(Idot*Jw + I*Jdot.block(3,0,3,k+1));
-		
-		this->jointGravityVector.head(k+1) -= mass*Jv.transpose()*this->gravityVector;      // We need to NEGATE gravity
-		
-		// Add the next immediate links/joints in the kinematic chain to the list
-		
-		vector<Joint*> temp = currentLink->child_joints();
-		
-		if(temp.size() != 0) candidateList.insert(candidateList.end(),
-		                                          temp.begin(),
-		                                          temp.end());                              // Add them to the search list
-	}
+		Link<DataType> *parentLink = currentLink->parent_link();                            // Get the parent of this one
 	
-	// Complete the lower-left triangle of the inertia matrix
-	for(int i = 1; i < this->numJoints; i++)
-	{
-		for(int j = 0; j < i; j++) this->jointInertiaMatrix(i,j) = this->jointInertiaMatrix(j,i);
+		Pose<DataType> previousPose;
+		
+		if(parentLink == nullptr) previousPose = this->_basePose;
+		else                      previousPose = parentLink->pose();
+		
+		// Propagate the forward kinematics
+		currentLink->update_state(previousPose, jointPosition(k));
+		
+		// Get the links attached to this one and add them to the list
+		
+		vector<Link<DataType>*> temp = currentLink->child_links();
+		
+		if(temp.size() > 0) candidateList.insert(candidateList.begin(), temp.begin(), temp.end());
+		
+		// Debugging:
+		if(parentLink == nullptr) std::cout << this->_base.name();
+		else                      std::cout << parentLink->name();
+		
+		std::cout << " <--- (" << currentLink->joint.name() << ") <--- " << currentLink->name() << std::endl;
+		
+		std::cout << std::endl;
+		
+		std::cout << currentLink->pose().as_matrix() << std::endl;
+		
+				std::cout << std::endl;
+		
 	}
 	
 	return true;
-*/
 }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -731,7 +709,6 @@ KinematicTree<DataType>::jacobian(const string &frameName)
 template <class DataType> inline
 Pose<DataType> KinematicTree<DataType>::frame_pose(const string &frameName)
 {
-/*
 	auto container = this->referenceFrameList.find(frameName);
 	
 	if(container == this->referenceFrameList.end())
@@ -741,10 +718,9 @@ Pose<DataType> KinematicTree<DataType>::frame_pose(const string &frameName)
 	}
 	else
 	{
-		return container->second.link->parent_joint()->pose()                               // Pose for the *origin* of the associated link
+		return container->second.link->pose()                                               // Pose for the *origin* of the associated link
 		      *container->second.relativePose;                                              // Pose of the frame relative to the link/joint
 	}
-*/
 }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////

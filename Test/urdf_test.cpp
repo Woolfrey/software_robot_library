@@ -24,16 +24,18 @@ int main(int argc, char **argv)
 		
 		int numJoints = model.number_of_joints();
 		
+		Vector<float,Dynamic> q(numJoints), qdot(numJoints);
+		
 		clock_t timer;
 		
 		timer = clock();                                                                    // Start the timer
 
 		srand((unsigned int) time(0));					                    // Random seed generator
         	
-        	Eigen::VectorXf q  = Eigen::VectorXf::Random(numJoints);			    // Create random joint positions
-        	Eigen::VectorXf qd = Eigen::VectorXf::Random(numJoints);			    // Create random joint velocities
+        	q = VectorXf::Random(numJoints);
+        	qdot = VectorXf::Random(numJoints);
 
-/*		if(not model.update_state(q, qd))
+		if(not model.update_state(q, qdot))
 		{
 			std::cout << "[ERROR] [URDF TEST] Couldn't update the state for some reason.\n";
 		}
@@ -44,10 +46,10 @@ int main(int argc, char **argv)
 		
 		std::cout << "\nIt took " << time*1000 << " milliseconds (" << 1/time << " Hz) "
 		          << "to compute the inverse dynamics.\n";
-		          
+		  
 		std::cout << "\nHere is the pose of the 'right_hand':\n\n";
 		std::cout << model.frame_pose("right_hand").as_matrix() << std::endl;
-
+		/*
         	std::cout << "\nHere is the Jacobian to the 'right_hand': \n\n";
         	std::cout << model.jacobian("right_hand") << std::endl;
 
@@ -62,7 +64,7 @@ int main(int argc, char **argv)
 
 		std::cout << "\nHere is the joint gravity torque vector:\n\n";
 		std::cout << model.joint_gravity_vector().transpose() << std::endl;
-*/
+		*/
 		/*
 		clock_t timer;
 		
