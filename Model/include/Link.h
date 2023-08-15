@@ -152,7 +152,7 @@ void Link<DataType>::update_state(const Pose<DataType> &previousPose, const Data
 {
 	Pose<DataType> wtf = previousPose;
 	
-	this->_pose = wtf * this->joint.pose(jointPosition);
+	this->_pose = wtf * this->joint.offset() * this->joint.pose(jointPosition);
 	
 	this->_axis = this->_pose.rotation() * this->joint.axis();
 	

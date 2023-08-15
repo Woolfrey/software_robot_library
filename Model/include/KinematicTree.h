@@ -55,7 +55,7 @@ class KinematicTree
 		Matrix<DataType,6,Dynamic> time_derivative(const Matrix<DataType, 6, Dynamic> &J); // Time derivative of a Jacobian
 		
 		Matrix<DataType,6,Dynamic> partial_derivative(const Matrix<DataType, 6, Dynamic> &J,
-		                                                const unsigned int &jointNumber);   // Partial derivative of a Jacobian
+		                                              const unsigned int &jointNumber);   // Partial derivative of a Jacobian
 
 		Pose<DataType> frame_pose(const string &frameName);                                 // Return the pose for a reference frame on the robot
 				
@@ -458,12 +458,12 @@ bool KinematicTree<DataType>::update_state(const Vector<DataType, Dynamic> &join
 		
 		Link<DataType> *parentLink = currentLink->parent_link();                            // Get the parent of this one
 	
+		// Propagate the forward kinematics
 		Pose<DataType> previousPose;
 		
 		if(parentLink == nullptr) previousPose = this->_basePose;
 		else                      previousPose = parentLink->pose();
 		
-		// Propagate the forward kinematics
 		currentLink->update_state(previousPose, jointPosition(k));
 		
 		// Get the links attached to this one and add them to the list
@@ -471,19 +471,6 @@ bool KinematicTree<DataType>::update_state(const Vector<DataType, Dynamic> &join
 		vector<Link<DataType>*> temp = currentLink->child_links();
 		
 		if(temp.size() > 0) candidateList.insert(candidateList.begin(), temp.begin(), temp.end());
-		
-		// Debugging:
-		if(parentLink == nullptr) std::cout << this->_base.name();
-		else                      std::cout << parentLink->name();
-		
-		std::cout << " <--- (" << currentLink->joint.name() << ") <--- " << currentLink->name() << std::endl;
-		
-		std::cout << std::endl;
-		
-		std::cout << currentLink->pose().as_matrix() << std::endl;
-		
-				std::cout << std::endl;
-		
 	}
 	
 	return true;
@@ -727,8 +714,7 @@ Pose<DataType> KinematicTree<DataType>::frame_pose(const string &frameName)
  //                   Convert a char of numbers to an Vector<DataType,  3> object                 //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <class DataType>
-Vector<DataType,3>
-KinematicTree<DataType>::char_to_vector(const char* character)
+Vector<DataType,3> KinematicTree<DataType>::char_to_vector(const char* character)
 {
 	string numberAsString;                                                                      // So we can concatenate individual char together
 	vector<DataType> numberAsVector;                                                            // Temporary storage
