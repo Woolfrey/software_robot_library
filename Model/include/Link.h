@@ -20,14 +20,10 @@ class Link : public RigidBody<DataType>
 {
 	public:
 		Link(const RigidBody<DataType> &rigidBody,
-		     const Joint<DataType>     &_joint)
+		     const Joint<DataType>     &joint)
 		:
 		RigidBody<DataType>(rigidBody),
-		joint(_joint) {}
-	
-		// Properties
-		
-		Joint<DataType> joint;
+		_joint(joint) {}
 		
 		// Methods
 		
@@ -35,20 +31,21 @@ class Link : public RigidBody<DataType>
 		
 		bool add_child_link(Link *child);
 		
+		bool update_state(const DataType &jointPosition,
+		                  const DataType &jointVelocity);
+		
 		bool update_state(const Pose<DataType>     &pose,
 		                  const Vector<DataType,6> &twist,
 		                  const DataType           &jointPosition,
 		                  const DataType           &jointVelocity);
 		
-		Link* parent_link() const { return this->parentLink; }
+		Joint<DataType> joint() const { return this->_joint; }
 		
-		Pose<DataType> pose() const { return this->_pose; }
+		Link* parent_link() const { return this->parentLink; }
 		
 		unsigned int number() const { return this->_number; }
 		
 		vector<Link*> child_links() const { return this->childLinks; }
-		
-		Vector<DataType,3> angular_velocity() const { return this->_angularVelocity; }
 		
 		Vector<DataType,3> axis() const { return this->_axis; }
 		
@@ -58,24 +55,15 @@ class Link : public RigidBody<DataType>
 		
 		void set_number(const unsigned int &number) { this->_number = number; }
 		
-		void set_angular_velocity(const Vector<DataType,3> &velocity)
-		{
-			this->_angularVelocity = velocity;
-		}
-		
-		void update_state(const Pose<DataType> &pose, const DataType &jointPosition);
-		
 	private:
+	
+		Joint<DataType> _joint;                                                             // The joint attached to this link
 		
-		Link<DataType>* parentLink = nullptr;
-		
-		Pose<DataType> _pose;
+		Link<DataType>* parentLink = nullptr;                                               // Pointer to previous link in chain (null = attached to base)
 		
 		unsigned int _number;                                                               // The number in the kinematic chain
 		
-		Vector<DataType,3> _angularVelocity;
-		
-		Vector<DataType,3> _axis;
+		Vector<DataType,3> _axis;                                                           // Axis of joint actuation in global frame
 		
 		vector<Link<DataType>*> childLinks = {};
 };                                                                                                  // Semicolon needed at the end of class declaration
@@ -122,7 +110,7 @@ bool Link<DataType>::set_parent_link(Link *parent)
 template <class DataType>
 void Link<DataType>::merge(const Link &otherLink)
 {
-	RigidBody<DataType>::combine_inertia(otherLink, otherLink.joint.offset());                  // Add the inertia of the other link to this one
+	RigidBody<DataType>::combine_inertia(otherLink, otherLink.joint().offset());                  // Add the inertia of the other link to this one
 	
 	std::vector<Link*> otherChildLinks = otherLink.child_links();                               // Get the list of child links for the merged link
 	
@@ -130,7 +118,7 @@ void Link<DataType>::merge(const Link &otherLink)
 	{
 		otherChildLinks[i]->set_parent_link(this);                                          // Make this link the parent of the other child links
 	
-		//otherChildLinks[i]->joint.extend_offset(otherLink.joint.offset());                  // Extend the offset
+		otherChildLinks[i]->joint().extend_offset(otherLink.joint().offset());                  // Extend the offset
 	}
 	
 	// Delete the merged link from the list of child links
@@ -147,16 +135,60 @@ void Link<DataType>::merge(const Link &otherLink)
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //                             Update the kinematics of this link                                //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template<class DataType> inline
-void Link<DataType>::update_state(const Pose<DataType> &previousPose, const DataType &jointPosition)
+template <class DataType> inline
+bool Link<DataType>::update_state(const DataType &jointPosition, const DataType &jointVelocity)
 {
-	Pose<DataType> wtf = previousPose;
+	if(this->parentLink == nullptr)
+	{
+		cerr << "[ERROR] [LINK] update_state(): "
+		        "The '" << this->_name << "' link has no parent link. "
+		        "You need to call the update_state() method that specifies the "
+		        "relative pose and twist as arguments.\n";
+		
+		return false;
+	}
+	else	return update_state(this->parentLink->pose(), this->parentLink->twist(), jointPosition, jointVelocity);
+}
+
+  ///////////////////////////////////////////////////////////////////////////////////////////////////
+ //                             Update the kinematics of this link                                //
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template<class DataType> inline
+bool Link<DataType>::update_state(const Pose<DataType>     &previousPose,
+                                  const Vector<DataType,6> &previousTwist,
+                                  const DataType           &jointPosition,
+                                  const DataType           &jointVelocity)                            
+{
+	if(not this->joint().is_revolute() and not this->joint().is_prismatic())
+	{
+		cerr << "[ERROR] [LINK] update_state(): "
+		     << "The '" << this->joint().name() << "' was " << this->joint().type() << " "
+		     << "but expected revolute or prismatic.\n";
+		
+		return false;
+	}
+	else
+	{
+		Pose<DataType> wtf = previousPose;                                                          
+		
+		this->_pose = wtf * this->joint().offset() * this->joint().pose(jointPosition);     // Using 'previousPose' directly won't compile
+		
+		this->_axis = this->_pose.rotation() * this->joint().axis();                        // Rotate to global frame
+		
+		this->_axis.normalize();                                                            // Ensure unit norm
+		
+		Vector<DataType,3> angularVel = previousTwist.tail(3);                              // Need this to perform cross() 
+		
+		this->_twist.head(3) = previousTwist.head(3)
+			             + angularVel.cross(this->_pose.position() - previousPose.position());
+			             
+		this->_twist.tail(3) = angularVel;
+		
+		     if(this->_joint.is_revolute())  this->_twist.tail(3) += jointVelocity * this->_axis; // Add joint effect
+		else if(this->_joint.is_prismatic()) this->_twist.head(3) += jointVelocity * this->_axis;
 	
-	this->_pose = wtf * this->joint.offset() * this->joint.pose(jointPosition);
-	
-	this->_axis = this->_pose.rotation() * this->joint.axis();
-	
-	this->_axis.normalize();
+		return true;
+	}
 }
                   
 #endif

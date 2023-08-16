@@ -4,7 +4,7 @@ project(RobotLibrary VERSION 1.0.0 LANGUAGES CXX)                               
 
 set(CMAKE_CXX_STANDARD 14)
 
-set(CMAKE_BUILD_TYPE Debug)
+set(CMAKE_BUILD_TYPE Release)
 
 # Default build is Release. To build in other modes use:
 #

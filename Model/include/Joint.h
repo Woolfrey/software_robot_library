@@ -58,7 +58,11 @@ class Joint
 		
 		unsigned int number() const { return this->_number; }                               // Get the index for this joint in the joint vector
 		
-		void extend_offset(const Pose<DataType> &other) { this->_offset = other*this->_offset; }  // Extend the offset for fixed joints when merging links
+		void extend_offset(const Pose<DataType> &other)
+		{ 
+			Pose<DataType> temp = other;
+			this->_offset = temp*this->_offset;                                         // Extend the offset for fixed joints when merging links
+		} 
 				
 		void position_limits(DataType &lower, DataType &upper) { lower = this->_positionLimit[0];
 		                                                         upper = this->_positionLimit[1]; }
@@ -166,13 +170,13 @@ Pose<DataType> Joint<DataType>::pose(const DataType &position)
 {
 	if(this->isRevolute)
 	{
-		return Pose<DataType>(Eigen::Vector3f::Zero(),
-		                      Eigen::Quaternionf(cos(0.5*position),
-				                         sin(0.5*position)*this->_axis(0),
-				                         sin(0.5*position)*this->_axis(1),
-				                         sin(0.5*position)*this->_axis(2)));
+		return Pose<DataType>(Vector<DataType,3>::Zero(),
+		                      Quaternion<DataType>(cos(0.5*position),
+				                           sin(0.5*position)*this->_axis(0),
+				                           sin(0.5*position)*this->_axis(1),
+				                           sin(0.5*position)*this->_axis(2)));
 	}
-	else  return Pose<DataType>(position*this->_axis, Eigen::Quaternionf(1, 0, 0, 0));
+	else  return Pose<DataType>(position*this->_axis, Quaternion<DataType>(1, 0, 0, 0));
 }
 
 #endif

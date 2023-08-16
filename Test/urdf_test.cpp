@@ -20,7 +20,7 @@ int main(int argc, char **argv)
 	
 	try
 	{
-		KinematicTree<double> model(pathToURDF);
+		KinematicTree<float> model(pathToURDF);
 		
 		int numJoints = model.number_of_joints();
 	
@@ -30,8 +30,8 @@ int main(int argc, char **argv)
 
 		srand((unsigned int) time(0));					                    // Random seed generator
 
-		VectorXd q    = VectorXd::Random(numJoints);
-		VectorXd qdot = VectorXd::Random(numJoints);
+		VectorXf q    = VectorXf::Random(numJoints);
+		VectorXf qdot = VectorXf::Random(numJoints);
 
 		if(not model.update_state(q, qdot))
 		{

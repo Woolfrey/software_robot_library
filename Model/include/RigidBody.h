@@ -32,18 +32,30 @@ class RigidBody
 		
 		Matrix<DataType,3,3> inertia() const { return this->_inertia; }
 		
+		Pose<DataType> pose()          const { return this->_pose; }
+		
 		string name()                  const { return this->_name; }
 		
 		Vector<DataType,3> com()       const { return this->_centerOfMass; }                // Get the center of mass
 		
+		Vector<DataType,6> twist()     const { return this->_twist; }
+		
 		void combine_inertia(const RigidBody<DataType> &other,
 		                     const Pose<DataType>      &pose);
+		                     
+		void update_state(const Pose<DataType> &pose, const Vector<DataType,6> &twist)
+		{
+			this->_pose  = pose;
+			this->_twist = twist;
+		}                  
 		
 	protected:
 	          
 		DataType _mass = 0.0;                                               
 		
 		Matrix<DataType,3,3> _inertia = Matrix<DataType,3,3>::Zero();
+		
+		Pose<DataType> _pose;
 		
 		string _name = "unnamed";
 		
