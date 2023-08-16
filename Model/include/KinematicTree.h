@@ -475,10 +475,53 @@ bool KinematicTree<DataType>::update_state(const Vector<DataType, Dynamic> &join
 		}
 		
 		// Compute the inverse dynamics
+		DataType mass = currentLink->mass();                                                // As it says
+		
+		Vector<DataType,3> com = currentLink->pose() * currentLink->com();                  // Transform centre of mass to base frame
+		
+		Matrix<DataType,3,3> R = currentLink->pose().rotation();                            // Rotation as SO(3)
+		
+		Matrix<DataType,3,3> I = R*currentLink->inertia()*R.transpose();                    // Rotate inertia from local to base frame
+		
+		Vector<DataType,3> angularVelocity = currentLink->twist().tail(3);                  // Needed so we can do cross()
+		
+		// Matrix<DataType,3,3> Idot = angularVelocity.cross(I); // THIS DOESN'T WORK? FUCK YOU (ノಠ益ಠ)ノ彡┻━┻
+		Matrix<DataType,3,3> Idot; for(int i = 0; i < 3; i++) Idot.col(i) = angularVelocity.cross(I.col(i));
+		
+		Matrix<DataType,6,Dynamic> J = jacobian(currentLink, com, k+1);                     // Jacobian to centre of mass
+		
+		Matrix<DataType,3,Dynamic> Jv = J.block(0,0,3,k+1);                                 // Linear component
+		
+		Matrix<DataType,3,Dynamic> Jw = J.block(3,0,3,k+1);                                 // Angular component
+		
+		Matrix<DataType,6,Dynamic> Jdot = time_derivative(J);                               // As it says
+		
+		// Compute the upper-right triangle of the inertia matrix
+		for(int i = 0; i < k+1; i++)
+		{
+			for(int j = i; j < k+1; j++)
+			{
+				this->jointInertiaMatrix(i,j) += mass * Jv.col(i).dot(Jv.col(j))
+				                                      + Jw.col(i).dot(I*Jw.col(j));
+			}
+		}
+		
+		// This method is slightly slower: this->jointInertiaMatrix.block(0,0,k+1,k+1) += mass*Jv.transpose()*Jv + Jw.transpose()*I*Jw;
+		
+		this->jointCoriolisMatrix.block(0,0,k+1,k+1) += mass * Jv.transpose()*Jdot.block(0,0,3,k+1)
+		                                                     + Jw.transpose()*(Idot*Jw + I*Jdot.block(3,0,3,k+1));
+		
+		this->jointGravityVector.head(k+1) -= mass*Jv.transpose()*this->gravityVector;      // We need to NEGATE gravity		
 		
 		// Get the links attached to this one and add them to the list
 		vector<Link<DataType>*> temp = currentLink->child_links();
 		if(temp.size() > 0) candidateList.insert(candidateList.begin(), temp.begin(), temp.end());
+	}
+	
+	// Complete the lower-left triangle of the inertia matrix
+	for(int i = 1; i < this->numJoints; i++)
+	{
+		for(int j = 0; j < i; j++) this->jointInertiaMatrix(i,j) = this->jointInertiaMatrix(j,i);
 	}
 	
 	return true;
@@ -509,7 +552,7 @@ KinematicTree<DataType>::jacobian(Link<DataType> *link,                         
 		{
 			unsigned int i = link->number();
 		
-			if(link->joint.is_revolute())
+			if(link->joint().is_revolute())
 			{
 				// J_i = [ a_i x r_i ]
 				//       [    a_i    ]
@@ -685,12 +728,12 @@ KinematicTree<DataType>::jacobian(const string &frameName)
     }
     else
     {
-        Pose<DataType> framePose = container->second.link->parent_joint()->pose()                   // Pose for the *origin* of the associated link
+        Pose<DataType> framePose = container->second.link->parent_link()->pose()                    // Pose for the *origin* of the associated link
                                  * container->second.relativePose;                                  // Pose of this frame relative to link/joint
         
-        return jacobian(container->second.link->parent_joint(),
+        return jacobian(container->second.link->parent_link(),
                         framePose.position(),
-                        container->second.link->parent_joint()->number()+1);
+                        container->second.link->parent_link()->number()+1);
     }
 }
 
