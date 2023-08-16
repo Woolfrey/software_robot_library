@@ -8,8 +8,9 @@
 #define POLYNOMIAL_H_
 
 #include <TrajectoryBase.h>
-#include <string>
-#include <vector>                                                                                  // std::vector
+#include <string>                                                                                   // std::cerr, std::cout
+#include <vector>                                                                                   // std::vector
+
 
 class Polynomial : public TrajectoryBase
 {
