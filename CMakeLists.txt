@@ -7,37 +7,26 @@ set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_BUILD_TYPE Release)
 
 # Default build is Release. To build in other modes use:
-#
-#	cmake -DCMAKE_BUILD_TYPE=Type ../
-#
-# where Type is:
 #	Debug		(Information, not optimised)
 #	Release		(No information, optimised)
 #	RelWithDebInfo	(Information & optimised)
 #	MinSizeRel	(Same as Release, but optimised for size)
-#
-# Then run `make` as usual.
 
-#if(NOT CMAKE_BUILD_TYPE)
-#  set(CMAKE_BUILD_TYPE Debug)
-#endif()
+add_library(RobotLibrary INTERFACE)                                                                 # Declaration of RobotLibrary
 
-add_library(RobotLibrary INTERFACE)                                                      # Declaration of RobotLibrary
-
-########## Other directories to add to the build ##########
+####################################################################################################
 add_subdirectory(Math)
 add_subdirectory(Model)
 
-target_link_libraries(RobotLibrary INTERFACE Math Model)                                 # Link the subdirectories
+target_link_libraries(RobotLibrary INTERFACE Math Model)                                            # Link the subdirectories
 
-##############################################
-# Installation instructions
+################################### Installation Instructions ######################################
 
 include(GNUInstallDirs)
 
 set(INSTALL_CONFIGDIR ${CMAKE_INSTALL_LIBDIR}/cmake/RobotLibrary)
 
-install(TARGETS RobotLibrary Math Model                                                  # Specify targets to be installed
+install(TARGETS RobotLibrary Math Model                                                             # Specify targets to be installed
 	EXPORT RobotLibrary-targets
 	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 	ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
@@ -74,14 +63,10 @@ install(FILES
 	DESTINATION ${INSTALL_CONFIGDIR}
 )
 
-##############################################
-## Exporting from the build tree
+################################# Export from the Build Tree #######################################
 export(EXPORT RobotLibrary-targets
 	FILE ${CMAKE_CURRENT_BINARY_DIR}/RobotLibraryTargets.cmake
 	NAMESPACE RobotLibrary::
 )
 
-export(PACKAGE RobotLibrary)                                                                        # Register package so otherr projects can find it
-
-########## Location of Other CMakeLists.txt files ##########
-add_subdirectory(Test)                                                                              # Should this be here?
+export(PACKAGE RobotLibrary)                                                                        # Register package so other projects can find it
