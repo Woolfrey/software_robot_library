@@ -44,8 +44,8 @@ class TrajectoryBase
  //                                       Constructor                                             //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <class DataType>
-TrajectoryBase<DataType>::TrajectoryBase(const float        &startTime,
-                                         const float        &endTime,
+TrajectoryBase<DataType>::TrajectoryBase(const DataType     &startTime,
+                                         const DataType     &endTime,
                                          const unsigned int &dim)
                                          :
                                           _startTime(startTime),

@@ -3,18 +3,19 @@
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                           Constructor for spline over real numbers                             //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-CubicSpline::CubicSpline(const std::vector<Eigen::VectorXf> &waypoint,
-			 const std::vector<float> &time)
-			 :
-			 dimensions(waypoint[0].size()),
-			 numPoints(waypoint.size()),                                                // Assign the number of waypoints
-			 _time(time)
+CubicSpline<DataType>::CubicSpline(const std::vector<Eigen::VectorXf> &waypoint,
+			           const std::vector<float> &time)
+			           :
+			           _dimensions(waypoint[0].size()),
+			           _numPoints(waypoint.size()),                                      // Assign the number of waypoints
+			           _time(time)
 {
-	std::string errorMessage = "[ERROR] [CUBIC SPLINE] Constructor: ";
-	
 	// Ensure inputs are of equal length
 	if(waypoint.size() != time.size())
 	{
+		throw logic_error("[ERROR] [CUBIC SPLINE] Constructor: 
+	
+	
 		errorMessage += "Size of input arguments does not match. "
 		                "The waypoint vector had " + std::to_string(waypoint.size()) + " elements, and "
 		                "the time vector had " + std::to_string(time.size()) + " elements.";
