@@ -12,6 +12,19 @@ set(CMAKE_BUILD_TYPE Release)
 #	RelWithDebInfo	(Information & optimised)
 #	MinSizeRel	(Same as Release, but optimised for size)
 
+# Download the QPSolver if it doesn't exist yet
+if(EXISTS "${CMAKE_SOURCE_DIR}/Math/include/QPSolver.h")
+	message([STATUS] " Found the QPSolver class in ${CMAKE_SOURCE_DIR}/Math/include/")
+else()
+	message([WARNING] " QPSolver class not found in ${CMAKE_SOURCE_DIR}/Math/include/")
+	message([STATUS] " Downloading from https://github.com/Woolfrey/SimpleQPSolver ...")
+	file(DOWNLOAD
+	    https://raw.githubusercontent.com/Woolfrey/SimpleQPSolver/master/include/QPSolver.h
+	    ${CMAKE_SOURCE_DIR}/Math/include/QPSolver.h)
+	message([STATUS] " ... Done!")
+endif()
+
+
 add_library(RobotLibrary INTERFACE)                                                                 # Declaration of RobotLibrary
 
 ####################################################################################################
