@@ -54,7 +54,7 @@ class KinematicTree
 		Matrix<DataType,6,Dynamic> time_derivative(const Matrix<DataType, 6, Dynamic> &J); // Time derivative of a Jacobian
 		
 		Matrix<DataType,6,Dynamic> partial_derivative(const Matrix<DataType, 6, Dynamic> &J,
-		                                              const unsigned int &jointNumber);   // Partial derivative of a Jacobian
+		                                              const unsigned int &jointNumber);    // Partial derivative of a Jacobian
 
 		Pose<DataType> frame_pose(const string &frameName);                                 // Return the pose for a reference frame on the robot
 				
@@ -89,6 +89,8 @@ class KinematicTree
 		Vector<DataType, Dynamic> jointGravityVector;
 		
 		vector<Link<DataType>> link;                                                        // Vector of link objects
+		
+		vector<Link<DataType>*> activeLink;                                                 // Links with non-fixed joints
 		
 		vector<Link<DataType>*> baseLinks;                                                  // Links attached directly to the base
 		
@@ -371,6 +373,7 @@ KinematicTree<DataType>::KinematicTree(const string &pathToURDF)
 		else
 		{
 			this->link[i].set_number(count);                                                 // Give this link/joint a number
+			this->activeLink.push_back(&this->link[i]);                                      // Pointer so we can find it easy
 			count++;                                                                         // Increment number of active joints
 		}
 	}
@@ -436,9 +439,6 @@ bool KinematicTree<DataType>::update_state(const Vector<DataType, Dynamic> &join
 	
 	this->_jointPosition = jointPosition;
 	this->_jointVelocity = jointVelocity;
-	
-//	this->_basePose  = basePose;
-//	this->_baseTwist = baseTwist;
 
 	this->_base.update_state(basePose, baseTwist);                                              // Update the state for the base
 			
@@ -460,7 +460,7 @@ bool KinematicTree<DataType>::update_state(const Vector<DataType, Dynamic> &join
 		Link<DataType> *parentLink = currentLink->parent_link();                            // Get the parent of this one
 	
 		// Propagate the forward kinematics
-		bool success;
+		bool success = false;
 		if(parentLink == nullptr)
 		{
 			success = currentLink->update_state(this->_base.pose(), this->_base.twist(), jointPosition(k), jointVelocity(k));
@@ -473,6 +473,8 @@ bool KinematicTree<DataType>::update_state(const Vector<DataType, Dynamic> &join
 				  << "Unable to to update the state for the '" << currentLink->name() << "' link ("
 				  << currentLink->joint().name() << " joint).\n";
 		}
+		
+		// Compute the inverse dynamics
 		
 		// Get the links attached to this one and add them to the list
 		vector<Link<DataType>*> temp = currentLink->child_links();
@@ -541,13 +543,13 @@ KinematicTree<DataType>::time_derivative(const Matrix<DataType,6,Dynamic> &J)
 	Matrix<DataType,6,Dynamic> Jdot;
 	Jdot.resize(NoChange,J.cols());
 	Jdot.setZero();
-/*
+
 	for(int i = 0; i < J.cols(); i++)
 	{
 		for(int j = 0; j <= i; j++)
 		{
 			// Compute dJ(i)/dq(j)
-			if(this->joint[j].is_revolute())
+			if(this->activeLink[j]->joint().is_revolute())
 			{
 				DataType qdot = this->_jointVelocity(j);                            // Makes things a little easier
 				
@@ -556,7 +558,7 @@ KinematicTree<DataType>::time_derivative(const Matrix<DataType,6,Dynamic> &J)
 				Jdot(1,i) += qdot*(J(5,j)*J(0,i) - J(3,j)*J(2,i));
 				Jdot(2,i) += qdot*(J(3,j)*J(1,i) - J(4,j)*J(0,i));
 				
-				if(this->joint[i].is_revolute())			            // J_i = [a_i x r_i; a_i]
+				if(this->activeLink[i]->joint().is_revolute())			    // J_i = [a_i x r_i; a_i]
 				{
 					// qdot_j * ( a_j x a_i )
 					Jdot(3,i) += qdot*(J(4,j)*J(5,i) - J(5,j)*J(4,i));
@@ -566,11 +568,11 @@ KinematicTree<DataType>::time_derivative(const Matrix<DataType,6,Dynamic> &J)
 			}
 			
 			// Compute dJ(j)/dq(i)
-			if(i != j && this->joint[j].is_revolute())			            // J_j = [a_j x r_j; a_j]
+			if(i != j && this->activeLink[j]->joint().is_revolute())	            // J_j = [a_j x r_j; a_j]
 			{
 				DataType qdot = this->_jointVelocity(i);                            // Makes things a little easier
 				
-				if(this->joint[i].is_revolute())			            // J_i = [a_i x r_i; a_i]
+				if(this->activeLink[i]->joint().is_revolute())			    // J_i = [a_i x r_i; a_i]
 				{
 					// qdot_i * ( a_i x (a_j x r_j) )
 					// Jdot(0,j) += this->qdot(i)*(J(4,i)*J(2,j) - J(5,i)*J(1,j));
@@ -580,7 +582,7 @@ KinematicTree<DataType>::time_derivative(const Matrix<DataType,6,Dynamic> &J)
 					Jdot(1,j) += qdot*(J(5,j)*J(0,i) - J(3,j)*J(2,i));
 					Jdot(2,j) += qdot*(J(3,j)*J(1,i) - J(4,j)*J(0,i));
 				}
-				else // this->link[i].is_prismatic()			            // J_i = [a_i ; 0]
+				else // this->activeLink[i]->joint().is_prismatic()                 // J_i = [a_i ; 0]
 				{
 					// qdot_i * ( a_i x (a_j x r_j) )
 					Jdot(0,j) += qdot*(J(1,i)*J(2,j) - J(2,i)*J(1,j));
@@ -590,7 +592,7 @@ KinematicTree<DataType>::time_derivative(const Matrix<DataType,6,Dynamic> &J)
 			}
 		}
 	}
-*/	
+		
 	return Jdot;
 }
 
@@ -600,7 +602,7 @@ KinematicTree<DataType>::time_derivative(const Matrix<DataType,6,Dynamic> &J)
 template <class DataType> inline
 Matrix<DataType, 6, Dynamic>
 KinematicTree<DataType>::partial_derivative(const Matrix<DataType, 6, Dynamic> &J,
-                                            const unsigned int &jointNumber)
+                                            const unsigned int                 &jointNumber)
 {
 
 	// E. D. Pohl and H. Lipkin, "A new method of robotic rate control near singularities,"
@@ -617,14 +619,13 @@ KinematicTree<DataType>::partial_derivative(const Matrix<DataType, 6, Dynamic> &
 
 	Matrix<DataType, 6, Dynamic> dJ(6,J.cols()); dJ.setZero();                                  // Value to be returned
 	
-	/*
 	int j = jointNumber;                                                                        // Makes things a little easier
 	
 	for(int i = 0; i < J.cols(); i++)
 	{
-		if(this->joint[i].is_revolute())					            // J_i = [a_i x r_i ; a_i]
+		if(this->activeLink[i]->joint().is_revolute())					    // J_i = [a_i x r_i ; a_i]
 		{
-			if(this->joint[j].is_revolute()) 			                    // J_i = [a_j x r_j; a_j]
+			if(this->activeLink[j]->joint().is_revolute()) 			            // J_i = [a_j x r_j; a_j]
 			{
 				if (j < i)
 				{
@@ -646,7 +647,7 @@ KinematicTree<DataType>::partial_derivative(const Matrix<DataType, 6, Dynamic> &
 					dJ(2,i) = J(3,i)*J(1,j) - J(4,i)*J(0,j);
 				}
 			}
-			else if(this->joint[j].is_prismatic() and j > i)	                    // J_j = [a_j ; 0]
+			else if(this->activeLink[j]->joint().is_prismatic() and j > i)	            // J_j = [a_j ; 0]
 			{
 				// a_j x a_i
 				dJ(0,i) = J(1,j)*J(2,i) - J(2,j)*J(1,i);
@@ -654,8 +655,8 @@ KinematicTree<DataType>::partial_derivative(const Matrix<DataType, 6, Dynamic> &
 				dJ(2,i) = J(0,j)*J(1,i) - J(1,j)*J(0,i);
 			}
 		}
-		else if(this->joint[i].is_prismatic()					            // J_i = [a_i ; 0]
-		    and this->joint[j].is_revolute()				                    // J_j = [a_j x r_j; a_j]
+		else if(this->activeLink[i]->joint().is_prismatic()			            // J_i = [a_i ; 0]
+		    and this->activeLink[j]->joint().is_revolute()				    // J_j = [a_j x r_j; a_j]
 	            and j < i)
 		{
 			// a_j x a_i
@@ -663,7 +664,7 @@ KinematicTree<DataType>::partial_derivative(const Matrix<DataType, 6, Dynamic> &
 			dJ(1,i) = J(5,j)*J(0,i) - J(3,j)*J(2,i);
 			dJ(2,i) = J(3,j)*J(1,i) - J(4,j)*J(0,i);
 		}
-	}*/
+	}
 	
 	return dJ;
 }
