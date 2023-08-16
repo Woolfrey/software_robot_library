@@ -6,7 +6,7 @@ find_package(Eigen3 REQUIRED)                                                   
 
 include_directories(${EIGEN3_INCLUDE_DIRS})
 
-add_library(Model SHARED src/tinyxml2.cpp)
+add_library(Model SHARED src/tinyxml2.cpp)                                                          #
 
 target_include_directories(Model
     PUBLIC 
@@ -15,3 +15,8 @@ target_include_directories(Model
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
+
+########################################## Executables #############################################
+add_executable(urdf_test src/urdf_test.cpp)                                                         # Create name of exe from source file
+add_dependencies(urdf_test RobotLibrary)                                                            # Depends on RobotLibrary (obviously)
+target_link_libraries(urdf_test RobotLibrary)                                                       # Link RobotLibrary
