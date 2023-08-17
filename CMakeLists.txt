@@ -45,23 +45,19 @@ target_link_libraries(RobotLibrary INTERFACE Math Model Trajectory)             
 
 include(GNUInstallDirs)
 
-set(INSTALL_CONFIGDIR ${CMAKE_INSTALL_LIBDIR}/cmake/RobotLibrary)
+set(INSTALL_CONFIGDIR ${CMAKE_INSTALL_LIBDIR}/cmake/RobotLibrary)                                   # Declare the location for installing config files
 
-install(TARGETS RobotLibrary Math Model Trajectory                                                  # Specify targets to be installed
-	EXPORT RobotLibrary-targets
+install(TARGETS             RobotLibrary Math Model Trajectory                                      # Specify targets to be installed
+	EXPORT              RobotLibrary-targets
 	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 	ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
 
 # Export the targets to a script
-install(EXPORT RobotLibrary-targets
-	FILE
-		RobotLibraryTargets.cmake
-	NAMESPACE
-		RobotLibrary::
-	DESTINATION
-		#${CMAKE_INSTALL_LIBDIR}/cmake/RobotLibrary
-		${INSTALL_CONFIGDIR}
+install(EXPORT      RobotLibrary-targets
+	FILE        RobotLibraryTargets.cmake
+	NAMESPACE   RobotLibrary::
+	DESTINATION ${INSTALL_CONFIGDIR}
 )
 
 # Create a ConfigVersion.cmake file
