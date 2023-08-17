@@ -3,6 +3,8 @@
 #include <KinematicTree.h>                                                                           // Custom class for robot physics
 #include <time.h>                                                                                    // Timer
 
+#include <CartesianTrajectory.h> // Only here to test if this file compiles
+
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //                                          MAIN                                                 //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
