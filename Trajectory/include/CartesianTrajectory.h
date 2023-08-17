@@ -51,7 +51,7 @@ CartesianTrajectory<DataType>::CartesianTrajectory(const vector<Pose<DataType>> 
 	if(waypoint.size() != time.size())
 	{
 		throw logic_error("[ERROR] [CARTESIAN TRAJECTORY] Constructor: "
-                                  "Length of input arguments do not match.
+                                  "Length of input arguments do not match. "
                                   "There were " + to_string(waypoint.size()) + " waypoints "
                                   "and " + to_string(time.size()) + " times.");
 	}
@@ -76,7 +76,7 @@ CartesianTrajectory<DataType>::CartesianTrajectory(const vector<Pose<DataType>> 
 	
 	try
 	{
-		this->trajectory = CubicSpline(point,time);
+		this->trajectory = CubicSpline<DataType>(point,time);
 	}
 	catch(const exception &exception)
 	{
@@ -91,10 +91,10 @@ CartesianTrajectory<DataType>::CartesianTrajectory(const vector<Pose<DataType>> 
  //                         Get the desired state for the given time                               //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 template <class DataType> inline
-bool CartesianTrajectory::get_state(Pose<DataType>      &pose,
-                                    Vector<DataType,6>  &vel,
-                                    Vector<DataType,6>  &acc,
-                                    const DataType      &time)
+bool CartesianTrajectory<DataType>::get_state(Pose<DataType>      &pose,
+                                              Vector<DataType,6>  &vel,
+                                              Vector<DataType,6>  &acc,
+                                              const DataType      &time)
 {
 	Vector<DataType,6> pos;                                                                     // Temporary placeholder
 	
@@ -107,10 +107,10 @@ bool CartesianTrajectory::get_state(Pose<DataType>      &pose,
 		{
 			Vector<DataType,3> axis = pos.tail(3).normalized();
 			
-			pose = Pose(pos.head(3), Quaternion<DataType>(cos(0.5*angle),
-                                                                      sin(0.5*angle)*axis(0),
-			                                              sin(0.5*angle)*axis(1),
-			                                              sin(0.5*angle)*axis(2)));
+			pose = Pose<DataType>(pos.head(3), Quaternion<DataType>(cos(0.5*angle),
+                                                                                sin(0.5*angle)*axis(0),
+			                                                        sin(0.5*angle)*axis(1),
+			                                                        sin(0.5*angle)*axis(2)));
 		}
 		
 		return true;
