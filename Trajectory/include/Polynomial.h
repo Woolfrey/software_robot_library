@@ -75,7 +75,7 @@ Polynomial<DataType>::Polynomial(const Vector<DataType,Dynamic> &startPoint,
                                  const DataType                 &endTime,
                                  const unsigned int             &order)
                                  :
-                                 TrajectoryBase(startTime, endTime, startPoint.size()),             // Construct base object
+                                 TrajectoryBase<DataType>(startTime, endTime, startPoint.size()),   // Construct base object
                                  _order(order)                                                      // Order of polynomial
 {
 	if(startPoint.size()    != endPoint.size()
@@ -117,37 +117,37 @@ bool Polynomial<DataType>::compute_coefficients(const Vector<DataType,Dynamic> &
         
         this->coeff.resize(this->_dimensions);
         
-        if(this->_order == 3) // Cubic polynomial : x(t) = a*dt^3 + b*dt^2 + c*dt^1 + d*dt^0
+        if(this->_order == 3) // Cubic polynomial : x(t) = a*dt^0 + b*dt^1 + c*dt^2 + d*dt^3
         {
 		for(int i = 0; i < this->dimensions; i++)
 		{
 			this->coeff[i].resize(4);
 			
 			DataType dx = endPoint(i) - startPoint(i);
-			
-			this->coeff[i][3] = startPoint(i);                                                  // d
-			this->coeff[i][2] = startVelocity(i);                                               // c
-			this->coeff[i][1] = 3*dx/(dt*dt) - (endVelocity(i) + 2*this->coeff[i][2])/dt;       // b
-			this->coeff[i][0] = (endVelocity(i) - this->coeff[i][2])/(dt*dt) - 2*dx/(dt*dt*dt); // a
+	
+			this->coeff[i][0] = startPoint(i);                                                  // a
+			this->coeff[i][1] = startVelocity(i);                                               // b
+			this->coeff[i][2] = 3*dx/(dt*dt) - (endVelocity(i) + 2*this->coeff[i][1])/dt;       // c
+			this->coeff[i][3] = (endVelocity(i) + this->coeff[i][1])/(dt*dt) - 2*dx/(dt*dt*dt); // d
 		}	
 		
 		return true;
         }
-        else if(this->_order == 5) // Quintic polynomial: x(t) + a*dt^5 + b*dt^4 + c*dt^3 + d*dt^2 + e*dt^1 + f*dt^0
+        else if(this->_order == 5) // Quintic polynomial: x(t) = a*dt^0 + b*dt^1 + c*dt^2 + d*dt^3 + e*dt^4 + f*dt^5
         {
-		//    a*dt^5 +    b*dt^4 +   c*dt^3 = x_f - x_0 - dt*xdot_0                         (final position constraint)
-		//  5*a*dt^4 +  4*b*dt^3 + 2*c*dt^2 = xdot_f - xdot_0                               (final velocity constraint)
-		// 20*a*dt^3 + 12*b*dt^2 + 6*c*dt   = 0                                             (final acceleration constraint)
+        	//   d*dt^3 +    e*dt^4 +    f*dt^5 = x_f - x_0 - dt*xdot_0                         Final position constraint
+        	// 3*d*dt^2 +  4*e*dt^3 +  5*f*dt^4 = xdot_f - xdot_0                               Final velocity constraint
+        	// 6*d*dt   + 12*e*dt^2 + 20*f*dt^3 = 0                                             Final acceleration constraint
 
-		// [    dt^5     dt^4    dt^3 ][a] = [ x_f - x_0 - dt*xdot_0 ]
-		// [  5*dt^4   4*dt^3  3*dt^2 ][b] = [    xdot_f - xdot_0    ]
-		// [ 20*dt^3  12*dt^2  6*dt   ][c] = [          0            ]
+		// [   dt^3     dt^4     dt^5 ][d] = [ x_f - x_0 - dt*xdot_0 ]                      // y1
+		// [ 3*dt^2   4*dt^3   5*dt^4 ][e] = [    xdot_f - xdot_0    ]                      // y2
+		// [ 6*dt    12*dt^2  20*dt^3 ][f] = [          0            ]
 
-		// [    dt^2     dt       1   ][a] = [ (x_f - x_0)/dt^3 - xdot_0/dt^2 ]             y1
-		// [  5*dt^2   4*dt       3   ][b] = [     (xdot_f - xdot_0)/dt^2     ]             y2
-		// [ 20*dt^2  12*dt       6   ][c] = [               0                ]
-
-		// Then solve the above through Gaussian elimination, starting with c.
+		// [  1      dt      dt^2 ][d] = [ (x_f - x_0)/dt^3 - xdot_0/dt^2 ]                 y1
+		// [  3    4*dt    5*dt^2 ][e] = [     (xdot_f - xdot_0)/dt^2     ]                 y2
+		// [  6   12*dt   20*dt^2 ][f] = [               0                ]
+		
+		// Then solve the above through Gaussian elimination, starting with the bottom row
 		
 		for(int i = 0; i < this->dimensions; i++)
 		{
@@ -156,12 +156,12 @@ bool Polynomial<DataType>::compute_coefficients(const Vector<DataType,Dynamic> &
 			DataType y1 = (endPoint[i] - startPoint[i])/(dt*dt*dt) - startVelocity[i]/(dt*dt);
 			DataType y2 = (endVelocity[i] - startVelocity[i])/(dt*dt);
 			
-			this->coeff[i][5] = startPoint[i];                                          // f = x_0
-			this->coeff[i][4] = startVelocity[i];                                       // e = xdot_0
-			this->coeff[i][3] = 0.0;                                                    // d = 0.5*xddot_0 (assume 0)
-			this->coeff[i][2] = 10*y1 - 4*y2;                                           // c
-			this->coeff[i][1] = (7*y2 - 15*y1)/dt;                                      // b
-			this->coeff[i][0] = (6*y1 - 3*y2)/(dt*dt);                                  // a
+			this->coeff[i][0] = startPoint[i];                                          // a = x_0
+			this->coeff[i][1] = startVelocity[i];                                       // b = xdot_0
+			this->coeff[i][2] = 0.0;                                                    // c = 0.5*xddot_0 (assume 0)
+			this->coeff[i][3] = (6*y1 - 3*y2)/(dt*dt);                                  // d
+			this->coeff[i][4] = (7*y2 - 15*y1)/dt;                                      // e
+			this->coeff[i][5] = 10*y1 - 4*y2;
 		}
 		
 		return true;
@@ -174,7 +174,7 @@ bool Polynomial<DataType>::compute_coefficients(const Vector<DataType,Dynamic> &
         	          
 	        return false;
 	}
-*/
+
 }
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -215,11 +215,11 @@ bool Polynomial<DataType>::get_state(Vector<DataType,Dynamic> &pos,
 
 		for(int i = 0; i < this->dimensions; i++)
 		{
-			for(int j = 1; j <= this->_order; j++)
+			for(int j = 0; j < this->_order; j++)
 			{
-				pos(i) +=                                     this->coeff[i][this->_order-j]*pow(dt,this->_order-j);
-				vel(i) +=                    (this->_order-j)*this->coeff[i][this->_order-j]*pow(dt,this->_order-j-1);
-				acc(i) += (this->_order-j-1)*(this->_order-j)*this->coeff[i][this->_order-j]*pow(dt,this->_order-j-2);
+				pos(i) +=         this->coeff[i][j]*pow(dt,j);
+				vel(i) +=       j*this->coeff[i][j]*pow(dt,j-1);
+				acc(i) += (j-1)*j*this->coeff[i][j]*pow(dt,j-2);
 			}
 		}
 		
