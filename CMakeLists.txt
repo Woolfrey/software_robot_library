@@ -12,26 +12,34 @@ set(CMAKE_BUILD_TYPE Release)
 #	RelWithDebInfo	(Information & optimised)
 #	MinSizeRel	(Same as Release, but optimised for size)
 
-add_library(RobotLibrary INTERFACE)                                                                 # Declaration of RobotLibrary  
-
 #################################### Download QPSolver #############################################
 
 if(EXISTS "${CMAKE_SOURCE_DIR}/Math/include/QPSolver.h")
 	message([STATUS] " Found the QPSolver class in ${CMAKE_SOURCE_DIR}/Math/include/")
 else()
 	message([WARNING] " QPSolver class not found in ${CMAKE_SOURCE_DIR}/Math/include/")
+	
 	message([STATUS] " Downloading from https://github.com/Woolfrey/SimpleQPSolver ...")
+	
 	file(DOWNLOAD
 	    https://raw.githubusercontent.com/Woolfrey/SimpleQPSolver/master/include/QPSolver.h
 	    ${CMAKE_SOURCE_DIR}/Math/include/QPSolver.h)
-	message([STATUS] " ... Done!")
+	    
+	if(EXISTS "${CMAKE_SOURCE_DIR}/Math/include/QPSolver.h")
+		message([STATUS] " ... Done!")
+	else()
+		message([FATAL ERROR] " Could not download QPSolver.")
+	endif()
 endif()
 
 ####################################################################################################
+add_library(RobotLibrary INTERFACE)                                                                 # Declaration of RobotLibrary  
+
 add_subdirectory(Math)
 add_subdirectory(Model)
+add_subdirectory(Trajectory)
 
-target_link_libraries(RobotLibrary INTERFACE Math Model)                                            # Link the subdirectories
+target_link_libraries(RobotLibrary INTERFACE Math Model Trajectory)                                 # Link the subdirectories
 
 ################################### Installation Instructions ######################################
 
@@ -39,13 +47,13 @@ include(GNUInstallDirs)
 
 set(INSTALL_CONFIGDIR ${CMAKE_INSTALL_LIBDIR}/cmake/RobotLibrary)
 
-install(TARGETS RobotLibrary Math Model                                                             # Specify targets to be installed
+install(TARGETS RobotLibrary Math Model Trajectory                                                  # Specify targets to be installed
 	EXPORT RobotLibrary-targets
 	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 	ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
 
-#Export the targets to a script
+# Export the targets to a script
 install(EXPORT RobotLibrary-targets
 	FILE
 		RobotLibraryTargets.cmake
@@ -56,7 +64,7 @@ install(EXPORT RobotLibrary-targets
 		${INSTALL_CONFIGDIR}
 )
 
-#Create a ConfigVersion.cmake file
+# Create a ConfigVersion.cmake file
 include(CMakePackageConfigHelpers)
 write_basic_package_version_file(
 	${CMAKE_CURRENT_BINARY_DIR}/RobotLibraryConfigVersion.cmake
@@ -69,7 +77,7 @@ configure_package_config_file(${CMAKE_CURRENT_LIST_DIR}/cmake/RobotLibraryConfig
 	INSTALL_DESTINATION ${INSTALL_CONFIGDIR}
 )
 
-#Install the config, config version and custom find modules
+# Install the config, config version and custom find modules
 install(FILES
 	${CMAKE_CURRENT_BINARY_DIR}/RobotLibraryConfig.cmake
 	${CMAKE_CURRENT_BINARY_DIR}/RobotLibraryConfigVersion.cmake
