@@ -17,24 +17,26 @@ template <class DataType>
 class TrajectoryBase
 {
 	public:
+		// Constructors
 		TrajectoryBase() {}                                                                 // Empty constructor
 		
 		TrajectoryBase(const DataType     &startTime,
 		               const DataType     &endTime,
 		               const unsigned int &dimensions);
 			
-		// Get the desired state for the given time
+		// Methods
 		virtual bool get_state(Vector<DataType,Dynamic> &pos,
 		                       Vector<DataType,Dynamic> &vel,
 		                       Vector<DataType,Dynamic> &acc,
 		                       const float              &time) = 0;
                                        
-                // Other functions
                 DataType start_time() const { return this->_startTime; }
+                
                 DataType end_time()   const { return this->_endTime;   }
 		              
 	protected:
 		
+		// Properties
 		DataType _startTime, _endTime;
 		
 		unsigned int _dimensions;
@@ -46,7 +48,7 @@ class TrajectoryBase
 template <class DataType>
 TrajectoryBase<DataType>::TrajectoryBase(const DataType     &startTime,
                                          const DataType     &endTime,
-                                         const unsigned int &dim)
+                                         const unsigned int &dimensions)
                                          :
                                           _startTime(startTime),
                                           _endTime(endTime),
