@@ -618,9 +618,6 @@ KinematicTree<DataType>::time_derivative(const Matrix<DataType,6,Dynamic> &J)
 				if(this->activeLink[i]->joint().is_revolute())			    // J_i = [a_i x r_i; a_i]
 				{
 					// qdot_i * ( a_i x (a_j x r_j) )
-					// Jdot(0,j) += this->qdot(i)*(J(4,i)*J(2,j) - J(5,i)*J(1,j));
-					// Jdot(1,j) += this->qdot(i)*(J(5,i)*J(0,j) - J(3,i)*J(2,j));
-					// Jdot(2,j) += this->qdot(i)*(J(3,i)*J(1,j) - J(4,i)*J(0,j));
 					Jdot(0,j) += qdot*(J(4,j)*J(2,i) - J(5,j)*J(1,i));
 					Jdot(1,j) += qdot*(J(5,j)*J(0,i) - J(3,j)*J(2,i));
 					Jdot(2,j) += qdot*(J(3,j)*J(1,i) - J(4,j)*J(0,i));
