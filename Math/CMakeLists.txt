@@ -1,13 +1,8 @@
-find_package(Eigen3 REQUIRED)
+add_library(Math INTERFACE)                                                                         # Declare Math as a header-only library
 
-include_directories(include SHARED ${EIGEN3_INCLUDE_DIRS})
-
-add_library(Math SHARED src/Math.cpp)                                                               # Location of source files to add to library
-
+# Specify where to find header files
 target_include_directories(Math
-	PUBLIC
-		$<INSTALL_INTERFACE:include>
-		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>                              # Location of header files
-	PRIVATE
-		${CMAKE_CURRENT_SOURCE_DIR}/src                                                     # Location of source files
+	INTERFACE
+    		$<INSTALL_INTERFACE:include>
+    		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 )
