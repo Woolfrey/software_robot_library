@@ -3,6 +3,6 @@ add_library(Math INTERFACE)                                                     
 # Specify where to find header files
 target_include_directories(Math
 	INTERFACE
-    		$<INSTALL_INTERFACE:include>
-    		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    	$<INSTALL_INTERFACE:include>
+    	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 )
