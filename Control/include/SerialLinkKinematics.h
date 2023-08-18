@@ -10,13 +10,15 @@ template <class DataType>
 class SerialLinkKinematics : public SerialLinkBase<DataType>
 {
 	public:
-		SerialKinematicControl(const string &pathToURDF) : SerialLinkBase(pathToURDF);
+		SerialLinkKinematics(const string &pathToURDF,
+		                     const string &endpointName)
+		: SerialLinkBase<DataType>(pathToURDF, endpointName) {}
 		
 		// Functions derived from the base class
 		
 		Vector<DataType,Dynamic> resolve_endpoint_motion(const Vector<DataType,6> &endPointMotion); // Solve the joint motion to execute a given endpoint motion
 		
-		Vector<DataType,Dynamic> track_endpoint_trajectory(const Pose &desiredPose,
+		Vector<DataType,Dynamic> track_endpoint_trajectory(const Pose<DataType> &desiredPose,
 							           const Vector<DataType,6> &desiredVel,
 							           const Vector<DataType,6> &desiredAcc);
 							  
@@ -37,7 +39,7 @@ class SerialLinkKinematics : public SerialLinkBase<DataType>
 template <class DataType> inline
 Vector<DataType,Dynamic> SerialLinkKinematics<DataType>::resolve_endpoint_motion(const Vector<DataType,6>&endpointMotion)
 {
-	Matrix<DataType,6,Dynamic> J = endpoint_jacobian();                                         // As it says on the label
+	Matrix<DataType,6,Dynamic> J = this->endpoint_jacobian();                                   // Need 'this->' or it won't compile
 	
 	Matrix<DataType,6,6> JJt = J*J.transpose();                                                 // Makes calcs a little easier
 	
@@ -46,9 +48,8 @@ Vector<DataType,Dynamic> SerialLinkKinematics<DataType>::resolve_endpoint_motion
 	if(manipulability <= this->threshold)
 	{
 		cout << "[WARNING] [SERIAL LINK CONTROL] resolve_endpoint_motion(): "
-		          << "Robot is in a singular configuration! "
-		          << "(Manipulability " << manipulability << " < " <<
-		          << "threshold " << this->threshold << ").\n";
+		     << "Robot is in a singular configuration! "
+		     << "(Manipulability " << manipulability << " <  threshold " << this->threshold << ").\n";
 		
 		return 0.9*this->jointVelocity;                                                     // Slow down
 	}
@@ -67,7 +68,7 @@ Vector<DataType,Dynamic> SerialLinkKinematics<DataType>::resolve_endpoint_motion
 		if(not compute_control_limits(lowerBound(i), upperBound(i), i))
 		{
 			throw runtime_error("[FLAGRANT SYSTEM ERROR] resolve_endpoint_motion(): "
-				                 "Unable to compute the joint limits.");
+				            "Unable to compute the joint limits.");
 		}
 		
 		// Ensure start point is inside bounds or QP solver will fail
@@ -110,7 +111,7 @@ Vector<DataType,Dynamic> SerialLinkKinematics<DataType>::resolve_endpoint_motion
 		// subject to:   qdot_min < qdot < qdot_max
 		//               (dmu/dq)'*qdot > -gamma*mu 
 		
-		return QPSolver::solve(J.transpose()*J,-endpointMotion,B,z,startPoint);             // Too easy lol				
+		return QPSolver<DataType>::solve(J.transpose()*J,-endpointMotion,B,z,startPoint);   // Too easy lol				
 	}
 	else
 	{
@@ -123,11 +124,12 @@ Vector<DataType,Dynamic> SerialLinkKinematics<DataType>::resolve_endpoint_motion
 		// Make sure the redundant task is feasible after projection
 		// on to the null space or the QP solver will fail
 		
-		DataType alpha = 1.0;
+		DataType alpha = 1.0;                                                               // Scalar for the redundant task
 		
 		Matrix<DataType,Dynamic,Dynamic> invMJt = this->jointInertiaMatrix.ldlt().solve(J.transpose()); // Makes calcs a little easier
 		
-		EigenVectorXf xn = redundantTask - invMJt*(J*invMJt).ldlt().solve(J*redundantTask); // Null space projection
+		Vector<DataType,Dynamic> xn = this->redundantTask
+		                            - invMJt*(J*invMJt).ldlt().solve(J*this->redundantTask);// Null space projection
 		
 		for(int i = 0; i < this->numJoints; i++)
 		{
@@ -135,9 +137,11 @@ Vector<DataType,Dynamic> SerialLinkKinematics<DataType>::resolve_endpoint_motion
 			else if(xn(i) >= upperBound(i)) alpha = min((DataType)0.9*upperBound(i)/xn(i), alpha);
 		}
 		
-		redundantTask *= alpha;                                                             // Scale accordingly
+		this->redundantTask *= alpha;                                                       // Scale accordingly
 		
-		return QPSolver::redundant_least_squares(redundantTask, M, endpointMotion, J, z, B, startPoint);
+		return QPSolver<DataType>::redundant_least_squares(this->redundantTask,
+		                                                   this->jointInertiaMatrix,
+		                                                   J, endpointMotion, B, z, startPoint);
 	}
 }
 
@@ -145,7 +149,7 @@ Vector<DataType,Dynamic> SerialLinkKinematics<DataType>::resolve_endpoint_motion
  //               Compute the endpoint velocity needed to track a given trajectory                //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <class DataType> inline
-Vector<DataType,Dynamic> SerialLinkKinematics<DataType>::track_endpoint_trajectory(const Pose               &desiredPose,
+Vector<DataType,Dynamic> SerialLinkKinematics<DataType>::track_endpoint_trajectory(const Pose<DataType>     &desiredPose,
                                                                                    const Vector<DataType,6> &desiredVel,
                                                                                    const Vector<DataType,6> &desiredAcc)
 {
@@ -163,15 +167,15 @@ Vector<DataType,Dynamic> SerialLinkKinematics<DataType>::track_joint_trajectory(
 	if(desiredPos.size() != this->numJoints	or desiredVel.size() != this->numJoints)
 	{
 		cerr << "[ERROR] [SERIAL LINK CONTROL] track_joint_trajectory(): "
-		          << "This robot has " this->numJoints << " joints but "
-		          << "the position argument had " << desiredPos.size() << " elements and "
-		          << "the velocity argument had " << desiredVel.size() << " elements.\n";
+		     << "This robot has " << this->numJoints << " joints but "
+		     << "the position argument had " << desiredPos.size() << " elements and "
+		     << "the velocity argument had " << desiredVel.size() << " elements.\n";
 		
 		return 0.9*this->jointVelocity;
 	}
 	else
 	{
-		Vector<DataType,Dynamic> vel = desiredVel + this->kp*(desiredPos + this->jointPosition);    // Feedforward + feedback
+		Vector<DataType,Dynamic> vel = desiredVel + this->kp*(desiredPos - this->jointPosition);    // Feedforward + feedback
 	
 		// Ensure kinematic feasibility	
 		for(int i = 0; i < this->numJoints; i++)
@@ -219,7 +223,7 @@ bool SerialLinkKinematics<DataType>::compute_control_limits(DataType &lower,
 	{
 		cerr << "[ERROR] [SERIAL LINK CONTROL] compute_joint_limits(): "
 		     << "Lower bound is greater than upper bound for the '"
-		     << this->joint[i].name() << "' joint. "
+		     << this->joint[jointNumber].name() << "' joint. "
 		     << "(" << lower << " >= " << upper << "). How did that happen?\n";
 	
 		return false;
