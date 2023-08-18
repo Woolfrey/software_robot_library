@@ -642,7 +642,7 @@ KinematicTree<DataType>::time_derivative(const Matrix<DataType,6,Dynamic> &J)
 template <class DataType> inline
 Matrix<DataType, 6, Dynamic>
 KinematicTree<DataType>::partial_derivative(const Matrix<DataType, 6, Dynamic> &J,
-                                            const unsigned int                 &jointNumber)
+                                            const unsigned int &jointNumber)
 {
 
 	// E. D. Pohl and H. Lipkin, "A new method of robotic rate control near singularities,"
@@ -713,8 +713,7 @@ KinematicTree<DataType>::partial_derivative(const Matrix<DataType, 6, Dynamic> &
  //                         Compute the Jacobian to a given frame                                  //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 template <class DataType> inline
-Matrix<DataType, 6, Dynamic>
-KinematicTree<DataType>::jacobian(const string &frameName)
+Matrix<DataType, 6, Dynamic> KinematicTree<DataType>::jacobian(const string &frameName)
 {
     auto container = this->referenceFrameList.find(frameName);
 
