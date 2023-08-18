@@ -4,6 +4,7 @@
 #include <time.h>                                                                                    // Timer
 
 #include <CartesianTrajectory.h> // Only here to test if this file compiles
+#include <SerialLinkKinematics.h> // Only here to test if it compiles
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //                                          MAIN                                                 //
