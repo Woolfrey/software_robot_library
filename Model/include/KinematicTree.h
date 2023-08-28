@@ -51,10 +51,10 @@ class KinematicTree
 
                 Matrix<DataType,6,Dynamic> jacobian(const string &frameName); 
 		                 
-		Matrix<DataType,6,Dynamic> time_derivative(const Matrix<DataType, 6, Dynamic> &J); // Time derivative of a Jacobian
+		Matrix<DataType,6,Dynamic> time_derivative(const Matrix<DataType, 6, Dynamic> &J);  // Time derivative of a Jacobian
 		
 		Matrix<DataType,6,Dynamic> partial_derivative(const Matrix<DataType, 6, Dynamic> &J,
-		                                              const unsigned int &jointNumber);    // Partial derivative of a Jacobian
+		                                              const unsigned int &jointNumber);     // Partial derivative of a Jacobian
 
 		Pose<DataType> frame_pose(const string &frameName);                                 // Return the pose for a reference frame on the robot
 				
@@ -88,9 +88,9 @@ class KinematicTree
 
 		Vector<DataType, Dynamic> jointGravityVector;
 		
-		vector<Link<DataType>> link;                                                        // Vector of link objects
+		vector<Link<DataType>> fullLinkList;                                                // All links (including fixed joint)
 		
-		vector<Link<DataType>*> activeLink;                                                 // Links with non-fixed joints
+		vector<Link<DataType>*> link;                                                       // Vector of link objects
 		
 		vector<Link<DataType>*> baseLinks;                                                  // Links attached directly to the base
 		
@@ -279,7 +279,7 @@ KinematicTree<DataType>::KinematicTree(const string &pathToURDF)
                                                     "Unable to find '" + childLinkName + "' in the list of rigid bodies.");
                         }
                         
-                        this->link.emplace_back(container->second, tempJoint);                      // Create new link, add to vector
+                        this->fullLinkList.emplace_back(container->second, tempJoint);              // Create new link, add to vector
                         
 			linkList.emplace(childLinkName, linkNumber);                                // Add the index to the std::map so we can find it later
 			
@@ -309,15 +309,15 @@ KinematicTree<DataType>::KinematicTree(const string &pathToURDF)
 	}
 	
 	// Form the connections between all the links
-	for(int i = 0; i < this->link.size(); i++)
+	for(int i = 0; i < this->fullLinkList.size(); i++)
 	{
 		// Get the name for the parent of this link
-		auto container = connectionList.find(this->link[i].name());
+		auto container = connectionList.find(this->fullLinkList[i].name());
 		
 		if(container == connectionList.end())
 		{
 			throw runtime_error("[ERROR] [KINEMATIC TREE] Constructor: "
-			                    "Could not find the '" + this->link[i].name() + "' link in the connection list for some reason.");
+			                    "Could not find the '" + this->fullLinkList[i].name() + "' link in the connection list for some reason.");
 		}
 			
 		std::string parentLinkName = container->second;
@@ -330,51 +330,51 @@ KinematicTree<DataType>::KinematicTree(const string &pathToURDF)
 			if(otherContainer == linkList.end())
 			{
 				throw runtime_error("[ERROR] [KINEMATIC TREE] Constructor: "
-					            "Could not find the '" + parentLinkName + "' link in the link list");
+					            "Could not find the '" + parentLinkName + "' link in the link list.");
 			}
 			
 			unsigned int j = otherContainer->second;                                    // Get the number
 			
-			this->link[i].set_parent_link(&this->link[j]);                              // Set parent/child relationship
+			this->fullLinkList[i].set_parent_link(&this->fullLinkList[j]);              // Set parent/child relationship
 		}
 	}
 	
-	unsigned int prevNumJoints = this->link.size();
+	unsigned int prevNumJoints = this->fullLinkList.size();
 	unsigned int count = 0;
 	
 	// Merge the dynamic properties of all the links connected by fixed joints
-	for(int i = 0; i < this->link.size(); i++)
+	for(int i = 0; i < this->fullLinkList.size(); i++)
 	{
-		if(this->link[i].joint().is_fixed())
+		if(this->fullLinkList[i].joint().is_fixed())
 		{     
-			Link<DataType> *parentLink = this->link[i].parent_link();                        // Pointer to the parent link of this one
+			Link<DataType> *parentLink = this->fullLinkList[i].parent_link();           // Pointer to the parent link of this one
 			          
-			if(parentLink == nullptr)                                                        // It must be the base!
+			if(parentLink == nullptr)                                                   // It must be the base!
 			{
-				this->_base.combine_inertia(this->link[i],this->link[i].joint().offset()); // Combine the inertia of this link with the base
+				this->_base.combine_inertia(this->fullLinkList[i],this->fullLinkList[i].joint().offset()); // Combine the inertia of this link with the base
 				
-				std::vector<Link<DataType>*> childLinks = this->link[i].child_links();   // Get all the links attached to this one
+				std::vector<Link<DataType>*> childLinks = this->fullLinkList[i].child_links();   // Get all the links attached to this one
 				          
-				for(int j = 0; j < childLinks.size(); j++)                               // Get all the links following this one
+				for(int j = 0; j < childLinks.size(); j++)                          // Get all the links following this one
 				{
-					childLinks[j]->clear_parent_link();                              // Clear parent; it is attached to base
+					childLinks[j]->clear_parent_link();                         // Clear parent; it is attached to base
 					
-					this->baseLinks.push_back(childLinks[j]);                        // Add this to list of links attached to base
+					this->baseLinks.push_back(childLinks[j]);                   // Add this to list of links attached to base
 				}
 			}
-			else parentLink->merge(this->link[i]);                                           // Merge this link in to the other
+			else parentLink->merge(this->fullLinkList[i]);                              // Merge this link in to the other
 		
 			// Save this link as a reference frame so we can search it later
 			ReferenceFrame<DataType> frame;
-			frame.link = parentLink;                                                         // The frame is on the parent link
-			frame.relativePose = this->link[i].joint().offset();	                         // Pose of the frame relative to parent link
-			this->referenceFrameList.emplace(this->link[i].name(), frame);	                 // Add to list
+			frame.link = parentLink;                                                    // The frame is on the parent link
+			frame.relativePose = this->fullLinkList[i].joint().offset();	            // Pose of the frame relative to parent link
+			this->referenceFrameList.emplace(this->fullLinkList[i].name(), frame);	    // Add to list
 		}
 		else
 		{
-			this->link[i].set_number(count);                                                 // Give this link/joint a number
-			this->activeLink.push_back(&this->link[i]);                                      // Pointer so we can find it easy
-			count++;                                                                         // Increment number of active joints
+			this->fullLinkList[i].set_number(count);                                    // Give this link/joint a number
+			this->link.push_back(&this->fullLinkList[i]);                               // Pointer so we can find it easy
+			count++;                                                                    // Increment number of active joints
 		}
 	}
 	
@@ -390,7 +390,7 @@ KinematicTree<DataType>::KinematicTree(const string &pathToURDF)
 	std::cout << "[INFO] [KINEMATIC TREE] Successfully created the '" << this->_name << "' robot."
 	          << " It has " << this->numJoints << " joints (reduced from " << prevNumJoints << ").\n";
 	
-/*	Debugging stuff:
+//	Debugging stuff:
 	std::cout << "\nHere is a list of all the joints on the robot:\n";		
 	vector<Link<DataType>*> candidateList = this->baseLinks;                                         // Start with links connect to base
 	while(candidateList.size() > 0)
@@ -399,7 +399,7 @@ KinematicTree<DataType>::KinematicTree(const string &pathToURDF)
 		
 		candidateList.pop_back();                                                                // Delete it from the search list
 		
-		std::cout << " - " << currentLink->joint.name() << std::endl;
+		std::cout << " - " << currentLink->joint().name() << std::endl;
 		
 		vector<Link<DataType>*> temp = currentLink->child_links();                               // All the links attached to the current link
 		
@@ -414,7 +414,7 @@ KinematicTree<DataType>::KinematicTree(const string &pathToURDF)
 		if(iterator->second.link == nullptr) std::cout << this->_base.name() << ".\n";
 		else                                 std::cout << "'" << iterator->second.link->name() << "' link.\n";
 	}
-*/
+
 }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -592,7 +592,7 @@ KinematicTree<DataType>::time_derivative(const Matrix<DataType,6,Dynamic> &J)
 		for(int j = 0; j <= i; j++)
 		{
 			// Compute dJ(i)/dq(j)
-			if(this->activeLink[j]->joint().is_revolute())
+			if(this->link[j]->joint().is_revolute())
 			{
 				DataType qdot = this->_jointVelocity(j);                            // Makes things a little easier
 				
@@ -601,7 +601,7 @@ KinematicTree<DataType>::time_derivative(const Matrix<DataType,6,Dynamic> &J)
 				Jdot(1,i) += qdot*(J(5,j)*J(0,i) - J(3,j)*J(2,i));
 				Jdot(2,i) += qdot*(J(3,j)*J(1,i) - J(4,j)*J(0,i));
 				
-				if(this->activeLink[i]->joint().is_revolute())			    // J_i = [a_i x r_i; a_i]
+				if(this->link[i]->joint().is_revolute())			    // J_i = [a_i x r_i; a_i]
 				{
 					// qdot_j * ( a_j x a_i )
 					Jdot(3,i) += qdot*(J(4,j)*J(5,i) - J(5,j)*J(4,i));
@@ -611,18 +611,18 @@ KinematicTree<DataType>::time_derivative(const Matrix<DataType,6,Dynamic> &J)
 			}
 			
 			// Compute dJ(j)/dq(i)
-			if(i != j && this->activeLink[j]->joint().is_revolute())	            // J_j = [a_j x r_j; a_j]
+			if(i != j && this->link[j]->joint().is_revolute())	                    // J_j = [a_j x r_j; a_j]
 			{
 				DataType qdot = this->_jointVelocity(i);                            // Makes things a little easier
 				
-				if(this->activeLink[i]->joint().is_revolute())			    // J_i = [a_i x r_i; a_i]
+				if(this->link[i]->joint().is_revolute())			    // J_i = [a_i x r_i; a_i]
 				{
 					// qdot_i * ( a_i x (a_j x r_j) )
 					Jdot(0,j) += qdot*(J(4,j)*J(2,i) - J(5,j)*J(1,i));
 					Jdot(1,j) += qdot*(J(5,j)*J(0,i) - J(3,j)*J(2,i));
 					Jdot(2,j) += qdot*(J(3,j)*J(1,i) - J(4,j)*J(0,i));
 				}
-				else // this->activeLink[i]->joint().is_prismatic()                 // J_i = [a_i ; 0]
+				else // this->link[i]->joint().is_prismatic()                       // J_i = [a_i ; 0]
 				{
 					// qdot_i * ( a_i x (a_j x r_j) )
 					Jdot(0,j) += qdot*(J(1,i)*J(2,j) - J(2,i)*J(1,j));
@@ -663,9 +663,9 @@ KinematicTree<DataType>::partial_derivative(const Matrix<DataType, 6, Dynamic> &
 	
 	for(int i = 0; i < J.cols(); i++)
 	{
-		if(this->activeLink[i]->joint().is_revolute())					    // J_i = [a_i x r_i ; a_i]
+		if(this->link[i]->joint().is_revolute())					    // J_i = [a_i x r_i ; a_i]
 		{
-			if(this->activeLink[j]->joint().is_revolute()) 			            // J_i = [a_j x r_j; a_j]
+			if(this->link[j]->joint().is_revolute()) 			            // J_i = [a_j x r_j; a_j]
 			{
 				if (j < i)
 				{
@@ -687,7 +687,7 @@ KinematicTree<DataType>::partial_derivative(const Matrix<DataType, 6, Dynamic> &
 					dJ(2,i) = J(3,i)*J(1,j) - J(4,i)*J(0,j);
 				}
 			}
-			else if(this->activeLink[j]->joint().is_prismatic() and j > i)	            // J_j = [a_j ; 0]
+			else if(this->link[j]->joint().is_prismatic() and j > i)	            // J_j = [a_j ; 0]
 			{
 				// a_j x a_i
 				dJ(0,i) = J(1,j)*J(2,i) - J(2,j)*J(1,i);
@@ -695,8 +695,8 @@ KinematicTree<DataType>::partial_derivative(const Matrix<DataType, 6, Dynamic> &
 				dJ(2,i) = J(0,j)*J(1,i) - J(1,j)*J(0,i);
 			}
 		}
-		else if(this->activeLink[i]->joint().is_prismatic()			            // J_i = [a_i ; 0]
-		    and this->activeLink[j]->joint().is_revolute()				    // J_j = [a_j x r_j; a_j]
+		else if(this->link[i]->joint().is_prismatic()			            // J_i = [a_i ; 0]
+		    and this->link[j]->joint().is_revolute()				    // J_j = [a_j x r_j; a_j]
 	            and j < i)
 		{
 			// a_j x a_i
