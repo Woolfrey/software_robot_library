@@ -339,7 +339,6 @@ KinematicTree<DataType>::KinematicTree(const string &pathToURDF)
 		}
 	}
 	
-	unsigned int prevNumJoints = this->fullLinkList.size();
 	unsigned int count = 0;
 	
 	// Merge the dynamic properties of all the links connected by fixed joints
@@ -372,7 +371,8 @@ KinematicTree<DataType>::KinematicTree(const string &pathToURDF)
 		}
 		else
 		{
-			this->fullLinkList[i].set_number(count);                                    // Give this link/joint a number
+			if(this->fullLinkList[i].parent_link() == nullptr) this->baseLinks.push_back(&this->fullLinkList[i]);
+			this->fullLinkList[i].set_number(count);                                    // Set the number in the kinematic tree
 			this->link.push_back(&this->fullLinkList[i]);                               // Pointer so we can find it easy
 			count++;                                                                    // Increment number of active joints
 		}
@@ -388,9 +388,10 @@ KinematicTree<DataType>::KinematicTree(const string &pathToURDF)
 	this->jointGravityVector.resize(this->numJoints);
 	
 	std::cout << "[INFO] [KINEMATIC TREE] Successfully created the '" << this->_name << "' robot."
-	          << " It has " << this->numJoints << " joints (reduced from " << prevNumJoints << ").\n";
+	          << " It has " << this->numJoints << " joints (reduced from " << this->fullLinkList.size() << ").\n";
 	
 //	Debugging stuff:
+/*
 	std::cout << "\nHere is a list of all the joints on the robot:\n";		
 	vector<Link<DataType>*> candidateList = this->baseLinks;                                         // Start with links connect to base
 	while(candidateList.size() > 0)
@@ -414,7 +415,7 @@ KinematicTree<DataType>::KinematicTree(const string &pathToURDF)
 		if(iterator->second.link == nullptr) std::cout << this->_base.name() << ".\n";
 		else                                 std::cout << "'" << iterator->second.link->name() << "' link.\n";
 	}
-
+*/
 }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
