@@ -1,8 +1,9 @@
-    ///////////////////////////////////////////////////////////////////////////////////////////////////
-   //                                                                                               //
-  //            A class representing the position and orientation of an object in 3D space         //
- //                                                                                               //
-///////////////////////////////////////////////////////////////////////////////////////////////////
+/**
+ * @file   Pose.h
+ * @author Jon Woolfrey
+ * @date   September 2023
+ * @brief  A class representing the position and orientation of an object in 3D space.
+ */
 
 #ifndef POSE_H_
 #define POSE_H_
@@ -16,39 +17,74 @@ template <class DataType = float>
 class Pose
 {
 	public:
-		// Constructor(s)
+
+		/**
+		 * An empty constructor.
+		 */
 		Pose() {};
 		
-		Pose(const Vector<DataType,3> &position,
+		/**
+		 * A full constructor.
+		 * @param translation A 3x1 vector for the position/translation component.
+		 * @param quaternion A quaternion object defining the orientation.
+		 */
+		Pose(const Vector<DataType,3>   &translation,
 		     const Quaternion<DataType> &quaternion) :
-		     _position(position),
+		     _translation(translation),
 		     _quaternion(quaternion.normalized()) {}
 		
-		// Functions
-	
-		Vector<DataType,6> error(const Pose &desired);                                    // Error from a desired pose
+		/**
+		 * Computes the error between this pose object and another.
+		 * @param desired The other pose for which to compute the error.
+		 * @return A 6x1 vector containing the position error, and orientation error as the angle*axis
+		 */
+		Vector<DataType,6> error(const Pose &desired);
 		
-		Matrix<DataType,4,4> as_matrix();                                                   // Return a 4x4 Homogeneous Transform
+		/**
+		 * @return Returns this pose as 4x4 homogeneous transformation / SE(3) matrix.
+		 */
+		Matrix<DataType,4,4> as_matrix();
 
-		Matrix<DataType,3,3> rotation() const { return this->_quaternion.toRotationMatrix(); } // Return SO(3) matrix for rotation
+		/**
+		 * @return Returns the orientation component of the pose as a 3x3 rotation / SO(3) matrix
+		 */
+		Matrix<DataType,3,3> rotation() const { return this->_quaternion.toRotationMatrix(); }
 		
-		Vector<DataType,3> position() const { return this->_position; }                     // Return the translation vector
+		/**
+		 * @return Returns the 3x1 translation component
+		 */
+		Vector<DataType,3> translation() const { return this->_translation; }
 		
-		Quaternion<DataType> quaternion() const { return this->_quaternion; }               // Return the quaternion object
+		/**
+		 * @return Returns the orientation component as a quaternion object.
+		 */
+		Quaternion<DataType> quaternion() const { return this->_quaternion; }
 		
-		Pose<DataType> inverse();                                                           // Get the opposite of this pose
+		/**
+		 * @return Computes the inverse / opposite of this pose.
+		 */
+		Pose<DataType> inverse();
 		
-		Pose<DataType> operator*(const Pose &other);                                        // Multiply this Pose with another
+		/**
+		 * @return Returns the product of this pose with another.
+		 */
+		Pose<DataType> operator*(const Pose &other);
 		
+		/**
+		 * @return Returns an in-place product of this pose and another.
+		 */
 		void operator*=(const Pose &other);
 		
-		Vector<DataType,3> operator*(const Vector<DataType,3> &other);                      // Transform a translation vector
+		/**
+		 * @return Performs a point transformation.
+		 */
+		Vector<DataType,3> operator*(const Vector<DataType,3> &other);
 		
 	private:
 	
-		Vector<DataType,3> _position = {0.0, 0.0, 0.0};
+		Vector<DataType,3> _translation = {0.0, 0.0, 0.0};                                  ///< The position or translation component
 		
-		Quaternion<DataType> _quaternion = {1.0, 0.0, 0.0, 0.0};
+		Quaternion<DataType> _quaternion = {1.0, 0.0, 0.0, 0.0};                            ///< The orientation or rotation component
 	
 };                                                                                                  // Semicolon needed after class declaration
 
@@ -60,13 +96,13 @@ Vector<DataType,6> Pose<DataType>::error(const Pose &desired)
 {
 	Vector<DataType,6> error;                                                                   // Value to be returned
 
-	error.head(3) = desired.position() - this->_position;                                       // Position error
+	error.head(3) = desired.translation() - this->_translation;                                 // translation error
 	
 	DataType angle = this->_quaternion.angularDistance(desired.quaternion());                   // Distance between vectors (i.e. dot product)
 	
 	Vector<DataType,3> temp = this->_quaternion.w()    * desired.quaternion().vec()
-		                  - desired.quaternion().w() * this->_quaternion.vec()
-		                  - desired.quaternion().vec().cross(this->_quaternion.vec()); 
+		                - desired.quaternion().w() * this->_quaternion.vec()
+		                - desired.quaternion().vec().cross(this->_quaternion.vec()); 
 	
 	if(angle <= M_PI) error.tail(3) =  temp;
 	else              error.tail(3) = -temp;                                                    // Spin the other way
@@ -82,7 +118,7 @@ Matrix<DataType,4,4> Pose<DataType>::as_matrix()
 	Matrix<DataType,4,4> T;                                                                     // Value to be returned
 	
 	T.block(0,0,3,3) = this->_quaternion.toRotationMatrix();                                    // Convert to SO(3) and insert
-	T.block(0,3,3,1) = this->_position;                                                         // Insert translation component
+	T.block(0,3,3,1) = this->_translation;                                                         // Insert translation component
 	
 	T.row(3) << 0, 0, 0, 1;                                                                     // Assign the bottom row
 	
@@ -95,7 +131,7 @@ Matrix<DataType,4,4> Pose<DataType>::as_matrix()
 template <class DataType> inline
 Pose<DataType> Pose<DataType>::inverse()
 {
-	return Pose(-this->_quaternion.toRotationMatrix()*this->_position, this->_quaternion.inverse());
+	return Pose(-this->_quaternion.toRotationMatrix()*this->_translation, this->_quaternion.inverse());
 }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -104,7 +140,7 @@ Pose<DataType> Pose<DataType>::inverse()
 template <class DataType> inline
 Pose<DataType> Pose<DataType>::operator* (const Pose &other)
 {
-	return Pose(this->_position + this->_quaternion.toRotationMatrix()*other.position(),
+	return Pose(this->_translation + this->_quaternion.toRotationMatrix()*other.translation(),
 	            this->_quaternion*other.quaternion());
 }
 
@@ -114,7 +150,7 @@ Pose<DataType> Pose<DataType>::operator* (const Pose &other)
 template <class DataType> inline
 void Pose<DataType>::operator*= (const Pose &other)
 {
-	this->_position   += this->_quaternion.toRotationMatrix()*other.position(),
+	this->_translation   += this->_quaternion.toRotationMatrix()*other.translation(),
 	this->_quaternion *= other.quaternion();
 }
 
@@ -124,7 +160,7 @@ void Pose<DataType>::operator*= (const Pose &other)
 template <class DataType> inline
 Vector<DataType,3> Pose<DataType>::operator* (const Vector<DataType,3> &other)
 {
-	return this->_position + this->_quaternion.toRotationMatrix()*other;
+	return this->_translation + this->_quaternion.toRotationMatrix()*other;
 }
 
 #endif
