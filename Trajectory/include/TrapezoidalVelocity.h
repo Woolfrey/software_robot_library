@@ -32,8 +32,9 @@ class TrapezoidalVelocity : public TrajectoryBase<DataType>
 		               const DataType           &time);			
 				
 	private:
-		DataType _maxVel,
-		         _maxAcc;
+		DataType _maxVel;                                                                   ///< Maximum speed
+		DataType _maxAccel;                                                                 ///< Maximum acceleration
+		DataType _dt;                                                                       ///< Ration of speed over acceleration
 		
 };                                                                                                  // Semicolon needed after class declaration
 
@@ -44,14 +45,22 @@ template <class DataType>
 TrapezoidalVelocity<DataType>::TrapezoidalVelocity(const Vector<DataType,Dynamic> &startPoint,
                                                    const Vector<DataType,Dynamic> &endPoint,
                                                    const DataType                 &maxVel,
-                                                   const DataType                 &maxAcc)
-                                                   :
-                                                   TrajectoryBase(_startTime,_endTime,dimensions),
-                                                   maxVel(velocity),
-                                                   maxAcc(acceleration)
-                                         
+                                                   const DataType                 &maxAcc)                          
 {
-	
+	if(startPoint.size() != endPoint.size())
+	{
+		throw invalid_argument("[ERROR] [TRAPEZOIDAL VELOCITY] Constructor: "
+		                       "Dimensions of input arguments do not match. "
+		                       "The start point had " + to_string(startPoint.size()) + " elements, "
+		                       "and the end point had " + to_string(endPoint.size()) + " elements.");
+	}
+	else if(maxVel <= 0 or maxAccel <= 0)
+	{
+		throw invalid_argument("[ERROR] [TRAPEZOIDAL VELOCITY] Constructor: "
+		                       "Velocity and acceleration arguments were "
+		                       + to_string(maxVel) + " and " + to_string(maxAcc) +
+		                       " but must be positive.");
+	}
 }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
