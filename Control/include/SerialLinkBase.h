@@ -8,9 +8,6 @@
 using namespace Eigen;                                                                              // Eigen::Matrix, Eigen::Vector
 using namespace std;
 
-template <typename DataType>
-Matrix<DataType,6,Dynamic> endpoint_jacobian();
-
 template <class DataType>
 class SerialLinkBase : public KinematicTree<DataType>, 
                        public QPSolver<DataType>
@@ -135,7 +132,7 @@ bool SerialLinkBase<DataType>::set_cartesian_gain_format(const Matrix<DataType,6
 	if((format - format.transpose()).norm() < 1e-04)
 	{
 		cerr << "[ERROR] [SERIAL LINK CONTROL] set_cartesian_gain_format(): "
-		          << "Matrix does not appear to be symmetric.\n";
+		     << "Matrix does not appear to be symmetric.\n";
 		          
 		return false;
 	}
@@ -157,8 +154,8 @@ bool SerialLinkBase<DataType>::set_joint_gains(const DataType &proportional,
 	if(proportional < 0 or derivative < 0)
 	{
 		cerr << "[ERROR] [SERIAL LINK CONTROL] set_cartesian_gain_format(): "
-		          << "Gains cannot be negative. Proportional gain was "
-		          << proportional << " and derivative was " << derivative << ".\n";
+		     << "Gains cannot be negative. Proportional gain was "
+		     << proportional << " and derivative was " << derivative << ".\n";
 		
 		return false;
 	}
@@ -180,7 +177,7 @@ bool SerialLinkBase<DataType>::set_max_joint_accel(const DataType &accel)
 	if(accel <= 0)
 	{
 		cerr << "[ERROR] [SERIAL LINK CONTROL] set_max_joint_acceleration(): "
-		          << "Acceleration was " << accel << " but it must be positive.\n";
+		     << "Acceleration was " << accel << " but it must be positive.\n";
 		
 		return false;
 	}
@@ -201,8 +198,8 @@ bool SerialLinkBase<DataType>::set_redundant_task(const Vector<DataType,Dynamic>
 	if(task.size() != this->numJoints)
 	{
 		cerr << "[ERROR] [SERIAL LINK CONTROL] set_redundant_task(): "
-		          << "This robot has " << this->numJoints << " joints but "
-		          << "the input argument had " << task.size() << " elements.\n";
+		     << "This robot has " << this->numJoints << " joints but "
+		     << "the input argument had " << task.size() << " elements.\n";
 		
 		this->redundantTaskSet = false;
 		

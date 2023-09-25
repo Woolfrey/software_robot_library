@@ -80,7 +80,7 @@ Vector<DataType,Dynamic> SerialLinkKinematics<DataType>::resolve_endpoint_motion
 		{
 			Matrix<DataType,6,Dynamic> dJ = partial_derivative(J,i);                    // Partial derivative w.r.t. ith joint
 			
-			gradient(i) = manipulability*(JJt.partialPivLu().solve(dJ*J.transpose()));  // Gradient of manipulability
+			gradient(i) = manipulability*(JJt.ldlt().solve(dJ*J.transpose()));          // Gradient of manipulability
 		}
 	}
 	
@@ -115,30 +115,10 @@ Vector<DataType,Dynamic> SerialLinkKinematics<DataType>::resolve_endpoint_motion
 	}
 	else
 	{
-		if(not this->redundantTaskSet)
-		{
-			this->redundantTask    = gradient;                                          // Optimise manipulability by default
-			this->redundantTaskSet = false;                                             // Reset for next control loop
-		}
+		if(not this->redundantTaskSet) this->redundantTask = gradient;                      // Optimise manipulability by default
 		
-		// Make sure the redundant task is feasible after projection
-		// on to the null space or the QP solver will fail
-		
-		DataType alpha = 1.0;                                                               // Scalar for the redundant task
-		
-		Matrix<DataType,Dynamic,Dynamic> invMJt = this->jointInertiaMatrix.ldlt().solve(J.transpose()); // Makes calcs a little easier
-		
-		Vector<DataType,Dynamic> xn = this->redundantTask
-		                            - invMJt*(J*invMJt).ldlt().solve(J*this->redundantTask);// Null space projection
-		
-		for(int i = 0; i < this->numJoints; i++)
-		{
-			     if(xn(i) <= lowerBound(i)) alpha = min((DataType)0.9*lowerBound(i)/xn(i), alpha);
-			else if(xn(i) >= upperBound(i)) alpha = min((DataType)0.9*upperBound(i)/xn(i), alpha);
-		}
-		
-		this->redundantTask *= alpha;                                                       // Scale accordingly
-		
+		this->redundantTaskSet = false;                                                     // Reset for next loop
+	
 		return QPSolver<DataType>::redundant_least_squares(this->redundantTask,
 		                                                   this->jointInertiaMatrix,
 		                                                   J, endpointMotion, B, z, startPoint);
@@ -207,9 +187,9 @@ bool SerialLinkKinematics<DataType>::compute_control_limits(DataType &lower,
                                                             DataType &upper,
                                                             const unsigned int &jointNumber)
 {
-	DataType dq = this->jointPosition[jointNumber] - this->positionLimit[jointNumber][0];
+	DataType dq = this->jointPosition[jointNumber] - this->positionLimit[jointNumber][0];       // Distance to lower limit
 	
-	lower = max( -this->hertz*dq,
+	lower = max( -this->hertz*dq,                                                               
 	        max( -this->velocityLimit[jointNumber],
 	             -sqrt(2*this->accelLimit[jointNumber]*dq) ));
 	                  
