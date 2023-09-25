@@ -1,9 +1,10 @@
-    ///////////////////////////////////////////////////////////////////////////////////////////////////
-   //                                                                                               //
-  //                      A class representing a rigid, multibody system                           //
- //                                                                                               //
-///////////////////////////////////////////////////////////////////////////////////////////////////
-
+/**
+ * @file   RigidBody.h
+ * @author Jon Woolfrey
+ * @date   September 2023
+ * @brief  A class representing multiple rigid bodies connected in series by actuated joints.
+ */
+ 
 #ifndef KINEMATICTREE_H_
 #define KINEMATICTREE_H_
 
@@ -28,80 +29,140 @@ template <class DataType>
 class KinematicTree
 {
 	public:
+		/**
+		 * Constructor for a kinematic tree.
+		 * @param pathToURDF The location of a URDF file that specifies are robot structure.
+		 */
 		KinematicTree(const string &pathToURDF);                                            // Constructor from URDF
-
-		// Methods
 		
+		/**
+		 * Updates the forward kinematics and inverse dynamics. Used for fixed base structures.
+		 * @param jointPosition A vector of the joint positions.
+		 * @param jointVelocity A vector of the joint velocities.
+		 * @return Returns false if there is a problem.
+		 */
 		bool update_state(const Vector<DataType, Dynamic> &jointPosition,
 		                  const Vector<DataType, Dynamic> &jointVelocity)
 		{
 			return update_state(jointPosition, jointVelocity, this->_basePose, Vector<DataType,6>::Zero());
 		}
-		            
+		
+		/**
+		 * Updates the forward kinematics and inverse dynamics. Used for floating base structures.
+		 * @param jointPosition A vector of all the joint positions.
+		 * @param jointVelocity A vector of all the joint velocities.
+		 * @param basePose The transform of the base relative to some global reference frame.
+		 * @param baseTwist The velocity of the base relative to some global reference frame.
+		 */
 		bool update_state(const Vector<DataType, Dynamic> &jointPosition,
 		                  const Vector<DataType, Dynamic> &jointVelocity,
 		                  const Pose<DataType>            &basePose,
 		                  const Vector<DataType, 6>       &baseTwist);
 
+		/**
+		 * @return Returns the number of actuated joints in this model.
+		 */
 		unsigned int number_of_joints() const { return this->numJoints; }
-				        
+		
+		/**
+		 * @return Returns the joint space inertia matrix.
+		 */	        
 		Matrix<DataType,Dynamic,Dynamic> joint_inertia_matrix() const { return this->jointInertiaMatrix; }
 		
+		/**
+		 * @return Returns the joint space Coriolis matrix.
+		 */
 		Matrix<DataType,Dynamic,Dynamic> joint_coriolis_matrix() const { return this->jointCoriolisMatrix; } 
 
+		/**
+		 * @return Returns a 6xn Jacobian matrix to a given reference frame in the tree.
+		 */
                 Matrix<DataType,6,Dynamic> jacobian(const string &frameName); 
-		                 
+
+		/**
+		 * Compute the time derivative for a given Jacobian; dJ/dt
+		 * @param J The Jacobian for which to take the time derivative.
+		 * @return A 6xn matrix for the time derivative.
+		 */
 		Matrix<DataType,6,Dynamic> time_derivative(const Matrix<DataType, 6, Dynamic> &J);  // Time derivative of a Jacobian
 		
+		/**
+		 * Compute the partial derivative for a Jacobian with respect to a given joint dJ/dq
+		 * @param J The Jacobian with which to take the derivative
+		 * @param jointNumber The joint (link) number for which to take the derivative.
+		 * @return A 6xn matrix for the partial derivative of the Jacobian.
+		 */
 		Matrix<DataType,6,Dynamic> partial_derivative(const Matrix<DataType, 6, Dynamic> &J,
 		                                              const unsigned int &jointNumber);     // Partial derivative of a Jacobian
 
+		/**
+		 * @return Returns the pose for a specified reference frame on the kinematic tree.
+		 */
 		Pose<DataType> frame_pose(const string &frameName);                                 // Return the pose for a reference frame on the robot
-				
+			
+		/**
+		 * @return Returns a vector for the gravitational joint torques.
+		 */	
 		Vector<DataType,Dynamic> joint_gravity_vector() const { return this->jointGravityVector; }
 		
+		/**
+		 * @return Returns a vector for all the joint velocities.
+		 */
 		Vector<DataType,Dynamic> joint_velocities() const { return this->_jointVelocity; }
 		
+		/**
+		 * @return Returns the name of this kinematic tree model.
+		 */
 		string name() const { return this->_name; }                                         // Return the name of this robot
 		
 	private:
 		
-		// Properties
-
-		map<string, ReferenceFrame<DataType>> referenceFrameList;
+		map<string, ReferenceFrame<DataType>> referenceFrameList;                           ///< A dictionary of reference frames on the kinematic tree.
 		
-		Matrix<DataType, Dynamic, Dynamic> jointInertiaMatrix,
-		                                   jointCoriolisMatrix;
+		Matrix<DataType, Dynamic, Dynamic> jointInertiaMatrix;                              ///< As it says on the label.
+		
+		Matrix<DataType, Dynamic, Dynamic> jointCoriolisMatrix;                             ///< As it says on the label.
 		                                   
-		Pose<DataType> _basePose;
+		Pose<DataType> _basePose;                                                           ///< The pose of the base relative to another reference frame.
 
-		RigidBody<DataType> _base;
+		RigidBody<DataType> _base;                                                          ///< Specifies the dynamics for the base.
 		
-		unsigned int numJoints;
+		unsigned int numJoints;                                                             ///< The number of actuated joint in the kinematic tree.
 
-		Vector<DataType, 3> gravityVector = {0,0,-9.81};
+		Vector<DataType, 3> gravityVector = {0,0,-9.81};                                    ///< 3x1 vector for the gravitational acceleration.
 		
-		Vector<DataType, 6> _baseTwist;
+		Vector<DataType, 6> _baseTwist;                                                     ///< The velocity of the base.
 			
-		Vector<DataType, Dynamic> _jointPosition,
-		                          _jointVelocity;
+		Vector<DataType, Dynamic> _jointPosition;                                           ///< A vector of all the joint positions.
 
-		Vector<DataType, Dynamic> jointGravityVector;
-		
-		vector<Link<DataType>> fullLinkList;                                                // All links (including fixed joint)
-		
-		vector<Link<DataType>*> link;                                                       // Vector of link objects
-		
-		vector<Link<DataType>*> baseLinks;                                                  // Links attached directly to the base
-		
-		string _name;                                                                       // The name of this robot
-		
-		// Methods
+		Vector<DataType, Dynamic> _jointVelocity;                                           ///< A vector of all the joint velocities.
 
-		Matrix<DataType, 6, Dynamic> jacobian(Link<DataType> *link,
+		Vector<DataType, Dynamic> jointGravityVector;                                       ///< A vector of all the gravitational joint torques.
+		
+		vector<Link<DataType>> fullLinkList;                                                ///< An array of all the links in the model, including fixed joints.
+		
+		vector<Link<DataType>*> link;                                                       ///< An array of all the actuated links.
+		
+		vector<Link<DataType>*> baseLinks;                                                  ///< Array of links attached directly to the base.
+		
+		string _name;                                                                       ///< A unique name for this model.
+		
+		/**
+		 * Computes the Jacobian to a given point on a given link.
+		 * @param link A pointer to the link for the Jacobian
+		 * @param point A point relative to the link with which to compute the Jacobian
+		 * @param numberOfColumns Number of columns for the Jacobian (can be used to speed up calcs)
+		 * @return A 6xn Jacobian matrix.
+		 */
+		Matrix<DataType, 6, Dynamic> jacobian(Link<DataType>           *link,
 		                                      const Vector<DataType,3> &point,
-		                                      const unsigned int &numberOfColumns);
+		                                      const unsigned int       &numberOfColumns);
 
+		/**
+		 * Converts a char array to a 3x1 vector. Used in the constructor.
+		 * @param character A char array
+		 * @return Returns a 3x1 Eigen vector object.
+		 */
 		Vector<DataType, 3> char_to_vector(const char* character);                          // Used to parse urdf properties	  
                        
 };                                                                                                  // Semicolon needed after class declarations
@@ -181,7 +242,7 @@ KinematicTree<DataType>::KinematicTree(const string &pathToURDF)
 				                        *AngleAxis<DataType>(rpy(2),Vector<DataType,  3>::UnitZ()));
 				                                       
 
-				centreOfMass = pose.position();                                     // Location for the center of mass
+				centreOfMass = pose.translation();                                  // Location for the center of mass
 				
 				Matrix<DataType,3,3> R = pose.rotation();                           // Get the SO(3) matrix
 				
@@ -478,9 +539,9 @@ bool KinematicTree<DataType>::update_state(const Vector<DataType, Dynamic> &join
 		// Compute the inverse dynamics
 		DataType mass = currentLink->mass();                                                // As it says
 		
-		Vector<DataType,3> com = currentLink->pose() * currentLink->com();                  // Transform centre of mass to base frame
-		
 		Matrix<DataType,3,3> R = currentLink->pose().rotation();                            // Rotation as SO(3)
+		
+		Vector<DataType,3> com = currentLink->pose().translation() + R*currentLink->com();  // Transform centre of mass to base frame
 		
 		Matrix<DataType,3,3> I = R*currentLink->inertia()*R.transpose();                    // Rotate inertia from local to base frame
 		
@@ -558,8 +619,8 @@ KinematicTree<DataType>::jacobian(Link<DataType> *link,                         
 				// J_i = [ a_i x r_i ]
 				//       [    a_i    ]
 			
-				J.block(0,i,3,1) = link->axis().cross(point - link->pose().position()); // Linear component
-				J.block(3,i,3,1) = link->axis();                                        // Angular component
+				J.block(0,i,3,1) = link->axis().cross(point - link->pose().translation()); // Linear component
+				J.block(3,i,3,1) = link->axis();                                           // Angular component
 			}
 			else // prismatic
 			{
@@ -729,7 +790,7 @@ Matrix<DataType, 6, Dynamic> KinematicTree<DataType>::jacobian(const string &fra
                                  * container->second.relativePose;                                  // Pose of this frame relative to link/joint
         
         return jacobian(container->second.link->parent_link(),
-                        framePose.position(),
+                        framePose.translation(),
                         container->second.link->parent_link()->number()+1);
     }
 }
