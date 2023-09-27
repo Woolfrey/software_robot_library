@@ -18,7 +18,7 @@ class SerialLinkKinematics : public SerialLinkBase<DataType>
 		
 		Vector<DataType,Dynamic> resolve_endpoint_motion(const Vector<DataType,6> &endPointMotion); // Solve the joint motion to execute a given endpoint motion
 		
-		Vector<DataType,Dynamic> track_endpoint_trajectory(const Pose<DataType> &desiredPose,
+		Vector<DataType,Dynamic> track_endpoint_trajectory(const Pose<DataType>     &desiredPose,
 							           const Vector<DataType,6> &desiredVel,
 							           const Vector<DataType,6> &desiredAcc);
 							  
