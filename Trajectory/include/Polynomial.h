@@ -1,8 +1,9 @@
-    ////////////////////////////////////////////////////////////////////////////////////////////////////
-   //                                                                                                //
-  //                            A base class for polynomial trajectories                            //
- //                                                                                                //
-////////////////////////////////////////////////////////////////////////////////////////////////////
+/**
+ * @file   Polynomial.h
+ * @author Jon Woolfrey
+ * @date   September 2023
+ * @brief  A trajectory which is a polynomial function of time
+ */
 
 #ifndef POLYNOMIAL_H_
 #define POLYNOMIAL_H_
@@ -18,9 +19,19 @@ template <class DataType>
 class Polynomial : public TrajectoryBase<DataType>
 {
 	public:
-		Polynomial() {}                                                                     // Empty constructor
+		/**
+		 * An empty constructor.
+		 */
+		Polynomial() {}
 
-		// Constructor for translations; delegate zero velocity
+		/**
+		 * A constructor where the start and end velocities are assumed zero.
+		 * @param startPoint The starting position for the trajectory.
+		 * @param endPoint The ending position for the trajectory.
+		 * @param startTime The time when the trajectory begins.
+		 * @param endTime The time when the trajectory ends.
+		 * @param order The order of the polynomial (should be an odd number)
+		 */
 		Polynomial(const Vector<DataType,Dynamic> &startPoint,
 			   const Vector<DataType,Dynamic> &endPoint,
 			   const DataType                 &startTime,
@@ -35,7 +46,15 @@ class Polynomial : public TrajectoryBase<DataType>
                            endTime,
                            order) {}
 		
-		// Constructor with positions and endpoint velocities
+		/** A constructor that also specifies start and end velocities.
+		 * @param startPoint The starting position for the trajectory.
+		 * @param endPoint The ending position for the trajectory.
+		 * @param startVelocity The initial speed for the trajectory.
+		 * @param endVelocity The final speed for the trajectory.
+		 * @param startTime The time when the trajectory begins.
+		 * @param endTime The time when the trajectory ends.
+		 * @param order The order of the polynomial (should be an odd number)
+		 */
 		Polynomial(const Vector<DataType,Dynamic> &startPoint,
 			   const Vector<DataType,Dynamic> &endPoint,
 			   const Vector<DataType,Dynamic> &startVelocity,
@@ -44,17 +63,31 @@ class Polynomial : public TrajectoryBase<DataType>
 			   const DataType                 &endTime,
 			   const unsigned int             &order);
 		
-		// Get the desired state
+		/**
+		 * Query the current state for the given time.
+		 * @param pos The current position.
+		 * @param vel The current velocity.
+		 * @param acc The current acceleration.
+		 * @param time The time at which to query the state.
+		 * @return Returns true if there were no problems.
+		 */
 		bool get_state(Vector<DataType,Dynamic> &pos,
 			       Vector<DataType,Dynamic> &vel,
 			       Vector<DataType,Dynamic> &acc,
 			       const DataType           &time);
 		
 	private:
-		unsigned int _order;
+		unsigned int _order;                                                                ///< The order of the polynomial
 		
-		std::vector<std::vector<DataType>> coeff;                                           // Polynomial coefficients
+		std::vector<std::vector<DataType>> coeff;                                           ///< An array of polynomial coefficients
 		
+		/**
+		 * Computes the polynomial coefficients given the initial and final state.
+		 * @param startPoint The starting position for the trajectory.
+		 * @param endPoint The ending position for the trajectory.
+		 * @param startVelocity The initial speed for the trajectory.
+		 * @param endVelocity The final speed for the trajectory.
+		 */
 		bool compute_coefficients(const Vector<DataType,Dynamic> &startPoint,
 					  const Vector<DataType,Dynamic> &endPoint,
 					  const Vector<DataType,Dynamic> &startVelocity,
