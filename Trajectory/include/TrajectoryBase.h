@@ -1,8 +1,9 @@
-    ///////////////////////////////////////////////////////////////////////////////////////////////////
-   //                                                                                               //
-  //                               A base class for trajectories                                   //
- //                                                                                               //
-///////////////////////////////////////////////////////////////////////////////////////////////////
+/**
+ * @file   TrajectoryBase.h
+ * @author Jon Woolfrey
+ * @date   September 2023
+ * @brief  A base class for trajectory objects.
+ */
 
 #ifndef TRAJECTORYBASE_H_
 #define TRAJECTORYBASE_H_
@@ -17,29 +18,54 @@ template <class DataType>
 class TrajectoryBase
 {
 	public:
-		// Constructors
+
+		/**
+		 * Empty constructor.
+		 */
 		TrajectoryBase() {}                                                                 // Empty constructor
 		
+		/**
+		 * Full constructor.
+		 * @param startTime The time that the trajectory begins.
+		 * @param endTime The time that the trajectory finishes.
+		 * @param dimensions The spatial dimensions that the trajectory moves through.
+		 */
 		TrajectoryBase(const DataType     &startTime,
 		               const DataType     &endTime,
 		               const unsigned int &dimensions);
-			
-		// Methods
+		           
+		/**
+		 * Query the current trajectory state for the given input time.
+		 * This is a virtual function and must be defined in any derived class.
+		 * @param pos The current position.
+		 * @param vel The current velocity.
+		 * @param acc The current acceleration.
+		 * @param time The time at which to query the state.
+		 * @return Returns true if there were no problems.
+		 */
 		virtual bool get_state(Vector<DataType,Dynamic> &pos,
 		                       Vector<DataType,Dynamic> &vel,
 		                       Vector<DataType,Dynamic> &acc,
 		                       const float              &time) = 0;
-                                       
+		
+		/**
+		 * @return Returns the starting time for this trajectory.
+		 */
                 DataType start_time() const { return this->_startTime; }
                 
+                /**
+                 * @return Returns the end time for this trajectory.
+                 */
                 DataType end_time()   const { return this->_endTime;   }
 		              
 	protected:
+	
+		DataType _startTime;                                                                ///< The start time for the trajectory
 		
-		// Properties
-		DataType _startTime, _endTime;
+		DataType _endTime;                                                                  ///< The end time for the trajectory
 		
-		unsigned int _dimensions;
+		unsigned int _dimensions;                                                           ///< The number of spatial dimensions the trajectory moves through
+		
 };                                                                                                  // Semicolon needed after class declaration
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
