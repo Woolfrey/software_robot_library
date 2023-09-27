@@ -1,5 +1,5 @@
 /**
- * @file   RigidBody.h
+ * @file   KinematicTree.h
  * @author Jon Woolfrey
  * @date   September 2023
  * @brief  A class representing multiple rigid bodies connected in series by actuated joints.
@@ -22,7 +22,7 @@ template <typename DataType>
 struct ReferenceFrame
 {
 	Link<DataType> *link = nullptr;                                                             // The link it is attached to
-	Pose<DataType> relativePose;                                                                // The relative pose with respect to said link
+	Pose<DataType> relativePose;                                                                // Pose with respect to local link frame
 };
 
 template <class DataType>
