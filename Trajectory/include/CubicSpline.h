@@ -1,8 +1,9 @@
-    ////////////////////////////////////////////////////////////////////////////////////////////////////
-   //                                                                                                //
-  //                     A minimum acceleration trajectory across multiple points                   //
- //                                                                                                //
-////////////////////////////////////////////////////////////////////////////////////////////////////
+/**
+ * @file   CubicSpline.h
+ * @author Jon Woolfrey
+ * @date   September 2023
+ * @brief  Specifies a series of cubic polynomials connecting several waypoints.
+ */
 
 #ifndef CUBICSPLINE_H_
 #define CUBICSPLINE_H_
@@ -17,13 +18,29 @@ template <class DataType>
 class CubicSpline
 {
 	public:
-		// Constructors
+
+		/**
+		 * An empty constructor.
+		 */
 		CubicSpline() {}                                                                    // Won't compile without {} for some reason ಠ_ಠ 
 
+		/**
+		 * A fully defined constructor.
+		 * @param waypoint An array of waypoints to move through.
+		 * @param time The time at which to reach every waypoint.
+		 */
 		CubicSpline(const vector<Vector<DataType,Dynamic>> &waypoint,
 			    const vector<DataType>                 &time);
 
-		// Methods
+		/**
+		 * Query the current trajectory state for the given input time.
+		 * This is a virtual function and must be defined in any derived class.
+		 * @param pos The current position.
+		 * @param vel The current velocity.
+		 * @param acc The current acceleration.
+		 * @param time The time at which to query the state.
+		 * @return Returns true if there were no problems.
+		 */
 		bool get_state(Vector<DataType,Dynamic> &pos,
 			       Vector<DataType,Dynamic> &vel,
 			       Vector<DataType,Dynamic> &acc,
@@ -31,14 +48,13 @@ class CubicSpline
 					   
 	private:
 	
-		// Private properties
-		vector<Polynomial<DataType>> spline;                                                 // Array of cubic polynomials
+		vector<Polynomial<DataType>> spline;                                                ///< Array of cubic polynomials
 		
-		vector<DataType> _time;                                                             // Array of times to reach each waypoint
+		vector<DataType> _time;                                                             ///< Array of times to reach each waypoint
 		
-		unsigned int _dimensions;                                                           // Dimensions for the vector
+		unsigned int _dimensions;                                                           ///< Dimensions for the vector
 		
-		unsigned int _numPoints;                                                            // Number of waypoints
+		unsigned int _numPoints;                                                            ///< Number of waypoints
 			
 };                                                                                                  // Semicolon needed after class declaration
 
