@@ -1,5 +1,5 @@
 /**
- * @file   Pose.h
+ * @file   Math.h
  * @author Jon Woolfrey
  * @date   September 2023
  * @brief  Useful math functions.
