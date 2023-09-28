@@ -1,8 +1,9 @@
-    ////////////////////////////////////////////////////////////////////////////////////////////////////  
-   //                                                                                                //
-  //                              A constant velocity trajectory                                    //
- //                                                                                                //
-////////////////////////////////////////////////////////////////////////////////////////////////////
+/**
+ * @file   TrapezoidalVelocity.h
+ * @author Jon Woolfrey
+ * @date   September 2023
+ * @brief  A trajectory with constant velocity.
+ */
 
 #ifndef TRAPEZOIDAL_VELOCITY_H_
 #define TRAPEZOIDAL_VELOCITY_H_
@@ -16,31 +17,49 @@ template <class DataType>
 class TrapezoidalVelocity : public TrajectoryBase<DataType>
 {
 	public:
-		// Empty constructor
+
+		/**
+		 * Emtpy constructor.
+		 */
 		TrapezoidalVelocity() {}
 		
-		// Constructor for translations
+		/**
+		 * Full constructor.
+		 * @param startPoint A vector of positions for the beginning of the trajectory.
+		 * @param endPoint A vector of positions for the end of the trajectory.
+		 * @param maxVel A scalar for the maximum speed.
+		 * @param maxAcc A scalar for the maximum acceleration and deceleration.
+		 * @param startTime The time that the trajectory begins.
+		 */
 		TrapezoidalVelocity(const Vector<DataType,Dynamic> &startPoint,
                                     const Vector<DataType,Dynamic> &endPoint,
                                     const DataType                 &maxVel,
                                     const DataType                 &maxAcc,
                                     const DataType                 &startTime;
 		
-		// Get state for translations
+		/**
+		 * Query the state for the given time.
+		 * @param pos A storage location for the position.
+		 * @param vel A storage location for the velocity.
+		 * @param acc A storage location for the acceleration.
+		 * @param time The time at which to compute the state.
+		 * @return Returns false if there are any issues.
+		 */
 		bool get_state(Vector<DataType,Dynamic> &pos,
 		               Vector<DataType,Dynamic> &vel,
 		               Vector<DataType,Dynamic> &acc,
 		               const DataType           &time);			
 				
 	private:
-		DataType _maxVel;                                                                   ///< Maximum speed
-		DataType _maxAccel;                                                                 ///< Maximum acceleration
-		DataType _dt;                                                                       ///< Ration of speed over acceleration
-		DataType _t1;
-		DataType _t2;
+		DataType _dt;                                                                       ///< Ratio of speed over acceleration
+		DataType _t1;                                                                       ///< Time at first corner of trapezoid
+		DataType _t2;                                                                       ///< Time at second corner of trapezoid
+		DataType _normalizedVel;
+		DataType _normalizedAcc;
 		
-		Vector<DataType,Dynamic> p1;
-		Vector<DataType,Dynamic> p2;
+		Vector<DataType,Dynamic> _p1;                                                       ///< Start point
+		Vector<DataType,Dynamic> _p2;                                                       ///< End point
+		
 };                                                                                                  // Semicolon needed after class declaration
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -70,21 +89,6 @@ TrapezoidalVelocity<DataType>::TrapezoidalVelocity(const Vector<DataType,Dynamic
 		                       "Velocity and acceleration arguments were "
 		                       + to_string(maxVel) + " and " + to_string(maxAcc) +
 		                       " but must be positive.");
-	}
-	
-	// Ensure the maximum velocity is not too large
-	for(int i = 0; i < startPoint.size(); i++)
-	{
-		DataType temp = sqrt(maxAcc*abs(endPoint(i) - startPoint(i)));
-		
-		if( this->_maxVel >= temp)
-		{
-			cout << "[WARNING] [TRAPEZOIDAL VELOCITY] Constructor: "
-			     << "Maximum velocity too high for the distance travelled. "
-			     << "Overriding value.\n";
-			     
-			this->_maxVel = temp;
-		}
 	}
 }
 
