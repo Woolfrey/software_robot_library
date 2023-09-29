@@ -52,13 +52,16 @@ class TrapezoidalVelocity : public TrajectoryBase<DataType>
 				
 	private:
 		DataType _dt;                                                                       ///< Ratio of speed over acceleration
+		DataType _s1;
+		DataType _s2;
 		DataType _t1;                                                                       ///< Time at first corner of trapezoid
 		DataType _t2;                                                                       ///< Time at second corner of trapezoid
-		DataType _normalizedVel;
-		DataType _normalizedAcc;
+		DataType _normalisedVel;
+		DataType _normalisedAcc;
 		
-		Vector<DataType,Dynamic> _p1;                                                       ///< Start point
-		Vector<DataType,Dynamic> _p2;                                                       ///< End point
+		
+		Vector<DataType,Dynamic> _startPoint;                                               ///< Start point
+		Vector<DataType,Dynamic> _endPoint;                                                 ///< End point
 		
 };                                                                                                  // Semicolon needed after class declaration
 
@@ -72,9 +75,10 @@ TrapezoidalVelocity<DataType>::TrapezoidalVelocity(const Vector<DataType,Dynamic
                                                    const DataType                 &maxAcc,
                                                    const DataType                 &startTime)
                                                    :
-                                                   _maxVel(maxVel),
-                                                   _maxAccel(maxAccel),
-                                                   _startTime(startTime);              
+                                                   _startPoint(startPoint),
+                                                   _endPoint(endPoint)
+                                                   _dimensions(startPoint.size()),
+                                                   _startTime(startTime),
 {
 	if(startPoint.size() != endPoint.size())
 	{
@@ -87,9 +91,39 @@ TrapezoidalVelocity<DataType>::TrapezoidalVelocity(const Vector<DataType,Dynamic
 	{
 		throw invalid_argument("[ERROR] [TRAPEZOIDAL VELOCITY] Constructor: "
 		                       "Velocity and acceleration arguments were "
-		                       + to_string(maxVel) + " and " + to_string(maxAcc) +
-		                       " but must be positive.");
+		                       + to_string(maxVel) + " and " + to_string(maxAcc) + " but must be positive.");
 	}
+	
+	DataType normaliser -1;                                                                     // Needed to scale velocity to be dimensionless
+	
+	DataType vel = maxVel;                                                                      // Temporary placeholder
+	
+	for(int i = 0; i < this->_dimensions; i++)
+	{
+		DataType distance = abs(startPoint(i) - endPoint(i));                               // Magnitude of distance between points
+		
+		normaliser = (distance > normaliser) ? distance : normaliser;                       // Normaliser must be the largest distance
+		
+		DataType temp = sqrt(maxAccel*distance);                                            // Peak velocity as a function of max acceleration
+		
+		vel = (vel > temp) ? temp : vel;                                                    // Ensure max velocity does not exceed acceleration, distance constraints
+	}
+	
+	this->_normalisedVel = vel/normaliser;                                                      // Need to normalise so we can scale between 0 and 1
+	
+	this->_normalisedAcc = maxAcc/normaliser;
+	
+	this->_dt = vel/maxAcc;                                                                     // Time between corners of trapezoid
+	
+	this->_t1 = this->_startTime + dt;                                                          // Time to reach 1st corner of trapezoid
+	
+	this->_s1 = (this->_dt*this->_dt*this->_normalisedAcc)/2.0;
+	
+	this->_t2 = this->_t1 + (1 - 2*this->_s1 + 0)/this->_normalisedVel;
+	
+	this->_s2 = this->_s1 + (this->_t2 - this->_t1)/this->_normalisedVel;
+	
+	this->_endTime = this->_t2 + this->_dt;
 }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -120,6 +154,51 @@ bool TrapezoidalVelocity<DataType>::get_state(Vector<DataType,Dynamic> &pos,
 		     
 		return false;
 	}
+	
+	// Figure out which section of the trapezoid we are on
+	
+	DataType s, sd, sdd, t;                                                                     // Scalars for interpolation
+	
+	if(time < this->_startTime)
+	{
+		s   = 0.0;
+		sd  = 0.0;
+		sdd = 0.0;
+	}
+	else if(time < this->_t1)
+	{
+		t = time - this->_startTime;
+		
+		s   = (t*t*this->_normalisedAcc)/2.0;
+		sd  = t*this->_normalisedAcc;
+		sdd = this->_normalisedAcc;
+	}
+	else if(time < this->_t2)
+	{
+		t = time - this->_t1;
+		
+		s   = this->_s1 + t*this->_normalisedVel;
+		sd  = this->_normalisedVel;
+		sdd = 0;
+	}
+	else if(time < this->_endTime)
+	{
+		t = time - this->_t2;
+		
+		s   = this->s_2 + t*this->_normalisedVel - (t*t*this->_normalisedAcc)/2.0;
+		sd  = this->_normalisedVel - t*this->_normalisedAcc;
+		sdd = -this->_normalisedAcc;
+	}
+	else
+	{
+		s   = 1.0;
+		sd  = 0.0;
+		sdd = 0.0;
+	}
+	
+	pos = (1-s)*this->_startPoint - s*this->_endPoint;
+	vel =  sd*(this->_endPoint - this->_startPoint);
+	acc = sdd*(this->_endPoint - this->_startPoint);
 	
 	return true;
 }
