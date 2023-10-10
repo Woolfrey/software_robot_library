@@ -24,8 +24,8 @@ class SerialLinkBase : public QPSolver<DataType>
 		 * @param model A pointer to the KinematicTree object to be controlled.
 		 * @param endpointName The name of the endpoint on the KinematicTree to be controlled.
 		 */
-		SerialLinkBase(KinematicTree *model,
-		               const string  &endpointName);
+		SerialLinkBase(KinematicTree<DataType> *model,
+		               const string            &endpointName);
 		
 		/**
 		 * Compute the required joint motion to achieve the specified endpoint motion.
@@ -119,9 +119,9 @@ class SerialLinkBase : public QPSolver<DataType>
 		
 		DataType kd = 0.1;                                                                  ///< Derivative gain for proportional control
 			
-		KinematicTree* _robot;                                                              ///< Pointer to underlying robot model.
+		KinematicTree<DataType>* _robot;                                                    ///< Pointer to underlying robot model.
 		
-		ReferenceFrame* _endpointFrame;                                                     ///< Pointer to endpoint so we don't have to look it up every time
+		ReferenceFrame<DataType>* _endpointFrame;                                           ///< Pointer to endpoint so we don't have to look it up every time
 		
 		string _endpointName = "unnamed";                                                   ///< Name of the endpoint of this serial link chain.
 		
@@ -151,7 +151,7 @@ class SerialLinkBase : public QPSolver<DataType>
  //                                           Constructor                                         //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <class DataType>
-SerialLinkBase<DataType>::SerialLinkBase(KinematicTree *robot, const string &endpointName)
+SerialLinkBase<DataType>::SerialLinkBase(KinematicTree<DataType> *robot, const string &endpointName)
 					 :
                                          _robot(robot)
 {
@@ -293,21 +293,21 @@ bool SerialLinkBase<DataType>::set_redundant_task(const Vector<DataType,Dynamic>
 template <class DataType> inline
 Vector<DataType,Dynamic> SerialLinkBase<DataType>::manipulability_gradient()
 {
-	Vector<DataType,Dynamic> gradient(this->_robot.num_joints()); gradient.setZero();              // Value to be returned
+	Vector<DataType,Dynamic> gradient(this->_robot.num_joints()); gradient.setZero();           // Value to be returned
 	
-	LDLT<Matrix<DataType,6,6>> JJt(this->J*this->J.transpose());                                   // Decompose matrix for later use
+	LDLT<Matrix<DataType,6,6>> JJt(this->J*this->J.transpose());                                // Decompose matrix for later use
 
-	Link* currentLink = this->_endpointFrame->link;
+	Link<DataType> *currentLink = this->_endpointFrame->link;
 	
 	while(currentLink != nullptr)
 	{
 		unsigned int jointNumber = currentLink->number();
 		
-		Matrix<DataType,6,Dynamic> dJ = this->_robot->partial_derivative(this->J,jointNumber); // Partial derivative of Jacobian
+		Matrix<DataType,6,Dynamic> dJ = this->_robot->partial_derivative(this->J,jointNumber);     // Partial derivative of Jacobian
 		
-		gradient(i) = this->_manipulability*(JJt.solve(dJ*this->J.transpose())).trace();       // Derivative w.r.t a single joint
+		gradient(jointNumber) = this->_manipulability*(JJt.solve(dJ*this->J.transpose())).trace(); // Derivative w.r.t a single joint
 		
-		currentLink = currentLink->parent_link();                                              // Get pointer to next link in chain
+		currentLink = currentLink->parent_link();                                                  // Get pointer to next link in chain
 	}
 	
 	return gradient;
