@@ -150,7 +150,7 @@ CubicSpline<DataType>::CubicSpline(const vector<Vector<DataType,Dynamic>> &waypo
 		}
 		catch(const exception &exception)
 		{
-			cout << exception.what() << endl;
+			std::cerr << exception.what() << std::endl;                                 // Use std::endl instead of "\n"; for std::cerr?
 			
 			throw runtime_error("[ERROR] [CUBIC SPLINE] Constructor: Could not generate the spline.");
 		}
