@@ -10,7 +10,17 @@
 
 #include <Eigen/Core>
 
-using namespace Eigen;
+/**
+ * A data structure for holding the results of the QR decomposition.
+ * @param Q An orthogonal matrix such that Q*Q' = I.
+ * @param R An upper-triangular matrix.
+ */
+template <typename DataType>
+struct QRDecomposition
+{
+	Eigen::Matrix<DataType,Eigen::Dynamic,Eigen::Dynamic> Q;
+	Eigen::Matrix<DataType,Eigen::Dynamic,Eigen::Dynamic> R;
+}
        
 /**
  * Decompose a matrix A = Q*R where Q is an orthogonal matrix, and R is upper-triangular.
@@ -20,9 +30,7 @@ using namespace Eigen;
  * @return Returns false if there was a problem.
  */
 template <typename DataType>
-bool qr_decomposition(const Matrix<DataType, Dynamic, Dynamic> &A,
-                      const Matrix<DataType, Dynamic, Dynamic> &Q,
-                      const Matrix<DataType, Dynamic, Dynamic> &R)
+QRDecomposition = schwarz_rutishauser(const Eigen::Matrix<DataType, Eigen::Dynamic, Eigen::Dynamic> &A)
 {
 	unsigned int m = A.rows();
 	unsigned int n = A.cols();
@@ -49,25 +57,23 @@ bool qr_decomposition(const Matrix<DataType, Dynamic, Dynamic> &A,
 		// The null space of A is obtained with N = Qn*Qn'.
 		// This algorithm returns only Qr and R for efficiency.
 		
-		Q = A;
-		R = Matrix<DataType,Dynamic,Dynamic>::Zero(n,n);
+		QRDecomposition decomp = {A, Eigen::Matrix<DataType,Eigen::Dynamic,Eigen::Dynamic>::Zero(n,n)};
 		
 		for(int j = 0; j < n; j++)
 		{
 			for(int i = 0; i < j; i++)
 			{
-				R(i,j)   = Q.col(i).dot(Q.col(j));                                  // Project the columns
-				Q.col(j) = Q.col(j) - R(i,j)*Q.col(i);
+				decomp.R(i,j)   = decomp.Q.col(i).dot(decomp.Q.col(j));             // Project the columns
+				decomp.Q.col(j) = decomp.Q.col(j) - decomp.R(i,j)*decomp.Q.col(i);
 			}
 			
-			R(j,j) = Q.col(j).norm();
+			decomp.R(j,j) = decomp.Q.col(j).norm();
 			
-			
-			if(abs(R(j,j)) > 1E-07) Q.col(j) /= R(j,j);
-			else                    Q.col(j).setZero();
+			if(abs(decomp.R(j,j)) > 1E-07) decomp.Q.col(j) /= decomp.R(j,j);
+			else                           decomp.Q.col(j).setZero();                   // Singular
 		}
 		
-		return true;
+		return decomp;
 	}
 }
 
