@@ -12,9 +12,6 @@
 #include <Pose.h>
 #include <RigidBody.h>                                                                              // Custom class
 #include <vector>                                                                                   // std::vector
-
-using namespace Eigen;                                                                              // Eigen::Matrix, Eigen::Vector
-using namespace std;                                                                                // std::cerr, std::vector, std::string
  
 template <class DataType>
 class Link : public RigidBody<DataType>
@@ -64,10 +61,10 @@ class Link : public RigidBody<DataType>
 		 * @param jointVelocity The speed at which the joint is moving (rad/s for revolute, m/s for prismatic)
 		 * @return Returns false if there was a problem.
 		 */
-		bool update_state(const Pose<DataType>     &previousPose,
-		                  const Vector<DataType,6> &previousTwist,
-		                  const DataType           &jointPosition,
-		                  const DataType           &jointVelocity);
+		bool update_state(const Pose<DataType>            &previousPose,
+		                  const Eigen::Vector<DataType,6> &previousTwist,
+		                  const DataType                  &jointPosition,
+		                  const DataType                  &jointVelocity);
 		
 		/**
 		 * Returns the Joint object associated with this link.
@@ -77,7 +74,7 @@ class Link : public RigidBody<DataType>
 		/**
 		 * Returns a pointer to the previous joint in the kinematic chain.
 		 */
-		Link* parent_link() const { return this->parentLink; }
+		Link* parent_link() const { return this->_parentLink; }
 		
 		/**
 		 * Returns the number of this link in the kinematic chain.
@@ -87,17 +84,17 @@ class Link : public RigidBody<DataType>
 		/**
 		 * Returns an array of pointers to all the proceeding links in a kinematic chain.
 		 */
-		vector<Link*> child_links() const { return this->childLinks; }
+		std::vector<Link*> child_links() const { return this->_childLinks; }
 		
 		/**
 		 * Returns a unit vector for the joint axis in the base frame of the kinematic tree.
 		 */
-		Vector<DataType,3> axis() const { return this->_axis; }
+		Eigen::Vector<DataType,3> axis() const { return this->_axis; }
 		
 		/**
 		 * Set the pointer to the proceeding link in a kinematic chain as null.
 		 */
-		void clear_parent_link() { this->parentLink = nullptr; }
+		void clear_parent_link() { this->_parentLink = nullptr; }
 
 		/**
 		 * Merge the dynamic properties of another link in to this one.
@@ -113,15 +110,15 @@ class Link : public RigidBody<DataType>
 		
 	private:
 	
+		Eigen::Vector<DataType,3> _jointAxis;                                               ///< Axis of joint actuation in global frame
+		
 		Joint<DataType> _joint;                                                             ///< The joint attached to this link
 		
-		Link<DataType>* parentLink = nullptr;                                               ///< Pointer to previous link in chain (null = attached to base)
+		Link<DataType>* _parentLink = nullptr;                                              ///< Pointer to previous link in chain (null = attached to base)
+		
+		std::vector<Link<DataType>*> _childLinks = {};                                      ///< Array of proceeding links in a kinematic tree.
 		
 		unsigned int _number;                                                               ///< The number in the kinematic chain
-		
-		Vector<DataType,3> _axis;                                                           ///< Axis of joint actuation in global frame
-		
-		vector<Link<DataType>*> childLinks = {};                                            ///< Array of proceeding links in a kinematic tree.
 		
 };                                                                                                  // Semicolon needed at the end of class declaration
 
@@ -133,7 +130,7 @@ bool Link<DataType>::add_child_link(Link *child)
 {
 	if(child == nullptr)
 	{
-		cerr << "[ERROR] [LINK] connect_link(): Input is a null pointer.\n";
+		std::cerr << "[ERROR] [LINK] connect_link(): Input is a null pointer." << std::endl;
 		
 		return false;
 	}
@@ -151,14 +148,14 @@ bool Link<DataType>::set_parent_link(Link *parent)
 {
 	if(parent == nullptr)
 	{
-		cerr << "[ERROR] [LINK] connect_link(): Input is a null pointer.\n";
+		std::cerr << "[ERROR] [LINK] connect_link(): Input is a null pointer." << std::endl;
 		
 		return false;
 	}
 
-	this->parentLink = parent;
+	this->_parentLink = parent;                                                                 // Set pointer to parent link
 	
-	return parent->add_child_link(this);
+	return parent->add_child_link(this);                                                        // Add this link as child to the parent
 }
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -169,21 +166,19 @@ void Link<DataType>::merge(const Link &otherLink)
 {
 	RigidBody<DataType>::combine_inertia(otherLink, otherLink.joint().offset());                // Add the inertia of the other link to this one
 	
-	std::vector<Link*> otherChildLinks = otherLink.child_links();                               // Get the list of child links for the merged link
-	
-	for(int i = 0; i < otherChildLinks.size(); i++)
+	for(auto currentLink : otherLink.child_links())                                             // Cycle through all links attached to other
 	{
-		otherChildLinks[i]->set_parent_link(this);                                          // Make this link the parent of the other child links
-	
-		otherChildLinks[i]->joint().extend_offset(otherLink.joint().offset());              // Extend the offset
+		currentLink->set_parent_link(this);                                                 // Make this link the new parent
+		
+		currentLink->joint.extend_origin(otherLink.joint().offset());                       // Extend the origin to this link
 	}
 	
 	// Delete the merged link from the list of child links
 	for(int i = 0; i < this->childLinks.size(); i++)
 	{
-		if(this->childLinks[i]->name() == otherLink.name())
+		if(this->_childLinks[i]->name() == otherLink.name())
 		{
-			this->childLinks.erase(this->childLinks.begin()+i);    
+			this->childLinks.erase(this->_childLinks.begin()+i);    
 			break;
 		}
 	}
@@ -195,16 +190,16 @@ void Link<DataType>::merge(const Link &otherLink)
 template <class DataType> inline
 bool Link<DataType>::update_state(const DataType &jointPosition, const DataType &jointVelocity)
 {
-	if(this->parentLink == nullptr)
+	if(this->_parentLink == nullptr)
 	{
-		cerr << "[ERROR] [LINK] update_state(): "
-		        "The '" << this->_name << "' link has no parent link. "
-		        "You need to call the update_state() method that specifies the "
-		        "relative pose and twist as arguments.\n";
+		std::cerr << "[ERROR] [LINK] update_state(): "
+		             "The '" << this->_name << "' link has no parent link. "
+		             "You need to call the update_state() method that specifies the "
+		             "relative pose and twist as arguments." << std::endl;
 		
 		return false;
 	}
-	else	return update_state(this->parentLink->pose(), this->parentLink->twist(), jointPosition, jointVelocity);
+	else	return update_state(this->_parentLink->pose(), this->_parentLink->twist(), jointPosition, jointVelocity);
 }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -216,33 +211,31 @@ bool Link<DataType>::update_state(const Pose<DataType>     &previousPose,
                                   const DataType           &jointPosition,
                                   const DataType           &jointVelocity)                            
 {
-	if(not this->joint().is_revolute() and not this->joint().is_prismatic())
+	if(not this->_joint().is_revolute() and not this->_joint().is_prismatic())
 	{
-		cerr << "[ERROR] [LINK] update_state(): "
-		     << "The '" << this->joint().name() << "' was " << this->joint().type() << " "
-		     << "but expected revolute or prismatic.\n";
+		std::cerr << "[ERROR] [LINK] update_state(): "
+		          << "The '" << this->_joint().name() << "' was " << this->_joint().type() << " "
+		          << "but expected revolute or prismatic." << std::endl;
 		
 		return false;
 	}
 	else
 	{
-		Pose<DataType> wtf = previousPose;                                                          
+		Pose<DataType> wtf = previousPose;                                                  // I can't use previousPose in place for some reason ¯\_(⊙︿⊙)_/¯
+	
+		Pose<DataType> newPose = wtf * this->_joint().origin()
+		                             * this->_joint().position_offset(jointPosition);       // New pose of the link
+		                             
+		this->_jointAxis = (this->_pose.rotation()*this->_joint.axis()).normalized();       // New joint axis in global frame
 		
-		this->_pose = wtf * this->joint().offset() * this->joint().pose(jointPosition);     // Using 'previousPose' directly won't compile??
+		Eigen::Vector<DataType,6> newTwist = previousTwist;                                 // Propagate the velocity
 		
-		this->_axis = this->_pose.rotation() * this->joint().axis();                        // Rotate to global frame
+		newTwist.head(3) += Eigen::Vector<DataType,3>(previousTwist.tail(3)).cross(newPose.translation() - previousPose.translation()); // Add effect of angular velocity to the linear component
 		
-		this->_axis.normalize();                                                            // Ensure unit norm
+		     if(this->_joint.is_revolute())  newTwist.tail(3) += jointVelocity * this->_jointAxis; // Add effect of joint motion
+		else if(this->_joint.is_prismatic()) newTwist.head(3) += jointVelocity * this->_jointAxis;
 		
-		Vector<DataType,3> angularVel = previousTwist.tail(3);                              // Need this to perform cross() 
-		
-		this->_twist.head(3) = previousTwist.head(3)
-			             + angularVel.cross(this->_pose.translation() - previousPose.translation());
-			             
-		this->_twist.tail(3) = angularVel;
-		
-		     if(this->_joint.is_revolute())  this->_twist.tail(3) += jointVelocity * this->_axis; // Add joint effect
-		else if(this->_joint.is_prismatic()) this->_twist.head(3) += jointVelocity * this->_axis;
+		RigidBody<DataType>::update_state(newPose, newTwist);                               // Update the underlying RigidBody object
 	
 		return true;
 	}
