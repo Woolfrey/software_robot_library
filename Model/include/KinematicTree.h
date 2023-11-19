@@ -14,10 +14,6 @@
 #include <map>                                                                                      // map
 #include <tinyxml2.h>                                                                               // For parsing urdf files
 
-using namespace Eigen;                                                                              // Eigen::Matrix, Eigen::Vector
-using namespace std;                                                                                // std::string, std::map
-using namespace tinyxml2;                                                                           // tinyxml2::XMLDocument, tinyxml2::XMLElement
-
 template <typename DataType>
 struct ReferenceFrame
 {
@@ -33,7 +29,7 @@ class KinematicTree
 		 * Constructor for a kinematic tree.
 		 * @param pathToURDF The location of a URDF file that specifies are robot structure.
 		 */
-		KinematicTree(const string &pathToURDF);                                            // Constructor from URDF
+		KinematicTree(const std::string &pathToURDF);                                       // Constructor from URDF
 		
 		/**
 		 * Updates the forward kinematics and inverse dynamics. Used for fixed base structures.
@@ -41,10 +37,10 @@ class KinematicTree
 		 * @param jointVelocity A vector of the joint velocities.
 		 * @return Returns false if there is a problem.
 		 */
-		bool update_state(const Vector<DataType, Dynamic> &jointPosition,
-		                  const Vector<DataType, Dynamic> &jointVelocity)
+		bool update_state(const Eigen::Vector<DataType, Eigen::Dynamic> &jointPosition,
+		                  const Eigen::Vector<DataType, Eigen::Dynamic> &jointVelocity)
 		{
-			return update_state(jointPosition, jointVelocity, this->_basePose, Vector<DataType,6>::Zero());
+			return update_state(jointPosition, jointVelocity, this->_basePose, Eigen::Vector<DataType,6>::Zero());
 		}
 		
 		/**
@@ -54,37 +50,40 @@ class KinematicTree
 		 * @param basePose The transform of the base relative to some global reference frame.
 		 * @param baseTwist The velocity of the base relative to some global reference frame.
 		 */
-		bool update_state(const Vector<DataType, Dynamic> &jointPosition,
-		                  const Vector<DataType, Dynamic> &jointVelocity,
-		                  const Pose<DataType>            &basePose,
-		                  const Vector<DataType, 6>       &baseTwist);
+		bool update_state(const Eigen::Vector<DataType, Eigen::Dynamic> &jointPosition,
+		                  const Eigen::Vector<DataType, Eigen::Dynamic> &jointVelocity,
+		                  const Pose<DataType>                          &basePose,
+		                  const Eigen::Vector<DataType, 6>              &baseTwist);
 
 		/**
 		 * @return Returns the number of actuated joints in this model.
 		 */
-		unsigned int number_of_joints() const { return this->numJoints; }
+		unsigned int number_of_joints() const { return this->_numberOfJoints; }
 		
 		/**
 		 * @return Returns the joint space inertia matrix.
 		 */	        
-		Matrix<DataType,Dynamic,Dynamic> joint_inertia_matrix() const { return this->jointInertiaMatrix; }
+		Eigen::Matrix<DataType, Eigen::Dynamic, Eigen::Dynamic>
+		joint_inertia_matrix() const { return this->_jointInertiaMatrix; }
 		
 		/**
 		 * @return Returns the joint space Coriolis matrix.
 		 */
-		Matrix<DataType,Dynamic,Dynamic> joint_coriolis_matrix() const { return this->jointCoriolisMatrix; } 
+		Eigen::Matrix<DataType, Eigen::Dynamic, Eigen::Dynamic>
+		joint_coriolis_matrix() const { return this->_jointCoriolisMatrix; } 
 
 		/**
 		 * @return Returns a 6xn Jacobian matrix to a given reference frame in the tree.
 		 */
-                Matrix<DataType,6,Dynamic> jacobian(const string &frameName); 
+                Eigen::Matrix<DataType, 6, Eigen::Dynamic> jacobian(const std::string &frameName); 
 
 		/**
-		 * Compute the time derivative for a given Jacobian; dJ/dt
+		 * Compute the time derivative for a given Jacobian matrix
 		 * @param J The Jacobian for which to take the time derivative.
 		 * @return A 6xn matrix for the time derivative.
 		 */
-		Matrix<DataType,6,Dynamic> time_derivative(const Matrix<DataType, 6, Dynamic> &J);  // Time derivative of a Jacobian
+		Eigen::Matrix<DataType, 6, Eigen::Dynamic>
+		time_derivative(const Eigen::Matrix<DataType,6,Eigen::Dynamic> &jacobianMatrix);
 		
 		/**
 		 * Compute the partial derivative for a Jacobian with respect to a given joint dJ/dq
@@ -92,60 +91,57 @@ class KinematicTree
 		 * @param jointNumber The joint (link) number for which to take the derivative.
 		 * @return A 6xn matrix for the partial derivative of the Jacobian.
 		 */
-		Matrix<DataType,6,Dynamic> partial_derivative(const Matrix<DataType, 6, Dynamic> &J,
-		                                              const unsigned int &jointNumber);     // Partial derivative of a Jacobian
+		Eigen::Matrix<DataType, 6, Eigen::Dynamic>
+		partial_derivative(const Eigen::Matrix<DataType,6,Eigen::Dynamic> &jacobianMatrix,
+		                   const unsigned int &jointNumber);
 
 		/**
 		 * @return Returns the pose for a specified reference frame on the kinematic tree.
 		 */
-		Pose<DataType> frame_pose(const string &frameName);                                 // Return the pose for a reference frame on the robot
+		Pose<DataType> frame_pose(const std::string &frameName);
 			
 		/**
 		 * @return Returns a vector for the gravitational joint torques.
 		 */	
-		Vector<DataType,Dynamic> joint_gravity_vector() const { return this->jointGravityVector; }
+		Eigen::Vector<DataType,Eigen::Dynamic> joint_gravity_vector() const { return this->_jointGravityVector; }
 		
 		/**
 		 * @return Returns a vector for all the joint velocities.
 		 */
-		Vector<DataType,Dynamic> joint_velocities() const { return this->_jointVelocity; }
+		Eigen::Vector<DataType,Dynamic> joint_velocities() const { return this->_jointVelocity; }
 		
 		/**
 		 * @return Returns the name of this kinematic tree model.
 		 */
-		string name() const { return this->_name; }                                         // Return the name of this robot
+		std::string name() const { return this->_name; }
 		
 	private:
 		
-		map<string, ReferenceFrame<DataType>> referenceFrameList;                           ///< A dictionary of reference frames on the kinematic tree.
+		Eigen::Matrix<DataType,Eigen::Dynamic,Eigen::Dynamic> _jointInertiaMatrix;          ///< As it says on the label.
 		
-		Matrix<DataType, Dynamic, Dynamic> jointInertiaMatrix;                              ///< As it says on the label.
-		
-		Matrix<DataType, Dynamic, Dynamic> jointCoriolisMatrix;                             ///< As it says on the label.
-		                                   
-		Pose<DataType> _basePose;                                                           ///< The pose of the base relative to another reference frame.
+		Eigen::Matrix<DataType,Eigen::Dynamic,Eigen::Dynamic> _jointCoriolisMatrix;         ///< As it says on the label.
 
+		Eigen::Vector<DataType, 3> _gravityVector = {0,0,-9.81};                            ///< 3x1 vector for the gravitational acceleration.
+			
+		Eigen::Vector<DataType,Eigen::Dynamic> _jointPosition;                              ///< A vector of all the joint positions.
+
+		Eigen::Vector<DataType,Eigen::Dynamic> _jointVelocity;                              ///< A vector of all the joint velocities.
+
+		Eigen::Vector<DataType,Eigen::Dynamic> _jointGravityVector;                         ///< A vector of all the gravitational joint torques.
+		
 		RigidBody<DataType> _base;                                                          ///< Specifies the dynamics for the base.
 		
-		unsigned int numJoints;                                                             ///< The number of actuated joint in the kinematic tree.
-
-		Vector<DataType, 3> gravityVector = {0,0,-9.81};                                    ///< 3x1 vector for the gravitational acceleration.
+		std::map<std::string, ReferenceFrame<DataType>> _frameList;                         ///< A dictionary of reference frames on the kinematic tree.
 		
-		Vector<DataType, 6> _baseTwist;                                                     ///< The velocity of the base.
-			
-		Vector<DataType, Dynamic> _jointPosition;                                           ///< A vector of all the joint positions.
-
-		Vector<DataType, Dynamic> _jointVelocity;                                           ///< A vector of all the joint velocities.
-
-		Vector<DataType, Dynamic> jointGravityVector;                                       ///< A vector of all the gravitational joint torques.
+		std::vector<Link<DataType>> _fullLinkList;                                          ///< An array of all the links in the model, including fixed joints.
 		
-		vector<Link<DataType>> fullLinkList;                                                ///< An array of all the links in the model, including fixed joints.
+		std::vector<Link<DataType>*> _link;                                                 ///< An array of all the actuated links.
 		
-		vector<Link<DataType>*> link;                                                       ///< An array of all the actuated links.
+		std::vector<Link<DataType>*> _baseLinks;                                            ///< Array of links attached directly to the base.
 		
-		vector<Link<DataType>*> baseLinks;                                                  ///< Array of links attached directly to the base.
+		std::string _name;                                                                  ///< A unique name for this model.
 		
-		string _name;                                                                       ///< A unique name for this model.
+		unsigned int _numberOfJoints;                                                       ///< The number of actuated joint in the kinematic tree.
 		
 		/**
 		 * Computes the Jacobian to a given point on a given link.
@@ -173,6 +169,10 @@ class KinematicTree
 template <class DataType>
 KinematicTree<DataType>::KinematicTree(const string &pathToURDF)
 {
+	using namespace Eigen;                                                                      // Eigen::Matrix, Eigen::Vector
+	using namespace std;                                                                        // std::string, std::map
+	using namespace tinyxml2;                                                                   // tinyxml2::XMLDocument, tinyxml2::XMLElement
+
 	// Variables used in this scope
 	map<string, string>              connectionList;                                            // For storing parent/child connection between links
 	map<string, unsigned int>        linkList;                                                  // Search for links by name
@@ -236,10 +236,9 @@ KinematicTree<DataType>::KinematicTree(const string &pathToURDF)
 				// NOTE: URDF specifies a pose for the center of mass,
 				//       which is a little superfluous...
 				
-				Pose<DataType> pose(xyz, AngleAxis<DataType>(rpy(0),Vector<DataType,  3>::UnitX())
-				                        *AngleAxis<DataType>(rpy(1),Vector<DataType,  3>::UnitY())
-
-				                        *AngleAxis<DataType>(rpy(2),Vector<DataType,  3>::UnitZ()));
+				Pose<DataType> pose(xyz, AngleAxis<DataType>(rpy(0),Vector<DataType, 3>::UnitX())
+				                        *AngleAxis<DataType>(rpy(1),Vector<DataType, 3>::UnitY())
+				                        *AngleAxis<DataType>(rpy(2),Vector<DataType, 3>::UnitZ()));
 				                                       
 
 				centreOfMass = pose.translation();                                  // Location for the center of mass
@@ -267,12 +266,12 @@ KinematicTree<DataType>::KinematicTree(const string &pathToURDF)
 		or jointType == "revolute")
 		{
 			// Default properties
-			DataType damping          = 1.0;
-			DataType effortLimit      = 10;
-			DataType friction         = 0.0;
-			DataType positionLimit[]  = {-M_PI, M_PI};
-			DataType velocityLimit    = 100*2*M_PI/60;
-			Vector<DataType,  3> axis = {0,0,1};
+			DataType damping               = 1.0;
+			DataType effortLimit           = 10;
+			DataType friction              = 0.0;
+			Limits<DataType> positionLimit = {-M_PI, M_PI};                                  // Data structure in Joint.h
+			DataType velocityLimit         = 100*2*M_PI/60;
+			Vector<DataType,3> axis        = {0,0,1};
 			Pose<DataType> origin(Vector<DataType,3>::Zero(), Quaternion<DataType>(1,0,0,0));
 			
 			// Get the pose of the joint relative to preceeding link
@@ -284,8 +283,8 @@ KinematicTree<DataType>::KinematicTree(const string &pathToURDF)
 				Vector<DataType,3> rpy = char_to_vector(originElement->Attribute("rpy"));
 
 				origin = Pose<DataType>(xyz, AngleAxis<DataType>(rpy(2),Vector<DataType,3>::UnitZ())
-						       *AngleAxis<DataType>(rpy(1),Vector<DataType,3>::UnitY())
-						       *AngleAxis<DataType>(rpy(0),Vector<DataType,3>::UnitX()));
+						            *AngleAxis<DataType>(rpy(1),Vector<DataType,3>::UnitY())
+						            *AngleAxis<DataType>(rpy(0),Vector<DataType,3>::UnitX()));
 			}
 
 			// Get joint properties for non-fixed type
@@ -296,20 +295,20 @@ KinematicTree<DataType>::KinematicTree(const string &pathToURDF)
 				{
 					DataType inf = numeric_limits<DataType>::infinity();
 					
-					positionLimit[0] =-inf;
-					positionLimit[1] = inf;
-					velocityLimit    = inf;
-					effortLimit      = inf;
+					positionLimit.lower =-inf;
+					positionLimit.upper = inf;
+					velocityLimit       = inf;
+					effortLimit         = inf;
 				}
 				else                                                                // Obtain the joint limits
 				{
 					XMLElement* limit = iterator->FirstChildElement("limit");
 					if(limit != nullptr)
 					{
-						positionLimit[0] = (DataType)limit->DoubleAttribute("lower");
-						positionLimit[1] = (DataType)limit->DoubleAttribute("upper");
-						velocityLimit    = (DataType)limit->DoubleAttribute("velocity"); // NOTE: This is apparently optional so could cause problems in the future
-						effortLimit      = (DataType)limit->DoubleAttribute("effort");
+						positionLimit.lower = (DataType)limit->DoubleAttribute("lower");
+						positionLimit.upper = (DataType)limit->DoubleAttribute("upper");
+						velocityLimit       = (DataType)limit->DoubleAttribute("velocity"); // NOTE: This is apparently optional so could cause problems in the future
+						effortLimit         = (DataType)limit->DoubleAttribute("effort");
 					}
 				}
 				
@@ -326,21 +325,23 @@ KinematicTree<DataType>::KinematicTree(const string &pathToURDF)
 				}
 			}
 			
-			Joint<DataType> tempJoint(jointName, jointType, axis, origin, positionLimit, velocityLimit, effortLimit, damping, friction);
+			Joint<DataType> joint(jointName, jointType, axis, origin, positionLimit, velocityLimit, effortLimit, damping, friction);
 			
 			// Find the "child link", i.e. RigidBody object, and form a RobotLibrary::Link object
 			
 			string childLinkName = iterator->FirstChildElement("child")->Attribute("link");
-			
-			auto container = rigidBodyList.find(childLinkName);
-			
+
+/*			auto container = rigidBodyList.find(childLinkName);
+		
 			if(container == rigidBodyList.end())
 			{
 				throw runtime_error("[ERROR] [KINEMATIC TREE] Constructor: "
                                                     "Unable to find '" + childLinkName + "' in the list of rigid bodies.");
-                        }
+                        } */
                         
-                        this->fullLinkList.emplace_back(container->second, tempJoint);              // Create new link, add to vector
+                        auto rigidBody = rigidBodyList.find(childLinkName)->second;
+			                       
+                        this->fullLinkList.emplace_back(rigidBody, joint);                          // Create new link, add to vector
                         
 			linkList.emplace(childLinkName, linkNumber);                                // Add the index to the std::map so we can find it later
 			
@@ -359,17 +360,31 @@ KinematicTree<DataType>::KinematicTree(const string &pathToURDF)
 	// Find and set the base
 	if(rigidBodyList.size() == 1)
 	{
-		auto container = rigidBodyList.begin();
-		this->_base = container->second;
+		this->_base = rigidBodyList.begin()->second;
 	}
 	else
 	{
 		string message = "[ERROR] [KINEMATIC TREE] Constructor: More than one candidate for the base:\n";
-		for(auto iterator = rigidBodyList.begin(); iterator != rigidBodyList.end(); iterator++) message + "   - " + iterator->first + "\n";
+		
+		for(auto iterator : rigidBodyList) message + "   - " + iterator->first + "\n";      // Loop over all elements in the map
+		
 		throw std::runtime_error(message);
 	}
 	
 	// Form the connections between all the links
+	for(const auto currentLink : this->_fullLinkList)
+	{
+		std::string parentLinkName = connectionList.find(currentLink.name())->second;       // Get the name of the parent link
+		
+		if(parentLinkName != this->_base.name())
+		{
+			unsigned int parentLinkNum = linkList.find(parentLinkName)->second;         // Get the number of the parent link
+			
+			currentLink.set_parent_link(&this->fullLinkList[parentLinkNum]);            // Set the parent/child link relationship
+		}
+	}
+	
+	/*
 	for(int i = 0; i < this->fullLinkList.size(); i++)
 	{
 		// Get the name for the parent of this link
@@ -398,12 +413,45 @@ KinematicTree<DataType>::KinematicTree(const string &pathToURDF)
 			
 			this->fullLinkList[i].set_parent_link(&this->fullLinkList[j]);              // Set parent/child relationship
 		}
-	}
+	}*/
 	
 	unsigned int count = 0;
 	
-	// Merge the dynamic properties of all the links connected by fixed joints
-	for(int i = 0; i < this->fullLinkList.size(); i++)
+	// Merge the dynamic properties of all the links connected by fixed joints	
+	for(auto currentLink : this->_fullLinkList)
+	{
+		if(currentLink.is_fixed())
+		{
+			Link<DataType> *parentLink = currentLink.parent_link();                     // Pointer to the parent link
+		
+			if(parentLink == nullptr)                                                   // Must be the base link!
+			{
+				this->_base.combine_inertia(currentLink,currentLink.joint().origin()); // Combine inertia of this link with the base
+				
+				vector<Link<DataType>*> childLinkArray = currentLink.child_links(); // Get all the child links of this one
+				
+				for(auto childLink : childLinkArray)
+				{
+					childLink->clear_parent_link();
+					
+					this->_baseLinks.push_back(childLink);
+				}
+			}
+			else parentLink->merge(currentLink);                                        // Merge this link in to the list
+		
+			// Save this link as a reference frame so we can search it later
+			ReferenceFrame<DataType> frame = {parentLink, currentLink.joint().origin()};
+			this->_frameList.emplace(currentLink.name(),frame);
+		}
+		else
+		{
+			if(currentLink.parent_link() == nullptr) this->_baseLinks.push_back(&currentLink); // This link is attached directly to the base
+			currentLink.set_number(count);                                              // Set the number in the kinematic tree
+			this->_link.push_back(&currentLink);                                        // Add this link to the active list
+			count++;                                                                    // Increment the counter of active links
+		}
+	}
+/*	for(int i = 0; i < this->fullLinkList.size(); i++)
 	{
 		if(this->fullLinkList[i].joint().is_fixed())
 		{     
@@ -437,19 +485,19 @@ KinematicTree<DataType>::KinematicTree(const string &pathToURDF)
 			this->link.push_back(&this->fullLinkList[i]);                               // Pointer so we can find it easy
 			count++;                                                                    // Increment number of active joints
 		}
-	}
+	}*/
 	
-	this->numJoints = count;
+	this->_numberOfJoints = count;
 	
 	// Resize the relevant matrices, vectors accordingly
-	this->_jointPosition.resize(this->numJoints);
-	this->_jointVelocity.resize(this->numJoints);
-	this->jointInertiaMatrix.resize(this->numJoints, this->numJoints);
-	this->jointCoriolisMatrix.resize(this->numJoints, this->numJoints);
-	this->jointGravityVector.resize(this->numJoints);
+	this->_jointPosition.resize(this->_numberOfJoints);
+	this->_jointVelocity.resize(this->_numberOfJoints);
+	this->_jointInertiaMatrix.resize(this->_numberOfJoints, this->_numberOfJoints);
+	this->_jointCoriolisMatrix.resize(this->_numberOfJoints, this->_numberOfJoints);
+	this->_jointGravityVector.resize(this->_numberOfJoints);
 	
 	std::cout << "[INFO] [KINEMATIC TREE] Successfully created the '" << this->_name << "' robot."
-	          << " It has " << this->numJoints << " joints (reduced from " << this->fullLinkList.size() << ").\n";
+	          << " It has " << this->_numberOfJoints << " joints (reduced from " << this->fullLinkList.size() << ").\n";
 	
 //	Debugging stuff:
 /*
@@ -461,7 +509,7 @@ KinematicTree<DataType>::KinematicTree(const string &pathToURDF)
 		
 		candidateList.pop_back();                                                                // Delete it from the search list
 		
-		std::cout << " - " << currentLink->joint().name() << std::endl;
+		std::cout << " - " << currentLink->joint().name() << "\n";
 		
 		vector<Link<DataType>*> temp = currentLink->child_links();                               // All the links attached to the current link
 		
@@ -483,18 +531,18 @@ KinematicTree<DataType>::KinematicTree(const string &pathToURDF)
  //                              Update the kinematics and dynamics                               //        
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <class DataType> inline
-bool KinematicTree<DataType>::update_state(const Vector<DataType, Dynamic> &jointPosition,
-                                           const Vector<DataType, Dynamic> &jointVelocity,
-                                           const Pose<DataType>            &basePose,
-                                           const Vector<DataType, 6>       &baseTwist)
+bool KinematicTree<DataType>::update_state(const Eigen::Vector<DataType, Eigen::Dynamic> &jointPosition,
+                                           const Eigen::Vector<DataType, Eigen::Dynamic> &jointVelocity,
+                                           const Pose<DataType>                          &basePose,
+                                           const Eigen::Vector<DataType, 6>              &baseTwist)
 {
 	if(jointPosition.size() != this->numJoints
 	or jointVelocity.size() != this->numJoints)
 	{
-		cerr << "[ERROR] [KINEMATIC TREE] update_state(): "
-		     << "This model has " << this->numJoints << " joints, but "
-		     << "the joint position argument had " << jointPosition.size() << " elements, "
-		     << "and the joint velocity argument had " << jointVelocity.size() << " element.\n";
+		std::cerr << "[ERROR] [KINEMATIC TREE] update_state(): "
+		          << "This model has " << this->numJoints << " joints, but "
+		          << "the joint position argument had " << jointPosition.size() << " elements, "
+		          << "and the joint velocity argument had " << jointVelocity.size() << " element." << std::endl;
 		
 		return false;
 	}
@@ -505,11 +553,11 @@ bool KinematicTree<DataType>::update_state(const Vector<DataType, Dynamic> &join
 	this->_base.update_state(basePose, baseTwist);                                              // Update the state for the base
 			
 	// Need to clear for new loop
-	this->jointInertiaMatrix.setZero();
-	this->jointCoriolisMatrix.setZero();
-	this->jointGravityVector.setZero();
+	this->_jointInertiaMatrix.setZero();
+	this->_jointCoriolisMatrix.setZero();
+	this->_jointGravityVector.setZero();
 
-	vector<Link<DataType>*> candidateList = this->baseLinks;                                    // Start with links attached to base
+	vector<Link<DataType>*> candidateList = this->_baseLinks;                                   // Start with links attached to base
 	
 	while(candidateList.size() > 0)
 	{
@@ -531,52 +579,46 @@ bool KinematicTree<DataType>::update_state(const Vector<DataType, Dynamic> &join
 
 		if(not success)
 		{
-			std::cout << "[ERROR] [KINEMATIC TREE] update_state(): "
-				  << "Unable to to update the state for the '" << currentLink->name() << "' link ("
-				  << currentLink->joint().name() << " joint).\n";
+			std::cerr << "[ERROR] [KINEMATIC TREE] update_state(): "
+				  << "Unable to to update the state for the '" << currentLink->name()
+				  << "' link (" << currentLink->joint().name() << " joint)." << std::endl;
+			
+			return false;
 		}
 		
 		// Compute the inverse dynamics
+
+		Eigen::Matrix<DataType,6,Eigen::Dynamic> J = jacobian(currentLink, currentLink->center_of_mass(), k+1); // Jacobian to centre of mass
+		
+		Eigen::Matrix<DataType,3,Eigen::Dynamic> Jv = J.block(0,0,3,k+1);                   // Linear component
+		
+		Eigen::Matrix<DataType,3,Eigen::Dynamic> Jw = J.block(3,0,3,k+1);                   // Angular component
+		
 		DataType mass = currentLink->mass();                                                // As it says
 		
-		Matrix<DataType,3,3> R = currentLink->pose().rotation();                            // Rotation as SO(3)
-		
-		Vector<DataType,3> com = currentLink->pose().translation() + R*currentLink->com();  // Transform centre of mass to base frame
-		
-		Matrix<DataType,3,3> I = R*currentLink->inertia()*R.transpose();                    // Rotate inertia from local to base frame
-		
-		Vector<DataType,3> angularVelocity = currentLink->twist().tail(3);                  // Needed so we can do cross()
-		
-		// Matrix<DataType,3,3> Idot = angularVelocity.cross(I); // THIS DOESN'T WORK? FUCK YOU (ノಠ益ಠ)ノ彡┻━┻
-		Matrix<DataType,3,3> Idot; for(int i = 0; i < 3; i++) Idot.col(i) = angularVelocity.cross(I.col(i));
-		
-		Matrix<DataType,6,Dynamic> J = jacobian(currentLink, com, k+1);                     // Jacobian to centre of mass
-		
-		Matrix<DataType,3,Dynamic> Jv = J.block(0,0,3,k+1);                                 // Linear component
-		
-		Matrix<DataType,3,Dynamic> Jw = J.block(3,0,3,k+1);                                 // Angular component
-		
-		Matrix<DataType,6,Dynamic> Jdot = time_derivative(J);                               // As it says
+		Eigen::Matrix<DataType,3,3> I = currentLink->inertia();
 		
 		// Compute the upper-right triangle of the inertia matrix
 		for(int i = 0; i < k+1; i++)
 		{
 			for(int j = i; j < k+1; j++)
 			{
-				this->jointInertiaMatrix(i,j) += mass * Jv.col(i).dot(Jv.col(j))
-				                                      + Jw.col(i).dot(I*Jw.col(j));
+				this->_jointInertiaMatrix(i,j) += mass * Jv.col(i).dot(Jv.col(j))
+				                                       + Jw.col(i).dot(I*Jw.col(j));
 			}
 		}
 		
-		// This method is slightly slower: this->jointInertiaMatrix.block(0,0,k+1,k+1) += mass*Jv.transpose()*Jv + Jw.transpose()*I*Jw;
+		Eigen::Matrix<DataType,6,Eigen::Dynamic> Jdot = time_derivative(J);                 // As it says
 		
-		this->jointCoriolisMatrix.block(0,0,k+1,k+1) += mass * Jv.transpose()*Jdot.block(0,0,3,k+1)
-		                                                     + Jw.transpose()*(Idot*Jw + I*Jdot.block(3,0,3,k+1));
+		Eigen::Matrix<DataType,3,3> Idot = currentLink->inertia_derivative();
 		
-		this->jointGravityVector.head(k+1) -= mass*Jv.transpose()*this->gravityVector;      // We need to NEGATE gravity		
+		this->_jointCoriolisMatrix.block(0,0,k+1,k+1) += mass * Jv.transpose()*Jdot.block(0,0,3,k+1)
+		                                                      + Jw.transpose()*(Idot*Jw + I*Jdot.block(3,0,3,k+1));
+		
+		this->_jointGravityVector.head(k+1) -= mass*Jv.transpose()*this->gravityVector;      // We need to NEGATE gravity		
 		
 		// Get the links attached to this one and add them to the list
-		vector<Link<DataType>*> temp = currentLink->child_links();
+		std::vector<Link<DataType>*> temp = currentLink->child_links();
 		if(temp.size() > 0) candidateList.insert(candidateList.begin(), temp.begin(), temp.end());
 	}
 	
@@ -593,20 +635,20 @@ bool KinematicTree<DataType>::update_state(const Vector<DataType, Dynamic> &join
  //                            Compute the Jacobian to a given point                              //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <class DataType> inline
-Matrix<DataType, 6, Dynamic>
+Eigen::Matrix<DataType, 6, Eigen::Dynamic>
 KinematicTree<DataType>::jacobian(Link<DataType> *link,                                             // Starting point in the kinematic tree
-                                  const Vector<DataType, 3> &point,                                 // A point in the given joint frame
+                                  const Eigen::Vector<DataType, 3> &point,                          // A point in the given joint frame
                                   const unsigned int &numberOfColumns)                              // Must be less than or equal to number of joints in model
 {
-	Matrix<DataType,6,Dynamic> J;
+	Eigen::Matrix<DataType,6,Eigen::Dynamic> J;
 	J.resize(NoChange,numberOfColumns);
 	J.setZero();
 	
 	if(link->number() > numberOfColumns)
 	{
-		throw runtime_error("[ERROR] [KINEMATIC TREE] jacobian(): "
-		                    "Cannot compute a Jacobian with " + to_string(numberOfColumns) +
-		                    "columns using " + to_string(link->number()+1) + " joints.");
+		throw std::logic_error("[ERROR] [KINEMATIC TREE] jacobian(): "
+		                       "Cannot compute a Jacobian with " + std::to_string(numberOfColumns) +
+		                       "columns using " + std::to_string(link->number()+1) + " joints.");
 	}
 	else
 	{
@@ -619,15 +661,15 @@ KinematicTree<DataType>::jacobian(Link<DataType> *link,                         
 				// J_i = [ a_i x r_i ]
 				//       [    a_i    ]
 			
-				J.block(0,i,3,1) = link->axis().cross(point - link->pose().translation()); // Linear component
-				J.block(3,i,3,1) = link->axis();                                           // Angular component
+				J.block(0,i,3,1) = link->joint_axis().cross(point - link->pose().translation()); // Linear component
+				J.block(3,i,3,1) = link->joint_axis();                                           // Angular component
 			}
 			else // prismatic
 			{
 				// J_i = [ a_i ]
 				//       [  0  ]
 				
-				J.block(0,i,3,1) = link->axis();                                    // Linear component
+				J.block(0,i,3,1) = link->joint_axis();                              // Linear component
 				J.block(3,i,3,1).setZero();                                         // Angular component
 			}
 			
@@ -642,14 +684,13 @@ KinematicTree<DataType>::jacobian(Link<DataType> *link,                         
  //                         Get the time derivative of a given Jacobian                           //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <class DataType> inline
-Matrix<DataType, 6, Dynamic>
-KinematicTree<DataType>::time_derivative(const Matrix<DataType,6,Dynamic> &J)
+Eigen::Matrix<DataType, 6, Eigen::Dynamic>
+KinematicTree<DataType>::time_derivative(const Eigen::Matrix<DataType,6,Eigen::Dynamic> &jacobianMatrix)
 {	
-	Matrix<DataType,6,Dynamic> Jdot;
-	Jdot.resize(NoChange,J.cols());
+	Eigen::Matrix<DataType,6,Eigen::Dynamic> Jdot(6,jacobianMatrix.cols());
 	Jdot.setZero();
 
-	for(int i = 0; i < J.cols(); i++)
+	for(int i = 0; i < jacobianMatrix.cols(); i++)
 	{
 		for(int j = 0; j <= i; j++)
 		{
@@ -659,16 +700,16 @@ KinematicTree<DataType>::time_derivative(const Matrix<DataType,6,Dynamic> &J)
 				DataType qdot = this->_jointVelocity(j);                            // Makes things a little easier
 				
 				// qdot_j * ( a_j x (a_i x r_i) )
-				Jdot(0,i) += qdot*(J(4,j)*J(2,i) - J(5,j)*J(1,i));
-				Jdot(1,i) += qdot*(J(5,j)*J(0,i) - J(3,j)*J(2,i));
-				Jdot(2,i) += qdot*(J(3,j)*J(1,i) - J(4,j)*J(0,i));
+				Jdot(0,i) += qdot*(jacobianMatrix(4,j)*jacobianMatrix(2,i) - jacobianMatrix(5,j)*jacobianMatrix(1,i));
+				Jdot(1,i) += qdot*(jacobianMatrix(5,j)*jacobianMatrix(0,i) - jacobianMatrix(3,j)*jacobianMatrix(2,i));
+				Jdot(2,i) += qdot*(jacobianMatrix(3,j)*jacobianMatrix(1,i) - jacobianMatrix(4,j)*jacobianMatrix(0,i));
 				
 				if(this->link[i]->joint().is_revolute())			    // J_i = [a_i x r_i; a_i]
 				{
 					// qdot_j * ( a_j x a_i )
-					Jdot(3,i) += qdot*(J(4,j)*J(5,i) - J(5,j)*J(4,i));
-					Jdot(4,i) += qdot*(J(5,j)*J(3,i) - J(3,j)*J(5,i));
-					Jdot(5,i) += qdot*(J(3,j)*J(4,i) - J(4,j)*J(3,i));
+					Jdot(3,i) += qdot*(jacobianMatrix(4,j)*jacobianMatrix(5,i) - jacobianMatrix(5,j)*jacobianMatrix(4,i));
+					Jdot(4,i) += qdot*(jacobianMatrix(5,j)*jacobianMatrix(3,i) - jacobianMatrix(3,j)*jacobianMatrix(5,i));
+					Jdot(5,i) += qdot*(jacobianMatrix(3,j)*jacobianMatrix(4,i) - jacobianMatrix(4,j)*jacobianMatrix(3,i));
 				}	
 			}
 			
@@ -680,16 +721,16 @@ KinematicTree<DataType>::time_derivative(const Matrix<DataType,6,Dynamic> &J)
 				if(this->link[i]->joint().is_revolute())			    // J_i = [a_i x r_i; a_i]
 				{
 					// qdot_i * ( a_i x (a_j x r_j) )
-					Jdot(0,j) += qdot*(J(4,j)*J(2,i) - J(5,j)*J(1,i));
-					Jdot(1,j) += qdot*(J(5,j)*J(0,i) - J(3,j)*J(2,i));
-					Jdot(2,j) += qdot*(J(3,j)*J(1,i) - J(4,j)*J(0,i));
+					Jdot(0,j) += qdot*(jacobianMatrix(4,j)*jacobianMatrix(2,i) - jacobianMatrix(5,j)*jacobianMatrix(1,i));
+					Jdot(1,j) += qdot*(jacobianMatrix(5,j)*jacobianMatrix(0,i) - jacobianMatrix(3,j)*jacobianMatrix(2,i));
+					Jdot(2,j) += qdot*(jacobianMatrix(3,j)*jacobianMatrix(1,i) - jacobianMatrix(4,j)*jacobianMatrix(0,i));
 				}
 				else // this->link[i]->joint().is_prismatic()                       // J_i = [a_i ; 0]
 				{
 					// qdot_i * ( a_i x (a_j x r_j) )
-					Jdot(0,j) += qdot*(J(1,i)*J(2,j) - J(2,i)*J(1,j));
-					Jdot(1,j) += qdot*(J(2,i)*J(0,j) - J(0,i)*J(2,j));
-					Jdot(2,j) += qdot*(J(0,i)*J(1,j) - J(1,i)*J(0,j));
+					Jdot(0,j) += qdot*(jacobianMatrix(1,i)*jacobianMatrix(2,j) - jacobianMatrix(2,i)*jacobianMatrix(1,j));
+					Jdot(1,j) += qdot*(jacobianMatrix(2,i)*jacobianMatrix(0,j) - jacobianMatrix(0,i)*jacobianMatrix(2,j));
+					Jdot(2,j) += qdot*(jacobianMatrix(0,i)*jacobianMatrix(1,j) - jacobianMatrix(1,i)*jacobianMatrix(0,j));
 				}
 			}
 		}
@@ -702,8 +743,8 @@ KinematicTree<DataType>::time_derivative(const Matrix<DataType,6,Dynamic> &J)
  //             Get the partial derivative of a Jacobian with respect to a given joint            //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <class DataType> inline
-Matrix<DataType, 6, Dynamic>
-KinematicTree<DataType>::partial_derivative(const Matrix<DataType, 6, Dynamic> &J,
+Eigen::Matrix<DataType, 6, Eigen::Dynamic>
+KinematicTree<DataType>::partial_derivative(const Eigen::Matrix<DataType,6,Eigen::Dynamic> &jacobianMatrix,
                                             const unsigned int &jointNumber)
 {
 
@@ -711,19 +752,22 @@ KinematicTree<DataType>::partial_derivative(const Matrix<DataType, 6, Dynamic> &
 	// Proceedings. 1991 IEEE International Conference on Robotics and Automation,
 	// 1991, pp. 1708-1713 vol.2, doi: 10.1109/ROBOT.1991.131866.
 	
-	if(jointNumber >= J.cols())
+	unsigned int numberOfColumns = jacobianMatrix.cols();
+	
+	if(jointNumber >= numberOfColumns)
 	{
-		throw invalid_argument("[ERROR] [KINEMATIC TREE] partial_derivative(): "
-		                       "Cannot take the derivative with respect to joint number "
-		                       + to_string(jointNumber) + " for a Jacobian with only "
-		                       + to_string(J.cols()) + " columns.");
+		throw std::invalid_argument("[ERROR] [KINEMATIC TREE] partial_derivative(): "
+		                            "Cannot take the derivative with respect to joint number "
+		                            + to_string(jointNumber) + " for a Jacobian with only "
+		                            + to_string(numberOfColumns) + " columns.");
 	}
 
-	Matrix<DataType, 6, Dynamic> dJ(6,J.cols()); dJ.setZero();                                  // Value to be returned
+	Eigen::Matrix<DataType,6,Eigen::Dynamic> dJ(6,numberOfColumns);                             // Value to be returned
+	dJ.setZero();
 	
 	int j = jointNumber;                                                                        // Makes things a little easier
 	
-	for(int i = 0; i < J.cols(); i++)
+	for(int i = 0; i < numberOfColumns; i++)
 	{
 		if(this->link[i]->joint().is_revolute())					    // J_i = [a_i x r_i ; a_i]
 		{
@@ -732,29 +776,29 @@ KinematicTree<DataType>::partial_derivative(const Matrix<DataType, 6, Dynamic> &
 				if (j < i)
 				{
 					// a_j x (a_i x a_i)
-					dJ(0,i) = J(4,j)*J(2,i) - J(5,j)*J(1,i);
-					dJ(1,i) = J(5,j)*J(0,i) - J(3,j)*J(2,i);
-					dJ(2,i) = J(3,j)*J(1,i) - J(4,j)*J(0,i);
+					dJ(0,i) = jacobianMatrix(4,j)*jacobianMatrix(2,i) - jacobianMatrix(5,j)*jacobianMatrix(1,i);
+					dJ(1,i) = jacobianMatrix(5,j)*jacobianMatrix(0,i) - jacobianMatrix(3,j)*jacobianMatrix(2,i);
+					dJ(2,i) = jacobianMatrix(3,j)*jacobianMatrix(1,i) - jacobianMatrix(4,j)*jacobianMatrix(0,i);
 
 					// a_j x a_i
-					dJ(3,i) = J(4,j)*J(5,i) - J(5,j)*J(4,i);
-					dJ(4,i) = J(5,j)*J(3,i) - J(3,j)*J(5,i);
-					dJ(5,i) = J(3,j)*J(4,i) - J(4,j)*J(3,i);
+					dJ(3,i) = jacobianMatrix(4,j)*jacobianMatrix(5,i) - jacobianMatrix(5,j)*jacobianMatrix(4,i);
+					dJ(4,i) = jacobianMatrix(5,j)*jacobianMatrix(3,i) - jacobianMatrix(3,j)*jacobianMatrix(5,i);
+					dJ(5,i) = jacobianMatrix(3,j)*jacobianMatrix(4,i) - jacobianMatrix(4,j)*jacobianMatrix(3,i);
 				}
 				else
 				{
 					// a_i x (a_j x a_j)
-					dJ(0,i) = J(4,i)*J(2,j) - J(5,i)*J(1,j);
-					dJ(1,i) = J(5,i)*J(0,j) - J(3,i)*J(2,j);
-					dJ(2,i) = J(3,i)*J(1,j) - J(4,i)*J(0,j);
+					dJ(0,i) = jacobianMatrix(4,i)*jacobianMatrix(2,j) - jacobianMatrix(5,i)*jacobianMatrix(1,j);
+					dJ(1,i) = jacobianMatrix(5,i)*jacobianMatrix(0,j) - jacobianMatrix(3,i)*jacobianMatrix(2,j);
+					dJ(2,i) = jacobianMatrix(3,i)*jacobianMatrix(1,j) - jacobianMatrix(4,i)*jacobianMatrix(0,j);
 				}
 			}
 			else if(this->link[j]->joint().is_prismatic() and j > i)	            // J_j = [a_j ; 0]
 			{
 				// a_j x a_i
-				dJ(0,i) = J(1,j)*J(2,i) - J(2,j)*J(1,i);
-				dJ(1,i) = J(2,j)*J(0,i) - J(0,j)*J(2,i);
-				dJ(2,i) = J(0,j)*J(1,i) - J(1,j)*J(0,i);
+				dJ(0,i) = jacobianMatrix(1,j)*jacobianMatrix(2,i) - jacobianMatrix(2,j)*jacobianMatrix(1,i);
+				dJ(1,i) = jacobianMatrix(2,j)*jacobianMatrix(0,i) - jacobianMatrix(0,j)*jacobianMatrix(2,i);
+				dJ(2,i) = jacobianMatrix(0,j)*jacobianMatrix(1,i) - jacobianMatrix(1,j)*jacobianMatrix(0,i);
 			}
 		}
 		else if(this->link[i]->joint().is_prismatic()			            // J_i = [a_i ; 0]
@@ -762,9 +806,9 @@ KinematicTree<DataType>::partial_derivative(const Matrix<DataType, 6, Dynamic> &
 	            and j < i)
 		{
 			// a_j x a_i
-			dJ(0,i) = J(4,j)*J(2,i) - J(5,j)*J(1,i);
-			dJ(1,i) = J(5,j)*J(0,i) - J(3,j)*J(2,i);
-			dJ(2,i) = J(3,j)*J(1,i) - J(4,j)*J(0,i);
+			dJ(0,i) = jacobianMatrix(4,j)*jacobianMatrix(2,i) - jacobianMatrix(5,j)*jacobianMatrix(1,i);
+			dJ(1,i) = jacobianMatrix(5,j)*jacobianMatrix(0,i) - jacobianMatrix(3,j)*jacobianMatrix(2,i);
+			dJ(2,i) = jacobianMatrix(3,j)*jacobianMatrix(1,i) - jacobianMatrix(4,j)*jacobianMatrix(0,i);
 		}
 	}
 	
@@ -775,24 +819,15 @@ KinematicTree<DataType>::partial_derivative(const Matrix<DataType, 6, Dynamic> &
  //                         Compute the Jacobian to a given frame                                  //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 template <class DataType> inline
-Matrix<DataType, 6, Dynamic> KinematicTree<DataType>::jacobian(const string &frameName)
+Eigen::Matrix<DataType,6,Eigen::Dynamic> KinematicTree<DataType>::jacobian(const string &frameName)
 {
-    auto container = this->referenceFrameList.find(frameName);
-
-    if(container == this->referenceFrameList.end())
-    {
-        throw runtime_error("[ERROR] [KINEMATIC TREE] jacobian(): "
-                            "Could not find the '" + frameName + "' frame in the list.");
-    }
-    else
-    {
-        Pose<DataType> framePose = container->second.link->parent_link()->pose()                    // Pose for the *origin* of the associated link
-                                 * container->second.relativePose;                                  // Pose of this frame relative to link/joint
-        
-        return jacobian(container->second.link->parent_link(),
-                        framePose.translation(),
-                        container->second.link->parent_link()->number()+1);
-    }
+	ReferenceFrame<DataType> frame = this->_frameList.find(frameName)->second;
+	
+	// NOTE: Need an error check here
+	
+	return jacobian(frame.link->parentLink(),                                                   // Is this supposed to be the parent link? I forget (ಥ﹏ಥ)
+	               (frame.link->parent_link()->pose()*frame.relativePose).translation(),        // The point for which to compute the Jacobian
+	                frame->parent_link()->number()+1);                                          // The link/joint number to start from
 }
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -801,37 +836,30 @@ Matrix<DataType, 6, Dynamic> KinematicTree<DataType>::jacobian(const string &fra
 template <class DataType> inline
 Pose<DataType> KinematicTree<DataType>::frame_pose(const string &frameName)
 {
-	auto container = this->referenceFrameList.find(frameName);
+	ReferenceFrame<DataType> frame = this->referenceFrameList.find(frameName);
 	
-	if(container == this->referenceFrameList.end())
-	{
-		throw runtime_error("[ERROR] [KINEMATIC TREE] get_reference_frame(): "
-		                    "Could not find '" + frameName + "' in the list.");
-	}
-	else
-	{
-		return container->second.link->pose()                                               // Pose for the *origin* of the associated link
-		      *container->second.relativePose;                                              // Pose of the frame relative to the link/joint
-	}
+	// NEED AN ERROR CHECK HERE
+	
+	return frame.link()->pose()*frame.relativePose;
 }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //                   Convert a char of numbers to an Vector<DataType,  3> object                 //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <class DataType>
-Vector<DataType,3> KinematicTree<DataType>::char_to_vector(const char* character)
+Eigen::Vector<DataType,3> KinematicTree<DataType>::char_to_vector(const char* character)
 {
-	string numberAsString;                                                                      // So we can concatenate individual char together
-	vector<DataType> numberAsVector;                                                            // Temporary storage
+	std::string numberAsString;                                                                 // So we can concatenate individual char together
+	std::vector<DataType> numberAsVector;                                                       // Temporary storage
 	
 	int startPoint = 0;                                                                         
-	for(int i = 0; i < strlen(character); i++)
+	for(int i = 0; i < std::strlen(character); i++)
 	{
 		if(character[i] == ' ')                                                             // Find the space in the char array
 		{
 			for(int j = startPoint; j < i; j++) numberAsString += character[j];         // Add the character to the string
 			
-			numberAsVector.push_back((DataType)stod(numberAsString));                   // Convert to double (override DataType)
+			numberAsVector.push_back((DataType)std::stod(numberAsString));              // Convert to double (override DataType)
 			
 			startPoint = i+1;                                                           // Advance the start point
 			
@@ -840,11 +868,11 @@ Vector<DataType,3> KinematicTree<DataType>::char_to_vector(const char* character
 	}
 	
 	// Get the last number in the char array
-	for(int i = startPoint; i < strlen(character); i++) numberAsString += character[i];
+	for(int i = startPoint; i < std::strlen(character); i++) numberAsString += character[i];
 	
-	numberAsVector.push_back(stof(numberAsString));
+	numberAsVector.push_back(std::stof(numberAsString));
 
-	return Vector<DataType,3>(numberAsVector.data());                                           // Return the extracted data
+	return Eigen::Vector<DataType,3>(numberAsVector.data());                                    // Return the extracted data
 }
 
 #endif
