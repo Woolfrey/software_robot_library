@@ -59,10 +59,6 @@ class TrapezoidalVelocity : public TrajectoryBase<DataType>
 		DataType _normalisedVel;
 		DataType _normalisedAcc;
 		
-		
-		Vector<DataType,Dynamic> _startPoint;                                               ///< Start point
-		Vector<DataType,Dynamic> _endPoint;                                                 ///< End point
-		
 };                                                                                                  // Semicolon needed after class declaration
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
