@@ -11,19 +11,21 @@
 #include <Eigen/Core>                                                                               // Eigen::Vector
 #include <iostream>                                                                                 // std::cout
 
-using namespace Eigen;                                                                              // Eigen::Vector
-using namespace std;                                                                                // std::invalid_argument, std::logic_error
+/**
+ * A data structure for the state of an object.
+ */
+template <typename DataType>
+struct State
+{
+	Eigen::Vector<DataType,Eigen::Dynamic> position;
+	Eigen::Vector<DataType,Eigen::Dynamic> velocity;
+	Eigen::Vector<DataType,Eigen::Dynamic> acceleration;
+};                                                                                                  // Semicolon needed after struct declaration
 
 template <class DataType>
 class TrajectoryBase
 {
 	public:
-
-		/**
-		 * Empty constructor.
-		 */
-		TrajectoryBase() {}                                                                 // Empty constructor
-		
 		/**
 		 * Full constructor.
 		 * @param startTime The time that the trajectory begins.
@@ -33,7 +35,17 @@ class TrajectoryBase
 		TrajectoryBase(const DataType     &startTime,
 		               const DataType     &endTime,
 		               const unsigned int &dimensions);
-		           
+		    
+		/**
+		 * Query the position of the trajectory for the given time.
+		 * @param time The point at which to evaluate the position.
+		 * @return The position as an Eigen::Vector object
+		 */
+		Eigen::Vector<DataType,Eigen::Dynamic> query_position(const DataType &time)
+		{
+			return query_state(time).position;                                          // Too easy lol (☞⌐▀͡ ͜ʖ͡▀ )☞
+		}
+		       
 		/**
 		 * Query the current trajectory state for the given input time.
 		 * This is a virtual function and must be defined in any derived class.
@@ -43,20 +55,7 @@ class TrajectoryBase
 		 * @param time The time at which to query the state.
 		 * @return Returns true if there were no problems.
 		 */
-		virtual bool get_state(Vector<DataType,Dynamic> &pos,
-		                       Vector<DataType,Dynamic> &vel,
-		                       Vector<DataType,Dynamic> &acc,
-		                       const float              &time) = 0;
-		
-		/**
-		 * @return Returns the starting time for this trajectory.
-		 */
-                DataType start_time() const { return this->_startTime; }
-                
-                /**
-                 * @return Returns the end time for this trajectory.
-                 */
-                DataType end_time()   const { return this->_endTime;   }
+		virtual State<DataType> query_state(const DataType &time) = 0;
 		              
 	protected:
 	
@@ -80,24 +79,26 @@ TrajectoryBase<DataType>::TrajectoryBase(const DataType     &startTime,
                                           _endTime(endTime),
                                           _dimensions(dimensions)
 {
+	using namespace std; // std::to_string, std::invalid_argument, std::logic_error
+	
 	if(startTime == endTime)
 	{
-		throw invalid_argument("[ERROR] [TRAJECTORY BASE] Constructor: "
-		                       "Start time is equal to the end time for the trajectory "
-		                       "(" + to_string(startTime) + " = " + to_string(endTime) + "). "
-		                       "You cannot move faster than light.");
+		throw std::invalid_argument("[ERROR] [TRAJECTORY BASE] Constructor: "
+		                            "Start time is equal to the end time for the trajectory "
+		                            "(" + std::to_string(startTime) + " = " + std::to_string(endTime) + "). "
+		                            "You cannot move faster than light.");
 	}
 	else if(startTime > endTime)
 	{
-		throw logic_error("[ERROR] [TRAJECTORY BASE] Constructor: "
-                                  "Start time is greater than end time for the trajectory "
-                                  "(" + to_string(startTime) + " > " + to_string(endTime) + "). "
-                                  "You cannot go back in time.");
+		throw std::logic_error("[ERROR] [TRAJECTORY BASE] Constructor: "
+                                       "Start time is greater than end time for the trajectory "
+                                       "(" + std::to_string(startTime) + " > " + std::to_string(endTime) + "). "
+                                       "You cannot go back in time.");
       	}
       	else if(dimensions == 0)
       	{
-      		throw invalid_argument("[ERROR] [TRAJECTORY BASE] Constructor: "
-      		                       "Number of dimensions was zero.");
+      		throw std::invalid_argument("[ERROR] [TRAJECTORY BASE] Constructor: "
+      		                            "Number of dimensions was zero.");
 	}
 }
 
