@@ -79,8 +79,6 @@ TrajectoryBase<DataType>::TrajectoryBase(const DataType     &startTime,
                                           _endTime(endTime),
                                           _dimensions(dimensions)
 {
-	using namespace std; // std::to_string, std::invalid_argument, std::logic_error
-	
 	if(startTime == endTime)
 	{
 		throw std::invalid_argument("[ERROR] [TRAJECTORY BASE] Constructor: "

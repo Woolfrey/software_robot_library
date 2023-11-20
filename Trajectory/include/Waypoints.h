@@ -22,7 +22,7 @@ class Waypoints
 		 * @param time The point at which to evaluate the trajectory.
 		 * @return The position.
 		 */
-		 Vector<DataType,Dynamic> query_position(const DataType &time)
+		 Eigen::Vector<DataType,Eigen::Dynamic> query_position(const DataType &time)
 		 {
 			return query_state(time).position;                                          // Too easy lol
 		 }
@@ -32,19 +32,19 @@ class Waypoints
 		  * @param time The point at which to evaluate the state.
 		  * @return A State data structure containing position, velocity, and acceleration.
 		  */
-		  State query_state(const DataType &time)
+		  State<DataType> query_state(const DataType &time)
 		  {
-		  	unsigned int trajectoryNum;
+		  	unsigned int trajectoryNumber;
 		  	
-		  	if(time < this->_time.front())	    trajectoryNumber = 0;
-		  	else if(time >= this->_time.back()) trajectoryNumber = this->_numPoints-1;
+		  	if(time < this->_time.front())	    trajectoryNumber = 0;                   // Not yet start; first trajectory
+		  	else if(time >= this->_time.back()) trajectoryNumber = this->_numPoints-1;  // Finished; final trajectory
 		  	else
 		  	{
 		  		for(int i = 0; i < this->numPoints-1; i++)
 		  		{
 		  			if(time < this->_time[i])
 		  			{
-		  				trajectoryNumber = i-1;
+		  				trajectoryNumber = i-1;     
 		  				break;
 		  			}
 		  		}
@@ -55,10 +55,10 @@ class Waypoints
 	
 	private:
 		
-		unsigned int _numPoints;
+		unsigned int _numberOfWaypoints;
 		
-		std::vector<DataType> _time;
+		std::vector<DataType> _time;                                                        // The time at which to  pass each waypoint
 		
-		std::vector<ClassType> _trajectory;
+		std::vector<ClassType> _trajectory;                                                 // An array of trajectories
 	
 };                                                                                                  // Semicolon needed after class declaration

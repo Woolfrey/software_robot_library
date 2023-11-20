@@ -11,8 +11,6 @@
 #include <Eigen/Geometry>                                                                           // Eigen::Vector, Eigen::Matrix, Eigen::Quaternion
 #include <TrajectoryBase.h>
 
-using namespace Eigen;                                                                              // Eigen::Vector
-
 template <class DataType>
 class TrapezoidalVelocity : public TrajectoryBase<DataType>
 {
@@ -31,29 +29,32 @@ class TrapezoidalVelocity : public TrajectoryBase<DataType>
 		 * @param maxAcc A scalar for the maximum acceleration and deceleration.
 		 * @param startTime The time that the trajectory begins.
 		 */
-		TrapezoidalVelocity(const Vector<DataType,Dynamic> &startPoint,
-                                    const Vector<DataType,Dynamic> &endPoint,
-                                    const DataType                 &maxVel,
-                                    const DataType                 &maxAcc,
-                                    const DataType                 &startTime;
+		TrapezoidalVelocity(const Eigen::Vector<DataType, Eigen::Dynamic> &startPoint,
+                                    const Eigen::Vector<DataType, Eigen::Dynamic> &endPoint,
+                                    const DataType                                &maxVel,
+                                    const DataType                                &maxAcc,
+                                    const DataType                                &startTime);
 		
 		/**
-		 * Query the state for the given time.
+		 * Query the state for the given time. Override from TrajectoryBase class.
 		 * @param pos A storage location for the position.
 		 * @param vel A storage location for the velocity.
 		 * @param acc A storage location for the acceleration.
 		 * @param time The time at which to compute the state.
 		 * @return Returns false if there are any issues.
 		 */
-		bool get_state(Vector<DataType,Dynamic> &pos,
-		               Vector<DataType,Dynamic> &vel,
-		               Vector<DataType,Dynamic> &acc,
-		               const DataType           &time);			
+		State<DataType> query_state(const DataType &time);	
 				
 	private:
+	
+		DataType _rampTime;
+		DataType _firstCornerDist;
+		DataType _secondCornerDist;
+	
+	
 		DataType _dt;                                                                       ///< Ratio of speed over acceleration
-		DataType _s1;
-		DataType _s2;
+		DataType _s1;                                                                       ///< Normalised distance to first corner on trapezoid
+		DataType _s2;                                                                       ///< Normalised distance to second corner on trapezoid
 		DataType _t1;                                                                       ///< Time at first corner of trapezoid
 		DataType _t2;                                                                       ///< Time at second corner of trapezoid
 		DataType _normalisedVel;
@@ -78,16 +79,17 @@ TrapezoidalVelocity<DataType>::TrapezoidalVelocity(const Vector<DataType,Dynamic
 {
 	if(startPoint.size() != endPoint.size())
 	{
-		throw invalid_argument("[ERROR] [TRAPEZOIDAL VELOCITY] Constructor: "
-		                       "Dimensions of input arguments do not match. "
-		                       "The start point had " + to_string(startPoint.size()) + " elements, "
-		                       "and the end point had " + to_string(endPoint.size()) + " elements.");
+		throw std::invalid_argument("[ERROR] [TRAPEZOIDAL VELOCITY] Constructor: "
+		                            "Dimensions of input arguments do not match. "
+		                            "The start point had " + std::to_string(startPoint.size()) + " elements, "
+		                            "and the end point had " + std::to_string(endPoint.size()) + " elements.");
 	}
 	else if(maxVel <= 0 or maxAccel <= 0)
 	{
-		throw invalid_argument("[ERROR] [TRAPEZOIDAL VELOCITY] Constructor: "
-		                       "Velocity and acceleration arguments were "
-		                       + to_string(maxVel) + " and " + to_string(maxAcc) + " but must be positive.");
+		throw std::invalid_argument("[ERROR] [TRAPEZOIDAL VELOCITY] Constructor: "
+		                            "Velocity and acceleration arguments were "
+		                            + std::to_string(maxVel) + " and " + std::to_string(maxAcc) +
+		                            " but must be positive.");
 	}
 	
 	DataType normaliser -1;                                                                     // Needed to scale velocity to be dimensionless
@@ -105,54 +107,44 @@ TrapezoidalVelocity<DataType>::TrapezoidalVelocity(const Vector<DataType,Dynamic
 		vel = (vel > temp) ? temp : vel;                                                    // Ensure max velocity does not exceed acceleration, distance constraints
 	}
 	
-	this->_normalisedVel = vel/normaliser;                                                      // Need to normalise so we can scale between 0 and 1
+	this->_normalisedVelocity = vel/normaliser;                                                 // Need to normalise so we can scale between 0 and 1
 	
-	this->_normalisedAcc = maxAcc/normaliser;
+	this->_normalisedAcceleration = maxAcc/normaliser;                                          // Scale the acceleration to match the velocity
 	
 	this->_dt = vel/maxAcc;                                                                     // Time between corners of trapezoid
 	
 	this->_t1 = this->_startTime + dt;                                                          // Time to reach 1st corner of trapezoid
 	
-	this->_s1 = (this->_dt*this->_dt*this->_normalisedAcc)/2.0;
+	this->_s1 = (this->_dt*this->_dt*this->_normalisedAcc)/2.0;                                 // Normalised distance to first corner of trapezoid
 	
-	this->_t2 = this->_t1 + (1 - 2*this->_s1 + 0)/this->_normalisedVel;
+	this->_t2 = this->_t1 + (1 - 2*this->_s1 + 0)/this->_normalisedVel;                         // Time to reach 2nd corner
 	
-	this->_s2 = this->_s1 + (this->_t2 - this->_t1)/this->_normalisedVel;
+	this->_s2 = this->_s1 + (this->_t2 - this->_t1)/this->_normalisedVel;                       // Normalised distance to second corner of trapezoid
 	
-	this->_endTime = this->_t2 + this->_dt;
+	this->_endTime = this->_t2 + this->_dt;                                                     // End time of the trajectory
+	
+	if(this->_s1 >= 1.0 or this->_s2 >= 1.0)
+	{
+		throw std::logic_error("[ERROR] [TRAPEZOIDAL VELOCITY] Constructor: "
+		                       "Normalised distance must be between 0 and 1, but "
+		                       "the distance to the first corner was " + std::to_string(this->_s1) + ", and "
+		                       "the distance to the second corner was " + std::to_string(this->_s2) + ".");
+	}
+	else if(s1 > s2)
+	{
+		throw std::logic_error("[ERROR] [TRAPEZOIDAL VELOCITY] Constructor: "
+		                       "Normalised distance to first corner of waypoint was greater than the distance "
+		                       "to the second corner (" + std::to_string(this->_s1) + " > "
+		                       + std::to_string(this->_s2) + ").");
+	}
 }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //                               Get the state for the given time                                //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <class DataType> inline
-bool TrapezoidalVelocity<DataType>::get_state(Vector<DataType,Dynamic> &pos,
-                                              Vector<DataType,Dynamic> &vel,
-                                              Vector<DataType,Dynamic> &acc,
-                                              const DataType           &time)
+State<DataType> TrapezoidalVelocity<DataType>::get_state(const DataType &time)
 {
-	// Make sure the inputs are sound
-	if(pos.size() != this->dim)
-	{
-		cerr << "[ERROR] [TRAPEZOIDAL VELOCITY] get_state(): "
-		     << "This trajectory object has " << this->dim << " dimensions, "
-		     << "but your input argument had " << pos.size() << " elements.\n";
-		     
-		return false;
-	}
-	else if(pose.size() != vel.size() or vel.size() != acc.size())
-	{
-		cerr << "[ERROR] [TRAPEZOIDAL VELOCITY] get_state(): "
-		     << "Dimensions of arguments do not match. "
-		     << "Position argument had " << pos.size() << " elements, "
-		     << "velocity argument had " << vel.size() << " elements, and "
-		     << "acceleration argument had + " << acc.size() << " elements.\n";
-		     
-		return false;
-	}
-	
-	// Figure out which section of the trapezoid we are on
-	
 	DataType s, sd, sdd, t;                                                                     // Scalars for interpolation
 	
 	if(time < this->_startTime)
@@ -166,8 +158,8 @@ bool TrapezoidalVelocity<DataType>::get_state(Vector<DataType,Dynamic> &pos,
 		t = time - this->_startTime;
 		
 		s   = (t*t*this->_normalisedAcc)/2.0;
-		sd  = t*this->_normalisedAcc;
-		sdd = this->_normalisedAcc;
+		sd  =    t*this->_normalisedAcc;
+		sdd =      this->_normalisedAcc;
 	}
 	else if(time < this->_t2)
 	{
@@ -181,8 +173,8 @@ bool TrapezoidalVelocity<DataType>::get_state(Vector<DataType,Dynamic> &pos,
 	{
 		t = time - this->_t2;
 		
-		s   = this->s_2 + t*this->_normalisedVel - (t*t*this->_normalisedAcc)/2.0;
-		sd  = this->_normalisedVel - t*this->_normalisedAcc;
+		s   =  this->s_2 + t*this->_normalisedVel - (t*t*this->_normalisedAcc)/2.0;
+		sd  =  this->_normalisedVel - t*this->_normalisedAcc;
 		sdd = -this->_normalisedAcc;
 	}
 	else
@@ -192,12 +184,11 @@ bool TrapezoidalVelocity<DataType>::get_state(Vector<DataType,Dynamic> &pos,
 		sdd = 0.0;
 	}
 	
-	pos = (1-s)*this->_startPoint - s*this->_endPoint;
-	vel =  sd*(this->_endPoint - this->_startPoint);
-	acc = sdd*(this->_endPoint - this->_startPoint);
+	State<DataType> state = { (1-s)*this->_startPoint - s*this->_endPoint,                      // Position
+	                            sd*(this->_endPoint   -   this->_startPoint),                   // Velocity
+	                           sdd*(this->_endPoint   -   this->_startPoint) };                 // Acceleration
 	
-	return true;
+	return state;
 }
-
 
 #endif

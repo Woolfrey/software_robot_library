@@ -7,8 +7,9 @@
 #ifndef CARTESIANTRAJECTORY_H_
 #define CARTESIANTRAJECTORY_H_
 
-#include <CubicSpline.h>                                                                            // Custom trajectory class
+#include <MultiTrapezoid.h>
 #include <Pose.h>
+#include <Spline.h>
 
 template <typename DataType>
 struct CartesianState
@@ -18,7 +19,7 @@ struct CartesianState
 	Eigen::Vector<DataType,6> acceleration;
 };                                                                                                  // Semicolon needed after class declaration
 
-template <class DataType>
+template <class DataType, class TrajectoryType>
 class CartesianTrajectory
 {
 	public:
@@ -49,9 +50,7 @@ class CartesianTrajectory
 		
 	private:
 	
-		unsigned int numPoints;
-
-		CubicSpline<DataType> trajectory;                                                   // This is the underlying trajectory object      
+		TrajectoryType _trajectory;                                                         // The underlying trajectory object
 		
 };                                                                                                  // Semicolon needed after class declaration
 
@@ -62,8 +61,6 @@ class CartesianTrajectory
 template <class DataType>
 CartesianTrajectory<DataType>::CartesianTrajectory(const std::vector<Pose<DataType>> &poses,
                                                    const std::vector<DataType>       &times)
-                                                   :
-                                                   numPoints(waypoint.size())
 {
 	if(waypoint.size() != time.size())
 	{
