@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.8)					                            # Minimum cm
 
 project(RobotLibrary VERSION 1.0.0 LANGUAGES CXX)                                                   # Can use ${PROJECT_NAME} as a reference
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)                                                                          # For structured bindings
 
 set(CMAKE_BUILD_TYPE Release)
 
