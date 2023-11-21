@@ -89,7 +89,7 @@ class Link : public RigidBody<DataType>
 		/**
 		 * Returns a unit vector for the joint axis in the base frame of the kinematic tree.
 		 */
-		Eigen::Vector<DataType,3> axis() const { return this->_axis; }
+		Eigen::Vector<DataType,3> joint_axis() const { return this->_jointAxis; }
 		
 		/**
 		 * Set the pointer to the proceeding link in a kinematic chain as null.
@@ -135,7 +135,7 @@ bool Link<DataType>::add_child_link(Link *child)
 		return false;
 	}
 	
-	this->childLinks.push_back(child);
+	this->_childLinks.push_back(child);
 	
 	return true;
 }
@@ -164,21 +164,21 @@ bool Link<DataType>::set_parent_link(Link *parent)
 template <class DataType>
 void Link<DataType>::merge(const Link &otherLink)
 {
-	RigidBody<DataType>::combine_inertia(otherLink, otherLink.joint().offset());                // Add the inertia of the other link to this one
+	RigidBody<DataType>::combine_inertia(otherLink, otherLink.joint().origin());                // Add the inertia of the other link to this one
 	
 	for(auto currentLink : otherLink.child_links())                                             // Cycle through all links attached to other
 	{
 		currentLink->set_parent_link(this);                                                 // Make this link the new parent
 		
-		currentLink->joint.extend_origin(otherLink.joint().offset());                       // Extend the origin to this link
+		currentLink->joint().extend_origin(otherLink.joint().origin());                     // Extend the origin to this link
 	}
 	
 	// Delete the merged link from the list of child links
-	for(int i = 0; i < this->childLinks.size(); i++)
+	for(int i = 0; i < this->_childLinks.size(); i++)
 	{
 		if(this->_childLinks[i]->name() == otherLink.name())
 		{
-			this->childLinks.erase(this->_childLinks.begin()+i);    
+			this->_childLinks.erase(this->_childLinks.begin()+i);    
 			break;
 		}
 	}
@@ -211,10 +211,10 @@ bool Link<DataType>::update_state(const Pose<DataType>     &previousPose,
                                   const DataType           &jointPosition,
                                   const DataType           &jointVelocity)                            
 {
-	if(not this->_joint().is_revolute() and not this->_joint().is_prismatic())
+	if(not this->_joint.is_revolute() and not this->_joint.is_prismatic())
 	{
 		std::cerr << "[ERROR] [LINK] update_state(): "
-		          << "The '" << this->_joint().name() << "' was " << this->_joint().type() << " "
+		          << "The '" << this->_joint.name() << "' was " << this->_joint.type() << " "
 		          << "but expected revolute or prismatic." << std::endl;
 		
 		return false;
@@ -223,8 +223,8 @@ bool Link<DataType>::update_state(const Pose<DataType>     &previousPose,
 	{
 		Pose<DataType> wtf = previousPose;                                                  // I can't use previousPose in place for some reason ¯\_(⊙︿⊙)_/¯
 	
-		Pose<DataType> newPose = wtf * this->_joint().origin()
-		                             * this->_joint().position_offset(jointPosition);       // New pose of the link
+		Pose<DataType> newPose = wtf * this->_joint.origin()
+		                             * this->_joint.position_offset(jointPosition);       // New pose of the link
 		                             
 		this->_jointAxis = (this->_pose.rotation()*this->_joint.axis()).normalized();       // New joint axis in global frame
 		

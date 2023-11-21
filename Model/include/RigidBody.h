@@ -46,6 +46,11 @@ class RigidBody
 		Eigen::Matrix<DataType,3,3> inertia() const { return this->_inertia; }
 		
 		/**
+		 * @return Returns the time derivative of the moment of inertia.
+		 */
+		Eigen::Matrix<DataType,3,3> inertia_derivative() const { return this->_inertiaDerivative; }
+		
+		/**
 		 * @return The pose of this object in some global frame.
 		 */
 		Pose<DataType> pose() const { return this->_pose; }
@@ -81,7 +86,7 @@ class RigidBody
 		void update_state(const Pose<DataType> &pose,
 		                  const Eigen::Vector<DataType,6> &twist);
 		
-	private:
+	protected:
 	          
 		DataType _mass = 0.0;                                                               ///< How heavy the object is (kg)                                             
 	

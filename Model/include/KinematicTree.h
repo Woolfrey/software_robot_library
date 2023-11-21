@@ -40,7 +40,7 @@ class KinematicTree
 		bool update_state(const Eigen::Vector<DataType, Eigen::Dynamic> &jointPosition,
 		                  const Eigen::Vector<DataType, Eigen::Dynamic> &jointVelocity)
 		{
-			return update_state(jointPosition, jointVelocity, this->_basePose, Eigen::Vector<DataType,6>::Zero());
+			return update_state(jointPosition, jointVelocity, this->_base.pose(), Eigen::Vector<DataType,6>::Zero());
 		}
 		
 		/**
@@ -339,9 +339,9 @@ KinematicTree<DataType>::KinematicTree(const string &pathToURDF)
                                                     "Unable to find '" + childLinkName + "' in the list of rigid bodies.");
                         } */
                         
-                        auto rigidBody = rigidBodyList.find(childLinkName)->second;
+                        const auto &rigidBody = rigidBodyList.find(childLinkName)->second;
 			                       
-                        this->fullLinkList.emplace_back(rigidBody, joint);                          // Create new link, add to vector
+                        this->_fullLinkList.emplace_back(rigidBody, joint);                         // Create new link, add to vector
                         
 			linkList.emplace(childLinkName, linkNumber);                                // Add the index to the std::map so we can find it later
 			
@@ -366,21 +366,21 @@ KinematicTree<DataType>::KinematicTree(const string &pathToURDF)
 	{
 		string message = "[ERROR] [KINEMATIC TREE] Constructor: More than one candidate for the base:\n";
 		
-		for(auto iterator : rigidBodyList) message + "   - " + iterator->first + "\n";      // Loop over all elements in the map
+		for(const auto &[name, object] : rigidBodyList) message + "   - " + name + "\n";    // Loop over all elements in the map
 		
 		throw std::runtime_error(message);
 	}
 	
 	// Form the connections between all the links
-	for(const auto currentLink : this->_fullLinkList)
+	for(auto &currentLink : this->_fullLinkList)
 	{
 		std::string parentLinkName = connectionList.find(currentLink.name())->second;       // Get the name of the parent link
 		
-		if(parentLinkName != this->_base.name())
+		if(parentLinkName != this->_base.name())                                            // Not directly attached to the base
 		{
 			unsigned int parentLinkNum = linkList.find(parentLinkName)->second;         // Get the number of the parent link
 			
-			currentLink.set_parent_link(&this->fullLinkList[parentLinkNum]);            // Set the parent/child link relationship
+			currentLink.set_parent_link(&this->_fullLinkList[parentLinkNum]);           // Set the parent/child link relationship
 		}
 	}
 	
@@ -418,9 +418,9 @@ KinematicTree<DataType>::KinematicTree(const string &pathToURDF)
 	unsigned int count = 0;
 	
 	// Merge the dynamic properties of all the links connected by fixed joints	
-	for(auto currentLink : this->_fullLinkList)
+	for(auto &currentLink : this->_fullLinkList)
 	{
-		if(currentLink.is_fixed())
+		if(currentLink.joint().is_fixed())                                                  // Joint is fixed, so merge with parent link
 		{
 			Link<DataType> *parentLink = currentLink.parent_link();                     // Pointer to the parent link
 		
@@ -428,13 +428,11 @@ KinematicTree<DataType>::KinematicTree(const string &pathToURDF)
 			{
 				this->_base.combine_inertia(currentLink,currentLink.joint().origin()); // Combine inertia of this link with the base
 				
-				vector<Link<DataType>*> childLinkArray = currentLink.child_links(); // Get all the child links of this one
-				
-				for(auto childLink : childLinkArray)
+				for(auto childLink : currentLink.child_links())                     // Cycle through all the child links
 				{
-					childLink->clear_parent_link();
+					childLink->clear_parent_link();                             // Parent link has been merged, so sever the connection
 					
-					this->_baseLinks.push_back(childLink);
+					this->_baseLinks.push_back(childLink);                      // Child link is now directly attached to base
 				}
 			}
 			else parentLink->merge(currentLink);                                        // Merge this link in to the list
@@ -497,7 +495,7 @@ KinematicTree<DataType>::KinematicTree(const string &pathToURDF)
 	this->_jointGravityVector.resize(this->_numberOfJoints);
 	
 	std::cout << "[INFO] [KINEMATIC TREE] Successfully created the '" << this->_name << "' robot."
-	          << " It has " << this->_numberOfJoints << " joints (reduced from " << this->fullLinkList.size() << ").\n";
+	          << " It has " << this->_numberOfJoints << " joints (reduced from " << this->_fullLinkList.size() << ").\n";
 	
 //	Debugging stuff:
 /*
@@ -536,11 +534,11 @@ bool KinematicTree<DataType>::update_state(const Eigen::Vector<DataType, Eigen::
                                            const Pose<DataType>                          &basePose,
                                            const Eigen::Vector<DataType, 6>              &baseTwist)
 {
-	if(jointPosition.size() != this->numJoints
-	or jointVelocity.size() != this->numJoints)
+	if(jointPosition.size() != this->_numberOfJoints
+	or jointVelocity.size() != this->_numberOfJoints)
 	{
 		std::cerr << "[ERROR] [KINEMATIC TREE] update_state(): "
-		          << "This model has " << this->numJoints << " joints, but "
+		          << "This model has " << this->_numberOfJoints << " joints, but "
 		          << "the joint position argument had " << jointPosition.size() << " elements, "
 		          << "and the joint velocity argument had " << jointVelocity.size() << " element." << std::endl;
 		
@@ -615,7 +613,7 @@ bool KinematicTree<DataType>::update_state(const Eigen::Vector<DataType, Eigen::
 		this->_jointCoriolisMatrix.block(0,0,k+1,k+1) += mass * Jv.transpose()*Jdot.block(0,0,3,k+1)
 		                                                      + Jw.transpose()*(Idot*Jw + I*Jdot.block(3,0,3,k+1));
 		
-		this->_jointGravityVector.head(k+1) -= mass*Jv.transpose()*this->gravityVector;      // We need to NEGATE gravity		
+		this->_jointGravityVector.head(k+1) -= mass*Jv.transpose()*this->_gravityVector;    // We need to NEGATE gravity		
 		
 		// Get the links attached to this one and add them to the list
 		std::vector<Link<DataType>*> temp = currentLink->child_links();
@@ -623,9 +621,9 @@ bool KinematicTree<DataType>::update_state(const Eigen::Vector<DataType, Eigen::
 	}
 	
 	// Complete the lower-left triangle of the inertia matrix
-	for(int i = 1; i < this->numJoints; i++)
+	for(int i = 1; i < this->_numberOfJoints; i++)
 	{
-		for(int j = 0; j < i; j++) this->jointInertiaMatrix(i,j) = this->jointInertiaMatrix(j,i);
+		for(int j = 0; j < i; j++) this->_jointInertiaMatrix(i,j) = this->_jointInertiaMatrix(j,i);
 	}
 	
 	return true;
@@ -695,7 +693,7 @@ KinematicTree<DataType>::time_derivative(const Eigen::Matrix<DataType,6,Eigen::D
 		for(int j = 0; j <= i; j++)
 		{
 			// Compute dJ(i)/dq(j)
-			if(this->link[j]->joint().is_revolute())
+			if(this->_link[j]->joint().is_revolute())
 			{
 				DataType qdot = this->_jointVelocity(j);                            // Makes things a little easier
 				
@@ -704,7 +702,7 @@ KinematicTree<DataType>::time_derivative(const Eigen::Matrix<DataType,6,Eigen::D
 				Jdot(1,i) += qdot*(jacobianMatrix(5,j)*jacobianMatrix(0,i) - jacobianMatrix(3,j)*jacobianMatrix(2,i));
 				Jdot(2,i) += qdot*(jacobianMatrix(3,j)*jacobianMatrix(1,i) - jacobianMatrix(4,j)*jacobianMatrix(0,i));
 				
-				if(this->link[i]->joint().is_revolute())			    // J_i = [a_i x r_i; a_i]
+				if(this->_link[i]->joint().is_revolute())			    // J_i = [a_i x r_i; a_i]
 				{
 					// qdot_j * ( a_j x a_i )
 					Jdot(3,i) += qdot*(jacobianMatrix(4,j)*jacobianMatrix(5,i) - jacobianMatrix(5,j)*jacobianMatrix(4,i));
@@ -714,11 +712,11 @@ KinematicTree<DataType>::time_derivative(const Eigen::Matrix<DataType,6,Eigen::D
 			}
 			
 			// Compute dJ(j)/dq(i)
-			if(i != j && this->link[j]->joint().is_revolute())	                    // J_j = [a_j x r_j; a_j]
+			if(i != j && this->_link[j]->joint().is_revolute())	                    // J_j = [a_j x r_j; a_j]
 			{
 				DataType qdot = this->_jointVelocity(i);                            // Makes things a little easier
 				
-				if(this->link[i]->joint().is_revolute())			    // J_i = [a_i x r_i; a_i]
+				if(this->_link[i]->joint().is_revolute())			    // J_i = [a_i x r_i; a_i]
 				{
 					// qdot_i * ( a_i x (a_j x r_j) )
 					Jdot(0,j) += qdot*(jacobianMatrix(4,j)*jacobianMatrix(2,i) - jacobianMatrix(5,j)*jacobianMatrix(1,i));
@@ -825,9 +823,9 @@ Eigen::Matrix<DataType,6,Eigen::Dynamic> KinematicTree<DataType>::jacobian(const
 	
 	// NOTE: Need an error check here
 	
-	return jacobian(frame.link->parentLink(),                                                   // Is this supposed to be the parent link? I forget (ಥ﹏ಥ)
+	return jacobian(frame.link->parent_link(),                                                  // Is this supposed to be the parent link? I forget (ಥ﹏ಥ)
 	               (frame.link->parent_link()->pose()*frame.relativePose).translation(),        // The point for which to compute the Jacobian
-	                frame->parent_link()->number()+1);                                          // The link/joint number to start from
+	                frame.link->parent_link()->number()+1);                                     // The link/joint number to start from
 }
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -836,11 +834,11 @@ Eigen::Matrix<DataType,6,Eigen::Dynamic> KinematicTree<DataType>::jacobian(const
 template <class DataType> inline
 Pose<DataType> KinematicTree<DataType>::frame_pose(const string &frameName)
 {
-	ReferenceFrame<DataType> frame = this->referenceFrameList.find(frameName);
+	ReferenceFrame<DataType> frame = this->_frameList.find(frameName)->second;
 	
 	// NEED AN ERROR CHECK HERE
 	
-	return frame.link()->pose()*frame.relativePose;
+	return frame.link->pose()*frame.relativePose;
 }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
