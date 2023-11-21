@@ -110,7 +110,7 @@ class Link : public RigidBody<DataType>
 		
 	private:
 	
-		Eigen::Vector<DataType,3> _jointAxis;                                               ///< Axis of joint actuation in global frame
+		Eigen::Vector<DataType,3> _jointAxis = {0,0,1};                                      ///< Axis of joint actuation in global frame
 		
 		Joint<DataType> _joint;                                                             ///< The joint attached to this link
 		
@@ -192,8 +192,7 @@ bool Link<DataType>::update_state(const DataType &jointPosition, const DataType 
 {
 	if(this->_parentLink == nullptr)
 	{
-		std::cerr << "[ERROR] [LINK] update_state(): "
-		             "The '" << this->_name << "' link has no parent link. "
+		std::cerr << "[ERROR] [LINK] update_state(): The '" << this->_name << "' link has no parent link. "
 		             "You need to call the update_state() method that specifies the "
 		             "relative pose and twist as arguments." << std::endl;
 		
@@ -223,10 +222,11 @@ bool Link<DataType>::update_state(const Pose<DataType>     &previousPose,
 	{
 		Pose<DataType> wtf = previousPose;                                                  // I can't use previousPose in place for some reason ¯\_(⊙︿⊙)_/¯
 	
-		Pose<DataType> newPose = wtf * this->_joint.origin()
-		                             * this->_joint.position_offset(jointPosition);       // New pose of the link
-		                             
-		this->_jointAxis = (this->_pose.rotation()*this->_joint.axis()).normalized();       // New joint axis in global frame
+		Pose<DataType> newPose = wtf * this->_joint.origin();                               // Transform of link/joint in global frame
+		
+		this->_jointAxis = (newPose.rotation()*this->_joint.axis()).normalized();           // Rotate local axis to global frame
+		
+		newPose *= this->_joint.position_offset(jointPosition);                             // Now add transform from joint position
 		
 		Eigen::Vector<DataType,6> newTwist = previousTwist;                                 // Propagate the velocity
 		

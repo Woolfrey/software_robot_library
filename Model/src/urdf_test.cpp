@@ -47,14 +47,14 @@ int main(int argc, char **argv)
 		
 		std::cout << "\nIt took " << time*1000 << " milliseconds (" << 1/time << " Hz) "
 		          << "to compute the inverse dynamics.\n";
-		          
+
 		if(model.name() == "sawyer")
 		{
-			std::cout << "\nHere is the pose of the 'right_hand':\n\n";
-			std::cout << model.frame_pose("right_hand").as_matrix() << std::endl;
+			std::cout << "\nHere is the pose of the 'right_hand' frame:\n\n";
+			std::cout << model.frame_pose("right_hand").as_matrix() << "\n";
 			
-			std::cout << "\nHere is the Jacobian to the 'right_hand': \n\n";
-			std::cout << model.jacobian("right_hand") << std::endl;
+			std::cout << "\nHere is the jacobian matrix of the 'right_hand' frame:\n\n";
+			std::cout << model.jacobian("right_hand") << "\n";
 		}
 
 		std::cout << "\nHere is the inertia matrix:\n\n";

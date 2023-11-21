@@ -234,7 +234,7 @@ KinematicTree<DataType>::KinematicTree(const string &pathToURDF)
 				Vector<DataType, 3> rpy = char_to_vector(origin->Attribute("rpy"));
 				
 				// NOTE: URDF specifies a pose for the center of mass,
-				//       which is a little superfluous...
+				//       which is a little superfluous, so we will reduce it
 				
 				Pose<DataType> pose(xyz, AngleAxis<DataType>(rpy(0),Vector<DataType, 3>::UnitX())
 				                        *AngleAxis<DataType>(rpy(1),Vector<DataType, 3>::UnitY())
@@ -415,7 +415,7 @@ KinematicTree<DataType>::KinematicTree(const string &pathToURDF)
 		}
 	}*/
 	
-	unsigned int count = 0;
+	unsigned int activeJointCount = 0;
 	
 	// Merge the dynamic properties of all the links connected by fixed joints	
 	for(auto &currentLink : this->_fullLinkList)
@@ -432,21 +432,21 @@ KinematicTree<DataType>::KinematicTree(const string &pathToURDF)
 				{
 					childLink->clear_parent_link();                             // Parent link has been merged, so sever the connection
 					
-					this->_baseLinks.push_back(childLink);                      // Child link is now directly attached to base
+				//	this->_baseLinks.push_back(childLink);                      // Child link is now directly attached to base
 				}
 			}
 			else parentLink->merge(currentLink);                                        // Merge this link in to the list
 		
-			// Save this link as a reference frame so we can search it later
 			ReferenceFrame<DataType> frame = {parentLink, currentLink.joint().origin()};
-			this->_frameList.emplace(currentLink.name(),frame);
+			
+			this->_frameList.emplace(currentLink.name(),frame);			    // Save this link as a reference frame so we can search it later
 		}
 		else
 		{
 			if(currentLink.parent_link() == nullptr) this->_baseLinks.push_back(&currentLink); // This link is attached directly to the base
-			currentLink.set_number(count);                                              // Set the number in the kinematic tree
+			currentLink.set_number(activeJointCount);                                   // Set the number in the kinematic tree
 			this->_link.push_back(&currentLink);                                        // Add this link to the active list
-			count++;                                                                    // Increment the counter of active links
+			activeJointCount++;                                                         // Increment the counter of active links
 		}
 	}
 /*	for(int i = 0; i < this->fullLinkList.size(); i++)
@@ -485,7 +485,7 @@ KinematicTree<DataType>::KinematicTree(const string &pathToURDF)
 		}
 	}*/
 	
-	this->_numberOfJoints = count;
+	this->_numberOfJoints = this->_link.size();
 	
 	// Resize the relevant matrices, vectors accordingly
 	this->_jointPosition.resize(this->_numberOfJoints);
@@ -500,7 +500,7 @@ KinematicTree<DataType>::KinematicTree(const string &pathToURDF)
 //	Debugging stuff:
 /*
 	std::cout << "\nHere is a list of all the joints on the robot:\n";		
-	vector<Link<DataType>*> candidateList = this->baseLinks;                                         // Start with links connect to base
+	vector<Link<DataType>*> candidateList = this->_baseLinks;                                        // Start with links connect to base
 	while(candidateList.size() > 0)
 	{
 		Link<DataType> *currentLink = candidateList.back();                                      // Get the one at the end
@@ -515,14 +515,13 @@ KinematicTree<DataType>::KinematicTree(const string &pathToURDF)
 	}
 	
 	std::cout << "\nHere are the reference frames on the robot:\n";
-	for(auto iterator = this->referenceFrameList.begin(); iterator != this->referenceFrameList.end(); iterator++)
-	{	
-		std::cout << " - '" << iterator->first << "' is on the ";
+	for(const auto &[name, frame] : this->_frameList)
+	{
+		std::cout << " - " << name << " is on the ";
 		
-		if(iterator->second.link == nullptr) std::cout << this->_base.name() << ".\n";
-		else                                 std::cout << "'" << iterator->second.link->name() << "' link.\n";
-	}
-*/
+		if(frame.link == nullptr) std::cout << this->_base.name() << ".\n";
+		else                      std::cout << "'" << frame.link->name() << "' link.\n";
+	}*/
 }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -674,7 +673,6 @@ KinematicTree<DataType>::jacobian(Link<DataType> *link,                         
 			link = link->parent_link();                                                 // Move to next joint toward the base	
 		}
 	}
-	
 	return J;
 }
 
@@ -823,9 +821,9 @@ Eigen::Matrix<DataType,6,Eigen::Dynamic> KinematicTree<DataType>::jacobian(const
 	
 	// NOTE: Need an error check here
 	
-	return jacobian(frame.link->parent_link(),                                                  // Is this supposed to be the parent link? I forget (ಥ﹏ಥ)
-	               (frame.link->parent_link()->pose()*frame.relativePose).translation(),        // The point for which to compute the Jacobian
-	                frame.link->parent_link()->number()+1);                                     // The link/joint number to start from
+	return jacobian(frame.link,                                                  // Is this supposed to be the parent link? I forget (ಥ﹏ಥ)
+	               (frame.link->pose()*frame.relativePose).translation(),        // The point for which to compute the Jacobian
+	                frame.link->number()+1);                                    // The link/joint number to start from
 }
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
