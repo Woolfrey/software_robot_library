@@ -27,7 +27,7 @@
 		:
 		Spline(waypoints, times, polynomialOrder,
 		       Eigen::Vector<DataType,Eigen::Dynamic>::Zero(waypoints.front().size()),
-		       Eigen::Vector<DataType,Eigen::Dynamic>::Zero(waypoints.back().size()));
+		       Eigen::Vector<DataType,Eigen::Dynamic>::Zero(waypoints.back().size())) {}
 		 
  		/**
  		 * Constructor with start and end velocities specified.
@@ -35,7 +35,7 @@
  		 */
  		Spline(const std::vector<Eigen::Vector<DataType,Eigen::Dynamic>> &waypoints,
  		       const std::vector<DataType> &times,
-		       const unisgned int &polynomialOrder,
+		       const unsigned int &polynomialOrder,
  		       const Eigen::Vector<DataType,Eigen::Dynamic> &startVelocity,
  		       const Eigen::Vector<DataType,Eigen::Dynamic> &endVelocity);
  		       
@@ -56,13 +56,14 @@
  template <class DataType>
  Spline<DataType>::Spline(const std::vector<Eigen::Vector<DataType,Eigen::Dynamic>> &waypoints,
  		          const std::vector<DataType> &times,
- 		          const unsigned int polynomialOrder,
+ 		          const unsigned int &polynomialOrder,
  		          const Eigen::Vector<DataType,Eigen::Dynamic> &startVelocity,
  		          const Eigen::Vector<DataType,Eigen::Dynamic> &endVelocity)
- 		          :
- 		          _numberOfWaypoints(waypoints.size()),
- 		          _times(times)
 {
+	// Set values in underlying Waypoints class
+	this->_numberOfWaypoints = waypoints.size();
+	this->_times = times;
+	
 	using namespace Eigen;
 	
 	// Ensure input arguments are sound

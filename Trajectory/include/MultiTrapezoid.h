@@ -12,7 +12,7 @@
  #include <Waypoints.h>
  
  template <class DataType>
- class MultiTrapezoid<DataType> : public Waypoints<DataType,TrapezoidalVelocity<DataType>>
+ class MultiTrapezoid : public Waypoints<DataType,TrapezoidalVelocity<DataType>>
  {
  	public:
  		/**
@@ -23,9 +23,8 @@
  		 */
  		MultiTrapezoid(const std::vector<Eigen::Vector<DataType,Eigen::Dynamic>> &waypoints,
  		               const DataType &maxVelocity,
- 		               const DataType &maxAcceleration);
- 	
- 	private:
+ 		               const DataType &maxAcceleration,
+ 		               const DataType &startTime);
  };                                                                                                 // Semicolon needed after class declaration
  
   //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -34,9 +33,18 @@
 template <class DataType>
 MultiTrapezoid<DataType>::MultiTrapezoid(const std::vector<Eigen::Vector<DataType,Eigen::Dynamic>> &waypoints,
                                          const DataType &maxVelocity,
-                                         const DataType &maxAcceleration)
+                                         const DataType &maxAcceleration,
+                                         const DataType &startTime)
 {
-	
+	for(int i = 0; i < waypoints.size()-1; i++)
+	{
+		DataType t;
+		
+		if(i == 1) t = startTime;
+		else       t = this->_trajectory[i-1].end_time();                                   // Start time of this trajectory is end time of previous
+		
+		this->_trajectory[i].emplace_back(waypoints[i],waypoints[i+1],maxVelocity,maxAcceleration,t);
+	}
 }
 
 #endif

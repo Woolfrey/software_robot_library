@@ -203,7 +203,6 @@ bool Polynomial<DataType>::compute_coefficients(const Eigen::Vector<DataType,Eig
         	          
 	        return false;
 	}
-
 }
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////

@@ -20,7 +20,7 @@ struct CartesianState
 };                                                                                                  // Semicolon needed after class declaration
 
 template <class DataType, class TrajectoryType>
-class CartesianTrajectory
+class CartesianTrajectory : public Waypoints<DataType,TrajectoryType>
 {
 	public:
 		/**
@@ -54,58 +54,47 @@ class CartesianTrajectory
 		
 };                                                                                                  // Semicolon needed after class declaration
 
-
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                                        Constructor                                             //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-template <class DataType>
-CartesianTrajectory<DataType>::CartesianTrajectory(const std::vector<Pose<DataType>> &poses,
-                                                   const std::vector<DataType>       &times)
+template <class DataType, class TrajectoryType>
+CartesianTrajectory<DataType,TrajectoryType>::CartesianTrajectory(const std::vector<Pose<DataType>> &poses,
+                                                                  const std::vector<DataType>       &times)
 {
-	if(waypoint.size() != time.size())
+	if(poses.size() != times.size())
 	{
 		throw std::invalid_argument("[ERROR] [CARTESIAN TRAJECTORY] Constructor: "
                                             "Length of input arguments do not match. "
-                                            "There were " + std::to_string(waypoint.size()) + " waypoints "
-                                            "and " + std::to_string(time.size()) + " times.");
+                                            "There were " + std::to_string(poses.size()) + " waypoints "
+                                            "and " + std::to_string(times.size()) + " times.");
 	}
 
-	std::vector<Eigen::Vector<DataType,6>> point;                                               // 3 for translation and 3 for orientation
+	std::vector<Eigen::Vector<DataType,6>> points;                                              // Convert SE(3) to 6x1 vectors
 	
-	point.resize(waypoint.size());                                                              // Resize object for the number of waypoints
+	for(auto pose : poses)
+	{
+		Eigen::Vector<DataType,6> point;                                                    // Temporary placeholder
+		
+		point.head(3) = pose.translation();                                                 // Assign the translation component
+		
+		Eigen::Vector<DataType,3> vec = pose.quaternion().vec();                            // Vector component of quaternion
+		
+		DataType norm = vec.norm();                                                         // As it says on the label
+		
+		DataType angle = 2*asin(norm);                                                      // vec = (angle/2)*axis; asin = [-pi, pi]
+		
+		if(abs(angle) < 1e-04) point.tail(3) = Eigen::Vector<DataType,3>::Zero();           // Trivially small; zero rotation
+		else                    point.tail(3) = angle*(vec/norm);                           // angle*axis
 	
-	for(int i = 0; i < waypoint.size(); i++)
-	{
-		point[i].head(3) = waypoint[i].position();                                          // Grab the translation component directly
-		
-		Eigen::Vector<DataType,3> epsilon = waypoint[i].quaternion().vec();                 // Get the vector part of the quaternion
-		
-		DataType norm = epsilon.norm();                                                     // Magnitude of the vector                                     
-		
-		DataType angle = 2*asin(norm);                                                      // Extract angle embedded in quaternion
-		
-		if(abs(angle) < 1e-04) point[i].tail(3) = Eigen::Vector<DataType,3>::Zero();        // Very small; zero rotation
-		else                   point[i].tail(3) = angle*(epsilon/norm);                     // Angle*axis
-	}
-	
-	try
-	{
-		this->trajectory = CubicSpline<DataType>(point,time);
-	}
-	catch(const exception &exception)
-	{
-		std::cerr << exception.what() << std::endl;                                         // Use std::endl in conjunction with std::cerr?
-		
-		throw std::runtime_error("[ERROR] [CARTESIAN TRAJECTORY] Constructor: "
-		                         "Could not generate a trajectory.");
+		points.push_back(point);                                                            // Add to end
 	}
 }
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                         Get the desired state for the given time                               //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-template <class DataType> inline
-CartesianState<DataType> CartesianTrajectory<DataType>::query_state(const DataType &time)
+template <class DataType, class TrajectoryType> inline
+CartesianState<DataType> CartesianTrajectory<DataType, TrajectoryType>::query_state(const DataType &time)
 {
 	auto &[position, velocity, acceleration] = this->_trajectory.query_state(time);             // Get the state for the given time
 	

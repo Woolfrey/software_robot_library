@@ -5,8 +5,11 @@
  * @brief  A base class for trajectories connected via waypoints.
  */
  
- #include <Polynomial.h>
- #include <TrapezoidalVelocity.h>
+#ifndef WAYPOINTS_H_
+#define WAYPOINTS_H_
+ 
+#include <Polynomial.h>
+#include <TrapezoidalVelocity.h>
 
 template <class DataType, typename ClassType>
 class Waypoints
@@ -53,7 +56,7 @@ class Waypoints
 			return this->_trajectory[trajectoryNumber].query_state(time);
 		}
 	
-	private:
+	protected:
 		
 		unsigned int _numberOfWaypoints;
 		
@@ -62,3 +65,5 @@ class Waypoints
 		std::vector<ClassType> _trajectory;                                                 // An array of trajectories
 	
 };                                                                                                  // Semicolon needed after class declaration
+
+#endif
