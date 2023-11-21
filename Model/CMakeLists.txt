@@ -16,6 +16,6 @@ target_include_directories(Model
 )
 
 ########################################## Executables #############################################
-add_executable(urdf_test src/urdf_test.cpp)                                                         # Create name of exe from source file
+add_executable(urdf_test test/urdf_test.cpp)                                                        # Create name of exe from source file
 add_dependencies(urdf_test RobotLibrary)                                                            # Depends on RobotLibrary (obviously)
 target_link_libraries(urdf_test RobotLibrary)                                                       # Link RobotLibrary
