@@ -68,7 +68,7 @@ class Pose
 		/**
 		 * @return Returns the product of this pose with another.
 		 */
-		Pose<DataType> operator*(const Pose &other);
+		Pose<DataType> operator*(const Pose &other) const;
 		
 		/**
 		 * @return Returns an in-place product of this pose and another.
@@ -138,7 +138,7 @@ Pose<DataType> Pose<DataType>::inverse()
  //                                 Multiply two pose objects                                     //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <class DataType> inline
-Pose<DataType> Pose<DataType>::operator* (const Pose &other)
+Pose<DataType> Pose<DataType>::operator* (const Pose &other) const
 {
 	return Pose(this->_translation + this->_quaternion.toRotationMatrix()*other.translation(),
 	            this->_quaternion*other.quaternion());
@@ -150,8 +150,8 @@ Pose<DataType> Pose<DataType>::operator* (const Pose &other)
 template <class DataType> inline
 void Pose<DataType>::operator*= (const Pose &other)
 {
-	this->_translation   += this->_quaternion.toRotationMatrix()*other.translation(),
-	this->_quaternion *= other.quaternion();
+	this->_translation += this->_quaternion.toRotationMatrix()*other.translation(),
+	this->_quaternion  *= other.quaternion();
 }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
