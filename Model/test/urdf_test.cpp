@@ -69,6 +69,12 @@ int main(int argc, char **argv)
 		std::cout << "\nHere is the joint gravity torque vector:\n\n";
 		std::cout << model.joint_gravity_vector().transpose() << std::endl;
 		
+		if(model.name() == "parody-mark1")
+		{
+			std::cout << "\nHere is the inertial coupling between the base and joints:\n\n";
+			std::cout << model.joint_base_inertia_matrix() << std::endl;
+		}
+		
 		/*
 		clock_t timer;
 		
