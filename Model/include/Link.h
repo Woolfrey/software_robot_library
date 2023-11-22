@@ -220,23 +220,26 @@ bool Link<DataType>::update_state(const Pose<DataType>     &previousPose,
 	}
 	else
 	{
-		Pose<DataType> wtf = previousPose;                                                  // I can't use previousPose in place for some reason ¯\_(⊙︿⊙)_/¯
+		this->_pose = previousPose * this->_joint.origin();
+		
+		this->_jointAxis = (this->_pose.rotation()*this->_joint.axis()).normalized();
+		
+		this->_pose *= this->_joint.position_offset(jointPosition);
+		
+		this->_twist = previousTwist;
+		
+		this->_twist.head(3) += Eigen::Vector<DataType,3>(previousTwist.tail(3)).cross(this->_pose.translation() - previousPose.translation());
+
+		     if(this->_joint.is_revolute())  this->_twist.tail(3) += jointVelocity * this->_jointAxis; // Add effect of joint motion
+		else if(this->_joint.is_prismatic()) this->_twist.head(3) += jointVelocity * this->_jointAxis;		
 	
-		Pose<DataType> newPose = wtf * this->_joint.origin();                               // Transform of link/joint in global frame
+		Eigen::Matrix<DataType,3,3> R = this->_pose.rotation();
 		
-		this->_jointAxis = (newPose.rotation()*this->_joint.axis()).normalized();           // Rotate local axis to global frame
+		this->_inertia = R*this->_localInertia*R.transpose();
 		
-		newPose *= this->_joint.position_offset(jointPosition);                             // Now add transform from joint position
+		Eigen::Vector<DataType,3> w = this->_twist.tail(3);
+		for(int i = 0; i < 3; i++) this->_inertiaDerivative.col(i) = w.cross(this->_inertia.col(i));
 		
-		Eigen::Vector<DataType,6> newTwist = previousTwist;                                 // Propagate the velocity
-		
-		newTwist.head(3) += Eigen::Vector<DataType,3>(previousTwist.tail(3)).cross(newPose.translation() - previousPose.translation()); // Add effect of angular velocity to the linear component
-		
-		     if(this->_joint.is_revolute())  newTwist.tail(3) += jointVelocity * this->_jointAxis; // Add effect of joint motion
-		else if(this->_joint.is_prismatic()) newTwist.head(3) += jointVelocity * this->_jointAxis;
-		
-		RigidBody<DataType>::update_state(newPose, newTwist);                               // Update the underlying RigidBody object
-	
 		return true;
 	}
 }
