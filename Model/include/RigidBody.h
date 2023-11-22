@@ -165,16 +165,14 @@ void RigidBody<DataType>::update_state(const Pose<DataType> &pose,
 	
 	this->_centerOfMass = this->_pose*this->_localCenterOfMass;                                 // Point transformation to global frame
 	
-	this->_twist = twist;                                                                       // Update the linear & angular velocity
-	
 	Eigen::Matrix<DataType,3,3> R = pose.rotation();                                            // Get the rotation component as SE(3)
 	
 	this->_inertia = R*this->_localInertia*R.transpose();                                       // Rotate inertia to global reference frame
-
-	Eigen::Matrix<DataType,3,3> S; S <<        0 , -twist(5),  twist(4),
-	                                     twist(5),        0 , -twist(3),
-	                                    -twist(4),  twist(3),        0;                         // Angular velocity as skew-symmetric matrix
-
-	this->_inertiaDerivative = S*this->_inertia;                                                // Time derivative of the angular inertia
+	
+	this->_twist = twist;                                                                       // Update the linear & angular velocity
+	
+	Eigen::Vector<DataType,3> w = this->_twist.tail(3);
+	
+	for(int i = 0; i < 3; i++) this->_inertiaDerivative.col(i) = w.cross(this->_inertia.col(i));
 }
 #endif
