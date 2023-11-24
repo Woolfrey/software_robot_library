@@ -12,9 +12,6 @@
 #include <KinematicTree.h>                                                                          // Computes the kinematics and dynamics
 #include <QPSolver.h>                                                                               // Control optimisation
 
-using namespace Eigen;                                                                              // Eigen::Matrix, Eigen::Vector
-using namespace std;
-
 template <class DataType>
 class SerialLinkBase : public QPSolver<DataType>
 {
@@ -32,7 +29,8 @@ class SerialLinkBase : public QPSolver<DataType>
 		 * @param endpointMotion The desired velocity or acceleration of the endpoint.
 		 * @return The required joint velocity or torque to achieved the endpoint motion.
 		 */
-		virtual Vector<DataType,Dynamic> resolve_endpoint_motion(const Vector<DataType,6> &endpointMotion) = 0; // Solve the joint motion for given endpoint motion
+		virtual Eigen::Vector<DataType,Eigen::Dynamic>
+		resolve_endpoint_motion(const Vector<DataType,6> &endpointMotion) = 0;              // Solve the joint motion for given endpoint motion
 		
 		/**
 		 * Compute the required joint motion to track a given state for the endpoint.
@@ -42,9 +40,10 @@ class SerialLinkBase : public QPSolver<DataType>
 		 * @param desiredAcc The desired acceleration at the current time.
 		 * @return The required joint velocity, or joint torques.
 		 */
-		virtual Vector<DataType,Dynamic> track_endpoint_trajectory(const Pose<DataType>     &desiredPose,
-							                   const Vector<DataType,6> &desiredVel,
-							                   const Vector<DataType,6> &desiredAccel) = 0;
+		virtual Vector<DataType,Eigen::Dynamic>
+		track_endpoint_trajectory(const Pose<DataType>     &desiredPose,
+					  const Vector<DataType,6> &desiredVel,
+					  const Vector<DataType,6> &desiredAccel) = 0;
 		
 		/**
 		 * Compute the joint motion to follow a desired joint state.
@@ -54,9 +53,10 @@ class SerialLinkBase : public QPSolver<DataType>
 		 * @param desiredAcc The desired acceleration at the current time.
 		 * @return The required joint velocity, or joint torques.
 		 */
-		virtual Vector<DataType,Dynamic> track_joint_trajectory(const Vector<DataType,Dynamic> &desiredPos,
-		                                                        const Vector<DataType,Dynamic> &desiredVel,
-		                                                        const Vector<DataType,Dynamic> &desiredAcc) = 0;
+		virtual Vector<DataType,Eigen::Dynamic>
+		track_joint_trajectory(const Vector<DataType,Eigen::Dynamic> &desiredPos,
+		                       const Vector<DataType,Eigen::Dynamic> &desiredVel,
+		                       const Vector<DataType,Eigen::Dynamic> &desiredAcc) = 0;
 		                                               
 		/**
 		 * Set the gains for Cartesian feedback control.
@@ -95,56 +95,62 @@ class SerialLinkBase : public QPSolver<DataType>
 		 * @param task The task to be executed.
 		 * @return Returns false if there were any problems.
 		 */
-		bool set_redundant_task(const Vector<DataType,Dynamic> &task);
+		bool set_redundant_task(const Vector<DataType,Eigen::Dynamic> &task);
 		
 		/**
 		 * @return Returns a 6xn matrix for the Jacobian to the endpoint of this serial link object.
 		 */
-		Matrix<DataType,6,Dynamic> endpoint_jacobian() { return this->_model->jacobian(this->_endpointName); }
+		Matrix<DataType,6,Eigen::Dynamic> endpoint_jacobian()
+		{ return this->_model->jacobian(this->_endpointName); }
 		
 		/**
 		 * @return Returns the gradient of manipulability.
 		 */
-		 Vector<DataType,Dynamic> manipulability_gradient();
+		 Vector<DataType,Eigen::Dynamic> manipulability_gradient();
 		                           
 	protected:
 		
-		bool redundantTaskSet = false;                                                      ///< Reset every control loop.
+		DataType _controlBarrierScalar = 1.0;                                               ///< Used in singularity avoidance
 		
-		DataType frequency = 100;                                                           ///< Used in certain control functions.
+		DataType _jointPositionGain = 1.0;                                                  ///< On position tracking error
 		
-		DataType maxJointAccel = 10;                                                        ///< As it says on the label.
-
-		DataType kp = 1.0;                                                                  ///< Proportional gain for joint control
+		DataType _jointDerivativeGain = 0.1;                                                ///< On velocity tracking error
 		
-		DataType kd = 0.1;                                                                  ///< Derivative gain for proportional control
-			
-		KinematicTree<DataType>* _robot;                                                    ///< Pointer to underlying robot model.
+		DataType _manipulability;                                                           ///< Proximity to a singularity
 		
-		ReferenceFrame<DataType>* _endpointFrame;                                           ///< Pointer to endpoint so we don't have to look it up every time
+		DataType _minManipulability;                                                        ///< Used in singularity avoidance
 		
-		string _endpointName = "unnamed";                                                   ///< Name of the endpoint of this serial link chain.
+		DataType _maxJointAcceleration = 10.0;                                              ///< As it says.
 		
-		Matrix<DataType,6,6> gainFormat =
-		(Matrix<DataType,Dynamic,Dynamic>(6,6) << 1, 0, 0,   0,   0,   0,
-		                                          0, 1, 0,   0,   0,   0,
-		                                          0, 0, 1,   0,   0,   0,
-		                                          0, 0, 0, 0.1,   0,   0,
-		                                          0, 0, 0,   0, 0.1,   0,
-		                                          0, 0, 0,   0,   0, 0.1).finished();       ///< Structure of the Cartesian feedback gains.
+		Eigen::Matrix<DataType,6,6> _gainFormat =
+		(Eigen::Matrix<DataType,6,6> << 1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+		                                0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
+		                                0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+		                                0.0, 0.0, 0.0, 0.1, 0.0, 0.0,
+		                                0.0, 0.0, 0.0, 0.0, 0.1, 0.0,
+		                                0.0, 0.0, 0.0, 0.0, 0.0, 0.1;).finished();          ///< Structure for the Cartesian gains
 		
-		Matrix<DataType,6,6> K = 1.0*this->gainFormat;                                      ///< Proportional gain on pose error for endpoint.
+		Eigen::Matrix<DataType,6,6> _cartesianDamping = 0.1*this->_gainFormat;              ///< Derivative gain on endpoint velocity error
 		
-		Matrix<DataType,6,6> D = 0.1*this->gainFormat;                                      ///< Gain on velocity error for endpoint.
+		Eigen::Matrix<DataType,6,6> _cartesianStiffness = 1.0*this->_gainFormat;            ///< Proportional gain on endpoint pose error
 		
-		Matrix<DataType,6,Dynamic> J;                                                       ///< Jacobian matrix
+		Eigen::Matrix<DataType,6,Eigen::Dynamic> _jacobianMatrix;                           ///< Of the endpoint frame
 		
-		Vector<DataType,Dynamic> redundantTask;                                             ///< Secondary task when controlling endpoint of redundant robot.
+		Eigen::Matrix<DataType,6,6> _forceEllipsoid;                                        ///< Jacobian multiplied with its tranpose; JJ'
 		
-		virtual bool compute_control_limits(DataType &lower,
-		                                    DataType &upper,
-		                                    const unsigned int &jointNumber) = 0;           ///< Instantaneous limits on joint motion when controlling robot.
+		KinematicTree* _robot;                                                              ///< Pointer to the underlying robot model
 		
+		ReferenceFrame* _endpointFrame;                                                     ///< Pointer to frame in KinematicTree model
+		
+		unsigned int _controlFrequency = 100;
+		
+		/**
+		 * Computes the instantaneous limits on the joint control.
+		 * @param jointNumber Which joint to compute the limits for.
+		 * @return A Limit data structure.
+		 */
+		virtual Limits compute_control_limits(const unsigned int &jointNumber) = 0;
+	
 };                                                                                                  // Semicolon needed after a class declaration
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -265,7 +271,7 @@ bool SerialLinkBase<DataType>::set_max_joint_accel(const DataType &accel)
  //              Set the joint motion for controlling the extra joints in the robot               //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <class DataType> inline
-bool SerialLinkBase<DataType>::set_redundant_task(const Vector<DataType,Dynamic> &task)
+bool SerialLinkBase<DataType>::set_redundant_task(const Vector<DataType,Eigen::Dynamic> &task)
 {
 	if(task.size() != this->numJoints)
 	{
@@ -291,9 +297,9 @@ bool SerialLinkBase<DataType>::set_redundant_task(const Vector<DataType,Dynamic>
  //                            Compute the gradient of manipulability                              //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 template <class DataType> inline
-Vector<DataType,Dynamic> SerialLinkBase<DataType>::manipulability_gradient()
+Vector<DataType,Eigen::Dynamic> SerialLinkBase<DataType>::manipulability_gradient()
 {
-	Vector<DataType,Dynamic> gradient(this->_robot.num_joints()); gradient.setZero();           // Value to be returned
+	Vector<DataType,Eigen::Dynamic> gradient(this->_robot.num_joints()); gradient.setZero();           // Value to be returned
 	
 	LDLT<Matrix<DataType,6,6>> JJt(this->J*this->J.transpose());                                // Decompose matrix for later use
 
@@ -303,7 +309,7 @@ Vector<DataType,Dynamic> SerialLinkBase<DataType>::manipulability_gradient()
 	{
 		unsigned int jointNumber = currentLink->number();
 		
-		Matrix<DataType,6,Dynamic> dJ = this->_robot->partial_derivative(this->J,jointNumber);     // Partial derivative of Jacobian
+		Matrix<DataType,6,Eigen::Dynamic> dJ = this->_robot->partial_derivative(this->J,jointNumber);     // Partial derivative of Jacobian
 		
 		gradient(jointNumber) = this->_manipulability*(JJt.solve(dJ*this->J.transpose())).trace(); // Derivative w.r.t a single joint
 		
