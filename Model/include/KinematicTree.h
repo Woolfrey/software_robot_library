@@ -493,7 +493,7 @@ bool KinematicTree<DataType>::update_state(const Eigen::Vector<DataType, Eigen::
 	
 	this->_jointVelocity = jointVelocity;
 
-	this->base.update_state(basePose, baseTwist);                                              // Update the state for the base
+	this->base.update_state(basePose, baseTwist);                                               // Update the state for the base
 			
 	// Need to clear for new loop
 	this->_jointInertiaMatrix.setZero();
@@ -541,25 +541,21 @@ bool KinematicTree<DataType>::update_state(const Eigen::Vector<DataType, Eigen::
 		
 		DataType mass = currentLink->mass();                                                // As it says
 		
-		Eigen::Matrix<DataType,3,3> I = currentLink->inertia();
-		
 		// Compute the upper-right triangle of the inertia matrix
 		for(int i = 0; i < k+1; i++)
 		{
 			for(int j = i; j < k+1; j++)
 			{
 				this->_jointInertiaMatrix(i,j) += mass * Jv.col(i).dot(Jv.col(j))
-				                                       + Jw.col(i).dot(I*Jw.col(j));
+				                                       + Jw.col(i).dot(currentLink->inertia()*Jw.col(j));
 				                                
 			}
 		}
 		
 		Eigen::Matrix<DataType,6,Eigen::Dynamic> Jdot = time_derivative(J);                 // As it says
 		
-		Eigen::Matrix<DataType,3,3> Idot = currentLink->inertia_derivative();
-		
 		this->_jointCoriolisMatrix.block(0,0,k+1,k+1) += mass * Jv.transpose()*Jdot.block(0,0,3,k+1)
-		                                                      + Jw.transpose()*(Idot*Jw + I*Jdot.block(3,0,3,k+1));
+		                                                      + Jw.transpose()*(currentLink->inertia_derivative()*Jw + currentLink->inertia()*Jdot.block(3,0,3,k+1));
 		
 		this->_jointGravityVector.head(k+1) -= mass*Jv.transpose()*this->_gravityVector;    // We need to NEGATE gravity		
 		
@@ -573,7 +569,7 @@ bool KinematicTree<DataType>::update_state(const Eigen::Vector<DataType, Eigen::
 		
 		// Get the links attached to this one and add them to the list
 		std::vector<Link<DataType>*> temp = currentLink->child_links();
-		if(temp.size() > 0) candidateList.insert(candidateList.begin(), temp.begin(), temp.end());
+		if(temp.size() > 0) candidateList.insert(candidateList.begin(),temp.begin(),temp.end());
 	}
 	
 	// Complete the lower-left triangle of the inertia matrix
