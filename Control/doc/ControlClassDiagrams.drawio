@@ -1,4 +1,4 @@
-<mxfile host="app.diagrams.net" modified="2023-11-24T17:00:47.768Z" agent="Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/119.0" etag="Ur8Y6T6QzM0QeqAZc61E" version="22.1.3" type="github">
+<mxfile host="app.diagrams.net" modified="2023-11-24T17:22:05.826Z" agent="Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/119.0" etag="SK7SL72b3P5qBWkUyAoj" version="22.1.3" type="github">
   <diagram name="SerialLink" id="9nu-3gzylGP0bQmb4AK7">
     <mxGraphModel dx="753" dy="584" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
       <root>
@@ -46,7 +46,7 @@
         <mxCell id="nJWqUF-QOH_nmLoCBmrt-14" value="- _maxJointAcceleration : float" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;" parent="nJWqUF-QOH_nmLoCBmrt-1" vertex="1">
           <mxGeometry y="338" width="320" height="26" as="geometry" />
         </mxCell>
-        <mxCell id="nJWqUF-QOH_nmLoCBmrt-15" value="- _model : KinematicTree*" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;" parent="nJWqUF-QOH_nmLoCBmrt-1" vertex="1">
+        <mxCell id="nJWqUF-QOH_nmLoCBmrt-15" value="- _robot : KinematicTree*" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;" parent="nJWqUF-QOH_nmLoCBmrt-1" vertex="1">
           <mxGeometry y="364" width="320" height="26" as="geometry" />
         </mxCell>
         <mxCell id="nJWqUF-QOH_nmLoCBmrt-16" value="- _payload : Payload*" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;" parent="nJWqUF-QOH_nmLoCBmrt-1" vertex="1">
@@ -104,7 +104,7 @@
           <mxGeometry y="814" width="320" height="26" as="geometry" />
         </mxCell>
         <mxCell id="nJWqUF-QOH_nmLoCBmrt-33" value="SerialLinkKinematic" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
-          <mxGeometry x="13.129999999999999" y="260" width="320" height="130" as="geometry" />
+          <mxGeometry x="13.129999999999999" y="230" width="320" height="130" as="geometry" />
         </mxCell>
         <mxCell id="nJWqUF-QOH_nmLoCBmrt-34" value="+ resolve_endpoint_motion(Vector) : Vector" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;" parent="nJWqUF-QOH_nmLoCBmrt-33" vertex="1">
           <mxGeometry y="26" width="320" height="26" as="geometry" />
@@ -139,7 +139,7 @@
         <mxCell id="nJWqUF-QOH_nmLoCBmrt-44" value="# compute_control_limits(int) : Limits" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;" parent="nJWqUF-QOH_nmLoCBmrt-38" vertex="1">
           <mxGeometry y="138" width="325" height="26" as="geometry" />
         </mxCell>
-        <mxCell id="nJWqUF-QOH_nmLoCBmrt-45" value="Extends" style="endArrow=block;endSize=16;endFill=0;html=1;rounded=0;entryX=-0.003;entryY=0.904;entryDx=0;entryDy=0;entryPerimeter=0;" parent="1" source="nJWqUF-QOH_nmLoCBmrt-33" target="nJWqUF-QOH_nmLoCBmrt-11" edge="1">
+        <mxCell id="nJWqUF-QOH_nmLoCBmrt-45" value="Extends" style="endArrow=block;endSize=16;endFill=0;html=1;rounded=0;entryX=0;entryY=0.769;entryDx=0;entryDy=0;entryPerimeter=0;" parent="1" source="nJWqUF-QOH_nmLoCBmrt-33" target="nJWqUF-QOH_nmLoCBmrt-10" edge="1">
           <mxGeometry width="160" relative="1" as="geometry">
             <mxPoint x="360" y="540" as="sourcePoint" />
             <mxPoint x="520" y="540" as="targetPoint" />
