@@ -185,8 +185,8 @@ Polynomial<DataType>::Polynomial(const Eigen::Vector<DataType,Eigen::Dynamic> &s
         
         for(int i = 0; i < this->_dimensions; i++)
         {
-	  	supportPoints(0)   = startPoint(i);
-	  	supportPoints(n)   = endPoint(i);
+	  	supportPoints(0) = startPoint(i);
+	  	supportPoints(n) = endPoint(i);
 	  	
 	  	if(i > 0)
 	  	{
