@@ -21,3 +21,7 @@ target_include_directories(Trajectory
 add_executable(polynomial_test test/polynomial_test.cpp)                                            # Create name of exe from source file
 add_dependencies(polynomial_test RobotLibrary)                                                      # Depends on RobotLibrary (obviously)
 target_link_libraries(polynomial_test RobotLibrary)                                                 # Link RobotLibrary
+
+add_executable(trapezoidal_test test/trapezoidal_test.cpp)                                          # Create name of exe from source file
+add_dependencies(trapezoidal_test RobotLibrary)                                                     # Depends on RobotLibrary (obviously)
+target_link_libraries(trapezoidal_test RobotLibrary)                                                # Link RobotLibrary
