@@ -43,37 +43,43 @@ class TrapezoidalVelocity : public TrajectoryBase<DataType>
 		 * @param time The time at which to compute the state.
 		 * @return Returns false if there are any issues.
 		 */
-		State<DataType> query_state(const DataType &time);	
+		State<DataType> query_state(const DataType &time);
+		
+		
 				
 	private:
 	
 		DataType _coastDistance;                                                            ///< Distance covered at maximum speed
 		DataType _coastTime;                                                                ///< Length of time to move at max speed
-		DataType _endPoint;                                                                 ///< Final position on the trajectory
 		DataType _endTime;                                                                  ///< Final time for the trajectory
 		DataType _normalisedVel;                                                            ///< Maximum velocity, normalised so total distance  = 1
 		DataType _normalisedAcc;                                                            ///< Maximum acceleration, normalised so total distance = 1
 		DataType _rampDistance;                                                             ///< Distance traveled whilst accelerating
 		DataType _rampTime;                                                                 ///< Length of time to accelerate
-		DataType _startPoint;                                                               ///< Starting position
 		DataType _startTime;                                                                ///< Time at which the trajectory begins
 		
+		Eigen::Vector<DataType,Eigen::Dynamic> _startPoint;
+		Eigen::Vector<DataType,Eigen::Dynamic> _endPoint;
 };                                                                                                  // Semicolon needed after class declaration
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                                            Constructor                                         //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 template <class DataType>
-TrapezoidalVelocity<DataType>::TrapezoidalVelocity(const Vector<DataType,Dynamic> &startPoint,
-                                                   const Vector<DataType,Dynamic> &endPoint,
-                                                   const DataType                 &maxVel,
-                                                   const DataType                 &maxAccel,
-                                                   const DataType                 &startTime)
-                                                   :
-                                                   _startPoint(startPoint),
-                                                   _endPoint(endPoint),
-                                                   _startTime(startTime)
+TrapezoidalVelocity<DataType>::TrapezoidalVelocity(const Eigen::Vector<DataType,Eigen::Dynamic> &startPoint,
+                                                   const Eigen::Vector<DataType,Eigen::Dynamic> &endPoint,
+                                                   const DataType &maxVel,
+                                                   const DataType &maxAccel,
+                                                   const DataType &startTime)
 {
+	// Assign initial values in underlying TrajectoryBase class
+	this->_dimensions = startPoint.size();                                                      // Assign to variable in base class
+	this->_startTime  = startTime;
+	
+	// Assign values to this TrapezoidalVelocity object
+	this->_startPoint = startPoint;
+	this->_endPoint   = endPoint;
+	
 	if(startPoint.size() != endPoint.size())
 	{
 		throw std::invalid_argument("[ERROR] [TRAPEZOIDAL VELOCITY] Constructor: "
@@ -89,8 +95,7 @@ TrapezoidalVelocity<DataType>::TrapezoidalVelocity(const Vector<DataType,Dynamic
 		                            " but must be positive.");
 	}
 	
-	this->_dimensions = startPoint.size();                                                      // Assign to variable in base class
-	
+
 	DataType normaliser = -1;                                                                   // Needed to scale velocity to be dimensionless
 	
 	DataType vel = maxVel;                                                                      // Temporary placeholder
@@ -106,17 +111,17 @@ TrapezoidalVelocity<DataType>::TrapezoidalVelocity(const Vector<DataType,Dynamic
 		vel = (vel > temp) ? temp : vel;                                                    // Ensure max velocity does not exceed acceleration, distance constraints
 	}
 	
-	this->_normalisedVelocity = vel/normaliser;                                                 // Need to normalise so we can scale between 0 and 1
+	this->_normalisedVel = vel/normaliser;                                                      // Need to normalise so we can scale between 0 and 1
 	
-	this->_normalisedAcceleration = maxAccel/normaliser;                                        // Scale the acceleration to match the velocity
+	this->_normalisedAcc = maxAccel/normaliser;                                                 // Scale the acceleration to match the velocity
 	
 	this->_rampTime = vel/maxAccel;                                                             // Length of time to accelerate to max speed
 	
-	this->_rampDistance = 0.5*this->_normalisedAcceleration*this->_rampTime*this->_rampTime;    // s = 0.5*a*t^2
+	this->_rampDistance = 0.5*this->_normalisedAcc*this->_rampTime*this->_rampTime;             // s = 0.5*a*t^2
 	
-	this->_coastTime = (1.0 - 2*this->_rampDistance)/this->_normalisedVelocity;                 // Time spent moving at max speed
+	this->_coastTime = (1.0 - 2*this->_rampDistance)/this->_normalisedVel;                      // Time spent moving at max speed
 	
-	this->_coastDistance = this->_normalisedVelocity*this->_coastTime;                          // Distance travelled moving at max speed
+	this->_coastDistance = this->_normalisedVel*this->_coastTime;                               // Distance travelled moving at max speed
 	
 	this->_endTime = 2*this->_rampTime + this->_coastTime;                                      // Total time passed
 }
@@ -131,13 +136,13 @@ State<DataType> TrapezoidalVelocity<DataType>::query_state(const DataType &time)
 	
 	if(time <= this->_startTime)
 	{
-		state.position     = this->_startPosition;
+		state.position     = this->_startPoint;
 		state.velocity     = Eigen::Vector<DataType,Eigen::Dynamic>::Zero(this->_dimensions);
 		state.acceleration = Eigen::Vector<DataType,Eigen::Dynamic>::Zero(this->_dimensions);
 	}
 	else if(time > this->_endTime)
 	{
-		state.position     = this->_endPosition;
+		state.position     = this->_endPoint;
 		state.velocity     = Eigen::Vector<DataType,Eigen::Dynamic>::Zero(this->_dimensions);
 		state.acceleration = Eigen::Vector<DataType,Eigen::Dynamic>::Zero(this->_dimensions);
 	}
@@ -149,29 +154,30 @@ State<DataType> TrapezoidalVelocity<DataType>::query_state(const DataType &time)
 		
 		if(elapsedTime < this->_rampTime)
 		{
-			  s = this->_normalisedAcc*this->elapsedTime*this->elapsedTime/2.0;
-			 sd = this->_normalisedAcc*this->_elapsedTime;
+			  s = this->_normalisedAcc*elapsedTime*elapsedTime/2.0;
+			 sd = this->_normalisedAcc*elapsedTime;
 			sdd = this->_normalisedAcc;
 		}
 		else if(elapsedTime < this->_rampTime + this->_coastTime)
 		{
-			  s = this->_rampDistance + this->_normalisedVel*(this->elapsedTime - this->_rampTime);
+			  s = this->_rampDistance + this->_normalisedVel*(elapsedTime - this->_rampTime);
 			 sd = this->_normalisedVel;
 			sdd = 0.0;
 		}
 		else
 		{
-			DataType t = this->_elapsedTime - this->_coastTime - this->_rampTime;
+			DataType t = elapsedTime - this->_coastTime - this->_rampTime;
 			
-			  s =  this->_rampDistance  + this->_coastDistance - this->_normalisedAcc*t*t/2.0;
-			 sd =  this->_normalisedVel - this->_normalisedAcc*this->t;
+			  s =  this->_rampDistance  + this->_coastDistance + this->_normalisedVel*t - this->_normalisedAcc*t*t/2.0;
+			 sd =  this->_normalisedVel - this->_normalisedAcc*t;
 			sdd = -this->_normalisedAcc;
 		}
 		
 		// Interpolate the state
-		state.position     = (1.0 - s)*this->_startPosition + s*this->_endPosition;
-		state.velocity     = sd*(this->_endPosition - this->_startPosition);
-		state.acceleration = sdd*(this->_endPosition - this->_startPosition);
+		
+		state.position     = (1.0 - s)*this->_startPoint + s*this->_endPoint;
+		state.velocity     = sd*(this->_endPoint - this->_startPoint);
+		state.acceleration = sdd*(this->_endPoint - this->_startPoint);
 	}
 	
 	return state;
