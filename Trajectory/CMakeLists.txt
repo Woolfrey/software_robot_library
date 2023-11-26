@@ -5,7 +5,7 @@ find_package(Eigen3 REQUIRED)                                                   
 
 include_directories(${EIGEN3_INCLUDE_DIRS})                                                         # I don't know what this does ¯\_(ツ)_/¯
 
-add_library(Trajectory SHARED test/polynomial_test.cpp)                                             # This is a header-only library
+add_library(Trajectory SHARED test/polynomial_test.cpp) # This is a header-only library
 
 # Specify where to find header files
 target_include_directories(Trajectory
@@ -25,3 +25,7 @@ target_link_libraries(polynomial_test RobotLibrary)                             
 add_executable(trapezoidal_test test/trapezoidal_test.cpp)                                          # Create name of exe from source file
 add_dependencies(trapezoidal_test RobotLibrary)                                                     # Depends on RobotLibrary (obviously)
 target_link_libraries(trapezoidal_test RobotLibrary)                                                # Link RobotLibrary
+
+add_executable(spline_test test/spline_test.cpp)                                                    # Create name of exe from source file
+add_dependencies(spline_test RobotLibrary)                                                          # Depends on RobotLibrary (obviously)
+target_link_libraries(spline_test RobotLibrary)                                                     # Link RobotLibrary
