@@ -13,9 +13,9 @@ int main(int argc, char **argv)
 {
 	if(argc != 2)
 	{
-		std::cout << "[ERROR] [URDF TEST] No path to file was given. "
-		          << "Usage: ./urdf_test /path/to/file.urdf\n";
-		          
+		std::cerr << "[ERROR] [URDF TEST] No path to file was given. "
+		          << "Usage: ./urdf_test /path/to/file.urdf" << std::endl;
+		         
 		return 1;
 	}
 	
@@ -38,7 +38,7 @@ int main(int argc, char **argv)
 
 		if(not model.update_state(q, qdot))
 		{
-			std::cout << "[ERROR] [URDF TEST] Couldn't update the state for some reason.\n";
+			std::cerr << "[ERROR] [URDF TEST] Couldn't update the state for some reason." << std::endl;
 		}
 		
 		timer = clock() - timer;                                                            // Difference from the start
@@ -103,10 +103,10 @@ int main(int argc, char **argv)
 	}
 	catch(std::exception &error)
 	{
-		std::cout << "[ERROR] [URDF TEST] There was a problem constructing the KinematicTree object. "
+		std::cerr << "[ERROR] [URDF TEST] There was a problem constructing the KinematicTree object. "
 		          << "See the error message below for details.\n";
 		                    
-		std::cout << error.what() << std::endl;
+		std::cerr << error.what() << std::endl;
 	
 		return 1;
 	}
