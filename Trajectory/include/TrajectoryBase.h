@@ -27,6 +27,11 @@ class TrajectoryBase
 {
 	public:
 		/**
+		 * Empty constructor.
+		 */
+		TrajectoryBase() {}
+		
+		/**
 		 * Full constructor.
 		 * @param startTime The time that the trajectory begins.
 		 * @param endTime The time that the trajectory finishes.
@@ -75,9 +80,9 @@ TrajectoryBase<DataType>::TrajectoryBase(const DataType     &startTime,
                                          const DataType     &endTime,
                                          const unsigned int &dimensions)
                                          :
-                                          _startTime(startTime),
-                                          _endTime(endTime),
-                                          _dimensions(dimensions)
+                                         _startTime(startTime),
+                                         _endTime(endTime),
+                                         _dimensions(dimensions)
 {
 	if(startTime == endTime)
 	{
