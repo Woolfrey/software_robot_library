@@ -37,23 +37,29 @@ class Waypoints
 		  */
 		  State<DataType> query_state(const DataType &time)
 		  {
-		  	unsigned int trajectoryNumber;
-		  	
-		  	if(time < this->_time.front())	    trajectoryNumber = 0;                   // Not yet start; first trajectory
-		  	else if(time >= this->_time.back()) trajectoryNumber = this->_numPoints-1;  // Finished; final trajectory
-		  	else
+		  	if(time <= this->_time.front())
 		  	{
-		  		for(int i = 0; i < this->numPoints-1; i++)
+		  		return this->_trajectory.front().query_state(time);                 // Must be on the initial trajectory
+		  	}
+		  	else if(time > this->_time.back())
+		  	{
+		  		return this->_trajectory.back().query_state(time);                  // Must be on the final trajectory
+		  	}
+		  	else                                                                        // Somewhere inbetween
+		  	{
+		  		unsigned int number;
+		  		
+		  		for(int i = 1; i < this->_time.size(); i++)
 		  		{
-		  			if(time < this->_time[i])
+		  			if(time <= this->_time[i])
 		  			{
-		  				trajectoryNumber = i-1;     
+		  				number = i-1;
 		  				break;
 		  			}
 		  		}
+		  		
+		  		return this->_trajectory[number].query_state(time);
 		  	}
-			
-			return this->_trajectory[trajectoryNumber].query_state(time);
 		}
 	
 	protected:
