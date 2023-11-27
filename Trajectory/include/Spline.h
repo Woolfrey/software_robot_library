@@ -145,17 +145,11 @@
 		
 		A(this->_numberOfWaypoints-1, this->_numberOfWaypoints-1) = 1;
 		
-		std::cout << "\nThe A matrix:\n\n";
-		std::cout << A << std::endl;
-		
-		std::cout << "\nThe B matrix:\n\n";
-		std::cout << B << std::endl;
-		
 		PartialPivLU<Matrix<DataType,Dynamic,Dynamic>> LU(A);                               // Compute decompisition to make things faster
-		
-		std::vector<Vector<DataType,Dynamic>> velocity; velocity.resize(this->_numberOfWaypoints); // Array of velocities for all dimensions, waypoints
 
 		unsigned int dim = waypoints[0].size();                                             // Number of dimensions
+		
+		Eigen::Matrix<DataType,Dynamic,Dynamic> velocity(dim,this->_numberOfWaypoints);
 		
 		for(int i = 0; i < dim; i++)
 		{
@@ -166,29 +160,17 @@
 			Vector<DataType,Dynamic> des(this->_numberOfWaypoints); des.setZero();      // All numbers inbetween should be zero
 			des(0)   = startVelocity(i);                                                // Start point of the ith dimension
 			des(this->_numberOfWaypoints-1) = endVelocity(i);                           // End point for the ith dimension
-			
-			std::cout << "Positions: " << pos.transpose() << std::endl;
-			std::cout << "Desired velocities: " << des.transpose() << std::endl;
-			
-			Vector<DataType,Dynamic> vel = LU.solve(B*pos + des);                       // Solve the velocities
-			
-			std::cout << "Solved velocites: " << vel.transpose() << std::endl;
+
+			velocity.row(i) = (LU.solve(B*pos + des)).transpose();                      // Solve the velocities
 		}
 		
-		std::cout << "\nHere are all the velocity vectors:\n";
-		for(int i = 0; i < this->_numberOfWaypoints; i++)
-		{
-			std::cout << velocity[i] << "\n";
-		}
-		std::cout << std::endl;
-
 		// Now create n-1 polynomials that define the spline
 		for(int i = 0; i < this->_numberOfWaypoints-1; i++)
 		{
 			this->_trajectory.push_back(Polynomial<DataType>(waypoints[i],
 				                                         waypoints[i+1],
-				                                         velocity[i],
-				                                         velocity[i+1],
+				                                         velocity.col(i),
+				                                         velocity.col(i+1),
 				                                         times[i],
 				                                         times[i+1],
 				                                         polynomialOrder));
