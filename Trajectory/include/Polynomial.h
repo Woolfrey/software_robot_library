@@ -149,6 +149,12 @@ Polynomial<DataType>::Polynomial(const Eigen::Vector<DataType,Eigen::Dynamic> &s
 		                            "Order was " + std::to_string(order) + " but it must be an odd number.");
 	}
 	
+	if(order > 9)
+	{
+		std::cout << "[WARNING] [POLYNOMIAL] Interpolation may be numerically unstable for "
+		             "a polynomial order of " << order << "." << std::endl;
+	}
+	
 	// Decent explanation of polynomial trajectories here:
         // Angeles, J. (Ed.). (2014). Fundamentals of robotic mechanical systems:
         // theory, methods, and algorithms (Fourth Edition)
