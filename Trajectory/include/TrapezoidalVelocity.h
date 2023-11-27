@@ -58,8 +58,6 @@ class TrapezoidalVelocity : public TrajectoryBase<DataType>
 		DataType _rampTime;                                                                 ///< Length of time to accelerate
 		DataType _startTime;                                                                ///< Time at which the trajectory begins
 		
-		Eigen::Vector<DataType,Eigen::Dynamic> _startPoint;
-		Eigen::Vector<DataType,Eigen::Dynamic> _endPoint;
 };                                                                                                  // Semicolon needed after class declaration
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
