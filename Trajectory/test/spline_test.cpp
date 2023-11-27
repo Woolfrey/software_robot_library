@@ -28,10 +28,7 @@ int main(int argc, char* argv[])
 		points.push_back(temp);
 		times.push_back(i);
 	}
-	
-	for(auto point : points) std::cout << point << " ";
-	std::cout << "\n";
-	
+		
 	try
 	{
 		Spline<float> trajectory(points, times);
