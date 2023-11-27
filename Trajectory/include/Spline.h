@@ -39,7 +39,7 @@
  		       const std::vector<DataType> &times,
  		       const unsigned int &polynomialOrder)
 		:
-		Spline(waypoints,time,
+		Spline(waypoints,times,
 		       Eigen::Vector<DataType,Eigen::Dynamic>::Zero(waypoints.front().size()),
 		       Eigen::Vector<DataType,Eigen::Dynamic>::Zero(waypoints.back().size()),
 		       polynomialOrder) {}
