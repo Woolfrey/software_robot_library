@@ -121,7 +121,7 @@ Polynomial<DataType>::Polynomial(const Eigen::Vector<DataType,Eigen::Dynamic> &s
                                  const DataType                               &endTime,
                                  const unsigned int                           &order)
                                  :
-                                 TrajectoryBase<DataType>(startTime, endTime, startPoint.size()),   // Construct base object
+                                 TrajectoryBase<DataType>(startPoint, endPoint, startTime, endTime, startPoint.size()),   // Construct base object
                                  _order(order)                                                      // Order of polynomial
 {
 	using namespace Eigen;                                                                      // Eigen::Matrix, Eigen::Vector, Eigen::Dynamic
@@ -214,21 +214,21 @@ State<DataType> Polynomial<DataType>::query_state(const DataType &time)
 	State<DataType> state = {Eigen::Vector<DataType,Eigen::Dynamic>::Zero(this->_dimensions),
 	                         Eigen::Vector<DataType,Eigen::Dynamic>::Zero(this->_dimensions),
 	                         Eigen::Vector<DataType,Eigen::Dynamic>::Zero(this->_dimensions)};
-
-	// Determine where we are on the trajectory
-	DataType t;
-	     if(time <  this->_startTime) t = this->_startTime;                                     // Not yet started
-	else if(time >= this->_endTime)   t = this->_endTime;                                       // Finished
-	else                              t = time;                                                 // Somewhere in between
-	
-	// Interpolate along the trajectory for the given time
-	for(int i = 0; i < this->_dimensions; i++)
+	                         
+	// Determine where are on the trajectory
+	     if(time < this->_startTime) state.position = this->_startPoint;                        // Remain at the start
+	else if(time > this->_endTime)  state.position = this->_endPoint;                          // Remain at the end
+	else
 	{
-		for(int j = i; j < this->_order+1; j++)
+		// Interpolate along the trajectory for the given time
+		for(int i = 0; i < this->_dimensions; i++)
 		{
-			          state.position(i)     +=         this->_coefficients(i,j)*pow(t,j-0);
-			if(j > 0) state.velocity(i)     +=       j*this->_coefficients(i,j)*pow(t,j-1);
-			if(j > 1) state.acceleration(i) += (j-1)*j*this->_coefficients(i,j)*pow(t,j-2);
+			for(int j = i; j < this->_order+1; j++)
+			{
+					  state.position(i)     +=         this->_coefficients(i,j)*pow(time,j-0);
+				if(j > 0) state.velocity(i)     +=       j*this->_coefficients(i,j)*pow(time,j-1);
+				if(j > 1) state.acceleration(i) += (j-1)*j*this->_coefficients(i,j)*pow(time,j-2);
+			}
 		}
 	}
 	
