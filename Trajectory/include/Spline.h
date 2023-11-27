@@ -86,19 +86,6 @@
 		                            "A minimum of 2 waypoints is needed to construct a spline, "
 		                            "but you provided " + std::to_string(waypoints.size()) + ".");
 	}
-	
-	// Make sure times are in ascending order
-	for(int i = 0; i < times.size()-1; i++)
-	{
-		if(times[i] >= times[i+1])
-		{
-			throw std::invalid_argument("[ERROR] [SPLINE] Constructor: "
-						    "Times must be in ascending order. "
-			                            "Time for waypoint " + std::to_string(i+1) + " is equal to "
-			                            "time for waypoint " + std::to_string(i+2) + "("
-			                            + std::to_string(times[i]) + " >= " + std::to_string(times[i+1]) + ".");
-		}
-	}
 		
 	if(this->_numberOfWaypoints == 2)
 	{
@@ -127,43 +114,71 @@
 		
 		for(int i = 1; i < this->_numberOfWaypoints-1; i++)
 		{
-			DataType dt1 = times[i-1];
-			DataType dt2 = times[i];
+			DataType dt1 = times[i]   - times[i-1];
+			DataType dt2 = times[i+1] - times[i];
 			
-			A(i-1,i) = 1/dt1;
+			if(dt1 == 0)
+			{
+				throw std::logic_error("[ERROR] [SPLINE] Constructor: "
+				                       "Time for waypoint " + std::to_string(i-1) + " "
+				                       "is the same as time for waypoint " + std::to_string(i) + 
+				                       "(" + std::to_string(times[i-1]) + " == " + std::to_string(times[i]) + "). "
+				                       "You cannot move in zero time! ಠ_ಠ");
+			}
+			else if(dt1 < 0)
+			{
+				throw std::logic_error("[ERROR] [SPLINE] Constructor: "
+				                       "Times are not in ascending order. (Time " + std::to_string(i-1) + " of "
+				                       + std::to_string(times[i-1]) + " seconds == time " + std::to_string(i) + " of "
+				                       + std::to_string(times[i]) + " seconds). "
+				                       "You cannot go backwards in time! ヽ༼ ಠ益ಠ ༽ﾉ");
+			}
+			
+			A(i,i-1) = 1/dt1;
 			A(i,i)   = 2*(1/dt1 + 1/dt2);
 			A(i,i+1) = 1/dt2;
 		
-			B(i-1,i) = -3/(dt1*dt1);
+			B(i,i-1) = -3/(dt1*dt1);
 			B(i,i)   =  3*(1/(dt1*dt1) - 1/(dt2*dt2));
 			B(i,i+1) =  3/(dt2*dt2);
 		}
 		
-		A(this->_numberOfWaypoints, this->_numberOfWaypoints) = 1;
+		A(this->_numberOfWaypoints-1, this->_numberOfWaypoints-1) = 1;
 		
-		Matrix<DataType,Dynamic,Dynamic> C = A.partialPivLu().solve(B);                             // Makes calcs a little easier
+		std::cout << "\nThe A matrix:\n\n";
+		std::cout << A << std::endl;
 		
-		std::vector<Vector<DataType,Dynamic>> velocity; velocity.resize(this->_numberOfWaypoints);  // Array of velocities for all dimensions, waypoints
+		std::cout << "\nThe B matrix:\n\n";
+		std::cout << B << std::endl;
 		
-		for(int i = 0; i < velocity.size(); i++)
+		PartialPivLU<Matrix<DataType,Dynamic,Dynamic>> LU(A);                               // Compute decompisition to make things faster
+		
+		std::vector<Vector<DataType,Dynamic>> velocity; velocity.resize(this->_numberOfWaypoints); // Array of velocities for all dimensions, waypoints
+
+		unsigned int dim = waypoints[0].size();                                             // Number of dimensions
+		
+		for(int i = 0; i < dim; i++)
 		{
-			velocity[i].resize(waypoints[i].size());                                            // Resize the Eigen::Vector object within the std::vector object
+			Vector<DataType,Dynamic> pos(this->_numberOfWaypoints);
+
+			for(int j = 0; j < this->_numberOfWaypoints; j++) pos(j) = waypoints[j][i]; // Get the ith dimension of the jth waypoint
 			
-			for(int j = 0; j < velocity[i].size(); j++)
-			{
-				velocity[i][j] = 0.0;
-				
-				// Note: waypoints for a single dimension are stored along the rows,
-				//       so we need to project the rows of the C matrix on to the rows of
-				//       the waypoint array
-				for(int k = 0; k < velocity.front().size(); k++) velocity[i][j] += C(j,k)*waypoints[i][k];
-			}
+			Vector<DataType,Dynamic> des(this->_numberOfWaypoints); des.setZero();      // All numbers inbetween should be zero
+			des(0)   = startVelocity(i);                                                // Start point of the ith dimension
+			des(this->_numberOfWaypoints-1) = endVelocity(i);                           // End point for the ith dimension
+			
+			std::cout << "Positions: " << pos.transpose() << std::endl;
+			std::cout << "Desired velocities: " << des.transpose() << std::endl;
+			
+			Vector<DataType,Dynamic> vel = LU.solve(B*pos + des);                       // Solve the velocities
+			
+			std::cout << "Solved velocites: " << vel.transpose() << std::endl;
 		}
 		
 		std::cout << "\nHere are all the velocity vectors:\n";
-		for(auto &vel : velocity)
+		for(int i = 0; i < this->_numberOfWaypoints; i++)
 		{
-			std::cout << vel.transpose() << "\n";
+			std::cout << velocity[i] << "\n";
 		}
 		std::cout << std::endl;
 
