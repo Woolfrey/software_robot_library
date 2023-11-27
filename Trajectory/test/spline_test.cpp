@@ -19,12 +19,12 @@ int main(int argc, char* argv[])
 	unsigned int order = std::stoi(argv[2]);
 	
 	// Set up the points for the spline
-	std::vector<Eigen::VectorXf> points;
-	std::vector<float> times;
+	std::vector<Eigen::Vector<double,Eigen::Dynamic>> points;
+	std::vector<double> times;
 	
 	for(int i = 0; i < n; i++)
 	{
-		Eigen::VectorXf temp(1); temp(0) = i;
+		Eigen::Vector<double,Eigen::Dynamic> temp(1); temp(0) = i;
 		
 		points.push_back(temp);
 		times.push_back(i);
@@ -32,16 +32,16 @@ int main(int argc, char* argv[])
 		
 	try
 	{
-		Spline<float> trajectory(points, times, order);
+		Spline<double> trajectory(points, times, order);
 		
-		float hertz = 20.0;
-		unsigned int steps = 25*(n-1);
+		double hertz = 20.0;
+		unsigned int steps = 21*(n-1);
 		
-		Eigen::MatrixXf state(steps,3);
+		Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> state(steps,3);
 		
 		for(int i = 0; i < steps; i++)
 		{
-			float t = i/hertz;
+			double t = i/hertz;
 			
 			const auto &[pos, vel, acc] = trajectory.query_state(t);
 			
