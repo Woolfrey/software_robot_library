@@ -37,8 +37,10 @@ class TrajectoryBase
 		 * @param endTime The time that the trajectory finishes.
 		 * @param dimensions The spatial dimensions that the trajectory moves through.
 		 */
-		TrajectoryBase(const DataType     &startTime,
-		               const DataType     &endTime,
+		TrajectoryBase(const Eigen::Vector<DataType,Eigen::Dynamic> &startPoint,
+		               const Eigen::Vector<DataType,Eigen::Dynamic> &endPoint,
+		               const DataType &startTime,
+		               const DataType &endTime,
 		               const unsigned int &dimensions);
 		    
 		/**
@@ -69,17 +71,25 @@ class TrajectoryBase
 		DataType _endTime;                                                                  ///< The end time for the trajectory
 		
 		unsigned int _dimensions;                                                           ///< The number of spatial dimensions the trajectory moves through
+
+		Eigen::Vector<DataType,Eigen::Dynamic> _startPoint;
 		
+		Eigen::Vector<DataType,Eigen::Dynamic> _endPoint;
+	
 };                                                                                                  // Semicolon needed after class declaration
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //                                       Constructor                                             //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <class DataType>
-TrajectoryBase<DataType>::TrajectoryBase(const DataType     &startTime,
-                                         const DataType     &endTime,
+TrajectoryBase<DataType>::TrajectoryBase(const Eigen::Vector<DataType,Eigen::Dynamic> &startPoint,
+                                         const Eigen::Vector<DataType,Eigen::Dynamic> &endPoint,
+                                         const DataType &startTime,
+                                         const DataType &endTime,
                                          const unsigned int &dimensions)
                                          :
+                                         _startPoint(startPoint),
+                                         _endPoint(endPoint),
                                          _startTime(startTime),
                                          _endTime(endTime),
                                          _dimensions(dimensions)
