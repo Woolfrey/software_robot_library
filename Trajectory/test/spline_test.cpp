@@ -7,15 +7,16 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 int main(int argc, char* argv[])
 {
-	if(argc != 2)
+	if(argc != 3)
 	{
 		std::cerr << "[ERROR] [SPLINE TEST] Incorrect number of arguments. "
-		          << "Usage: './spline_test numberOfPoints'." << std::endl;
+		          << "Usage: './spline_test numberOfPoints polynomialOrder'." << std::endl;
 		          
 		return -1;
 	}
 	
 	unsigned int n = std::stoi(argv[1]);
+	unsigned int order = std::stoi(argv[2]);
 	
 	// Set up the points for the spline
 	std::vector<Eigen::VectorXf> points;
@@ -31,10 +32,10 @@ int main(int argc, char* argv[])
 		
 	try
 	{
-		Spline<float> trajectory(points, times);
+		Spline<float> trajectory(points, times, order);
 		
 		float hertz = 20.0;
-		unsigned int steps = 20*(n-1);
+		unsigned int steps = 25*(n-1);
 		
 		Eigen::MatrixXf state(steps,3);
 		
