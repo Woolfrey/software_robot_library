@@ -188,13 +188,13 @@ Polynomial<DataType>::Polynomial(const Eigen::Vector<DataType,Eigen::Dynamic> &s
 	  	supportPoints(0) = startPoint(i);
 	  	supportPoints(n) = endPoint(i);
 	  	
-	  	if(i > 0)
+	  	if(i == 0)
 	  	{
 	  		supportPoints(1)   = startVelocity(i);
 	  		supportPoints(1+n) = endVelocity(i);
 	  	}
 	  	
-	  	if(i > 1)
+	  	if(i == 1)
 	  	{
 	  		supportPoints(2)   = startAcceleration(i);
 	  		supportPoints(2+n) = endAcceleration(i);
