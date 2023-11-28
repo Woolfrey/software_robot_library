@@ -45,19 +45,15 @@ class TrapezoidalVelocity : public TrajectoryBase<DataType>
 		 */
 		State<DataType> query_state(const DataType &time);
 		
-		
-				
 	private:
 	
 		DataType _coastDistance;                                                            ///< Distance covered at maximum speed
 		DataType _coastTime;                                                                ///< Length of time to move at max speed
-		DataType _endTime;                                                                  ///< Final time for the trajectory
 		DataType _normalisedVel;                                                            ///< Maximum velocity, normalised so total distance  = 1
 		DataType _normalisedAcc;                                                            ///< Maximum acceleration, normalised so total distance = 1
 		DataType _rampDistance;                                                             ///< Distance traveled whilst accelerating
 		DataType _rampTime;                                                                 ///< Length of time to accelerate
-		DataType _startTime;                                                                ///< Time at which the trajectory begins
-		
+				
 };                                                                                                  // Semicolon needed after class declaration
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -121,7 +117,7 @@ TrapezoidalVelocity<DataType>::TrapezoidalVelocity(const Eigen::Vector<DataType,
 	
 	this->_coastDistance = this->_normalisedVel*this->_coastTime;                               // Distance travelled moving at max speed
 	
-	this->_endTime = 2*this->_rampTime + this->_coastTime;                                      // Total time passed
+	this->_endTime = this->_startTime + 2*this->_rampTime + this->_coastTime;                   // Total time passed
 }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
