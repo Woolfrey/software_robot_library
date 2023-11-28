@@ -25,6 +25,11 @@
  		               const DataType &maxVelocity,
  		               const DataType &maxAcceleration,
  		               const DataType &startTime);
+ 		               
+		/**
+		 * @return The time at which this trajectory finishes.
+		 */
+		DataType end_time() const { return this->_trajectory.back().end_time(); }
  };                                                                                                 // Semicolon needed after class declaration
  
   //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -36,14 +41,24 @@ MultiTrapezoid<DataType>::MultiTrapezoid(const std::vector<Eigen::Vector<DataTyp
                                          const DataType &maxAcceleration,
                                          const DataType &startTime)
 {
-	for(int i = 0; i < waypoints.size()-1; i++)
+	// Set the values in the underlying Waypoints class
+	this->_numberOfWaypoints = waypoints.size();
+	this->_time.push_back(startTime);
+	
+	if(this->_numberOfWaypoints < 2)
 	{
-		DataType t;
-		
-		if(i == 1) t = startTime;
-		else       t = this->_trajectory[i-1].end_time();                                   // Start time of this trajectory is end time of previous
-		
-		this->_trajectory[i].emplace_back(waypoints[i],waypoints[i+1],maxVelocity,maxAcceleration,t);
+		throw std::invalid_argument("[ERROR] [MULTI TRAPEZOID] Constructor: "
+		                            "A minimum of 2 waypoints is required, but you provided "
+		                            + std::to_string(waypoints.size()) + ".");
+	}
+	
+	for(int i = 0; i < this->_numberOfWaypoints-1; i++)
+	{
+		this->_trajectory.push_back(TrapezoidalVelocity<DataType>(waypoints[i],waypoints[i+1],
+		                                                          maxVelocity,maxAcceleration,
+		                                                          this->_time.back()));
+
+		this->_time.push_back(this->_trajectory.back().end_time());
 	}
 }
 

@@ -49,6 +49,8 @@ int main(int argc, char* argv[])
 		
 		std::cout << "\nHere is the state:\n\n";
 		std::cout << state << std::endl;
+		
+		std::cout << "\nThe end time is: " << trajectory.end_time() << std::endl;
 	}
 	catch(const std::exception &exception)
 	{
