@@ -29,3 +29,7 @@ target_link_libraries(trapezoidal_test RobotLibrary)                            
 add_executable(spline_test test/spline_test.cpp)                                                    # Create name of exe from source file
 add_dependencies(spline_test RobotLibrary)                                                          # Depends on RobotLibrary (obviously)
 target_link_libraries(spline_test RobotLibrary)                                                     # Link RobotLibrary
+
+add_executable(multi_trapezoid_test test/multi_trapezoid_test.cpp)                                  # Create name of exe from source file
+add_dependencies(multi_trapezoid_test RobotLibrary)                                                 # Depends on RobotLibrary (obviously)
+target_link_libraries(multi_trapezoid_test RobotLibrary)                                            # Link RobotLibrary
