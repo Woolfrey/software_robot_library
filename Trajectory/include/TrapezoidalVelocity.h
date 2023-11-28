@@ -120,6 +120,9 @@ TrapezoidalVelocity<DataType>::TrapezoidalVelocity(const Eigen::Vector<DataType,
 	this->_endTime = this->_startTime + 2*this->_rampTime + this->_coastTime;                   // Total time passed
 }
 
+typedef TrapezoidalVelocity<float>  TrapezoidalVelocityf;
+typedef TrapezoidalVelocity<double> TrapezoidalVelocityd;
+
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //                               Get the state for the given time                                //
 ///////////////////////////////////////////////////////////////////////////////////////////////////

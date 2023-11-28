@@ -55,7 +55,10 @@
 		       const Eigen::Vector<DataType,Eigen::Dynamic> &endVelocity,
 		       const unsigned int &polynomialOrder);
  		       
- };                                                                                                 // Semicolon needed after class declaration
+};                                                                                                 // Semicolon needed after class declaration
+ 
+typedef Spline<float>  Splinef;
+typedef Spline<double> Splined;
  
    //////////////////////////////////////////////////////////////////////////////////////////////////
   //                                        Constructor                                           //

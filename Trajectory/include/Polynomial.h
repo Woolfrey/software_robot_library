@@ -104,8 +104,11 @@ class Polynomial : public TrajectoryBase<DataType>
 		unsigned int _order;                                                                ///< The order of the polynomial
 		
 		Eigen::Matrix<DataType,Eigen::Dynamic,Eigen::Dynamic> _coefficients;                ///< Array of coefficients for every dimension
+
 };                                                                                                  // Semicolon needed after class declaration
 
+typedef Polynomial<float>  Polynomialf;
+typedef Polynomial<double> Polynomiald;
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //                                           Cosntructor                                         //
