@@ -63,6 +63,11 @@ class TrajectoryBase
 		 * @return Returns true if there were no problems.
 		 */
 		virtual State<DataType> query_state(const DataType &time) = 0;
+		
+		/**
+		 * @return The computed end time of this trajectory.
+		 */
+		DataType end_time() const { return this->_endTime; }
 		              
 	protected:
 	
