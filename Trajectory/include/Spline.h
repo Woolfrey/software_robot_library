@@ -46,8 +46,11 @@
 		 
  		/**
  		 * Full constructor which specifies the polynomial order, start and end velocities.
- 		 *
- 		 *
+ 		 * @param waypoints A vector of Eigen::Vector objects specifying points to pass through.
+ 		 * @param times The time at which to pass through each waypoint.
+ 		 * @startVelocity The initial speed for the trajectory.
+ 		 * @endVelocity The final speed for the trajectory.
+ 		 * @polynomialOrder The number of coefficients in the polynomial.
  		 */
  		Spline(const std::vector<Eigen::Vector<DataType,Eigen::Dynamic>> &waypoints,
  		       const std::vector<DataType> &times,
