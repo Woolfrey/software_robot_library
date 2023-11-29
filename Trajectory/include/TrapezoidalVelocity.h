@@ -68,11 +68,9 @@ TrapezoidalVelocity<DataType>::TrapezoidalVelocity(const Eigen::Vector<DataType,
 {
 	// Assign initial values in underlying TrajectoryBase class
 	this->_dimensions = startPoint.size();                                                      // Assign to variable in base class
-	this->_startTime  = startTime;
-	
-	// Assign values to this TrapezoidalVelocity object
-	this->_startPoint = startPoint;
 	this->_endPoint   = endPoint;
+	this->_startPoint = startPoint;
+	this->_startTime  = startTime;
 	
 	if(startPoint.size() != endPoint.size())
 	{
@@ -88,7 +86,6 @@ TrapezoidalVelocity<DataType>::TrapezoidalVelocity(const Eigen::Vector<DataType,
 		                            + std::to_string(maxVel) + " and " + std::to_string(maxAccel) +
 		                            " but must be positive.");
 	}
-	
 
 	DataType normaliser = -1;                                                                   // Needed to scale velocity to be dimensionless
 	
