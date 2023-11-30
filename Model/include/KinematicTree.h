@@ -62,17 +62,29 @@ class KinematicTree
 		unsigned int number_of_joints() const { return this->_numberOfJoints; }
 		
 		/**
-		 * @return The coupled inertia matrix between the base and links.
+		 * @return The coupled inertia matrix the actuated joints and the base.
 		 */
 		Eigen::Matrix<DataType, Eigen::Dynamic, 6>
 		joint_base_inertia_matrix() const { return this->_jointBaseInertiaMatrix; }
 		
 		/**
-		 * @return The Coriolis matrix between the base and links
+		 * @return The coupled inertia matrix between the base and actuated joints.
+		 */
+		Eigen::Matrix<DataType,6,Eigen::Dynamic>
+		base_joint_inertia_matrix() const { return this->_jointBaseInertiaMatrix.transpose(); }
+		
+		/**
+		 * @return The Coriolis matrix between actuated joints and the base.
 		 */
 		// Should be centripetal forces only???
 		Eigen::Matrix<DataType, Eigen::Dynamic, 6>
 		joint_base_coriolis_matrix() const { return this->_jointBaseCoriolisMatrix; }
+		
+		/**
+		 * @return The Coriolis matrix between the base and actuated joints.
+		 */
+		Eigen::Matrix<DataType,6,Eigen::Dynamic>
+		base_joint_coriolis_matrix() const { return -this->_jointBaseCoriolisMatrix.transpose(); }
 		
 		/**
 		 * @return Returns the joint space inertia matrix.
@@ -590,8 +602,7 @@ KinematicTree<DataType>::jacobian(Link<DataType> *link,                         
                                   const Eigen::Vector<DataType, 3> &point,                          // A point in the given joint frame
                                   const unsigned int &numberOfColumns)                              // Must be less than or equal to number of joints in model
 {
-	Eigen::Matrix<DataType,6,Eigen::Dynamic> J;
-	J.resize(NoChange,numberOfColumns);
+	Eigen::Matrix<DataType,6,Eigen::Dynamic> J(6,numberOfColumns);
 	J.setZero();
 	
 	if(link->number() > numberOfColumns)
