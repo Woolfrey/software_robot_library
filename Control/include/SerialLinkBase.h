@@ -22,7 +22,7 @@ class SerialLinkBase : public QPSolver<DataType>
 		 * @param model A pointer to the KinematicTree object to be controlled.
 		 * @param endpointName The name of the endpoint on the KinematicTree to be controlled.
 		 */
-		SerialLinkBase(KinematicTree<DataType> *model, const string &endpointName);
+		SerialLinkBase(KinematicTree<DataType> *model, const std::string &endpointName);
 		
 		/**
 		 * Compute the required joint motion to achieve the specified endpoint motion.
@@ -143,7 +143,7 @@ class SerialLinkBase : public QPSolver<DataType>
 		                                     0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
 		                                     0.0, 0.0, 0.0, 0.1, 0.0, 0.0,
 		                                     0.0, 0.0, 0.0, 0.0, 0.1, 0.0,
-		                                     0.0, 0.0, 0.0, 0.0, 0.0, 0.1).finished();      ///< Structure for the Cartesian gains
+		                                     0.0, 0.0, 0.0, 0.0, 0.0, 0.1).finished();      ///< Structure for the Cartesian gain matrices
 		
 		Eigen::Matrix<DataType,6,6> _cartesianDamping = 0.1*this->_gainFormat;              ///< Derivative gain on endpoint velocity error
 		
@@ -159,10 +159,7 @@ class SerialLinkBase : public QPSolver<DataType>
 		
 		unsigned int _controlFrequency = 100;                                               ///< Used in certain control calculations.
 		
-		/**
-		 * Function pointer.
-		 */
-		Eigen::Vector<DataType,Eigen::Dynamic> (*_redundantTask)(void);
+		Eigen::Vector<DataType,Eigen::Dynamic> (*_redundantTask)(void);                     ///< Pointer to function that computes redundant task
 		
 		/**
 		 * Computes the instantaneous limits on the joint control.
@@ -177,7 +174,7 @@ class SerialLinkBase : public QPSolver<DataType>
  //                                           Constructor                                         //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <class DataType>
-SerialLinkBase<DataType>::SerialLinkBase(KinematicTree<DataType> *model, const string &endpointName)
+SerialLinkBase<DataType>::SerialLinkBase(KinematicTree<DataType> *model, const std::string &endpointName)
 					 :
                                          _model(model)
 {
