@@ -11,9 +11,6 @@
 #include <Eigen/Core>
 #include <string>
 
-using namespace Eigen;                                                                              // Eigen::Matrix, Eigen::Vector
-using namespace std;                                                                                // std::invalid_argument
-
 template <class DataType>
 class RigidBody
 {
@@ -171,8 +168,8 @@ void RigidBody<DataType>::update_state(const Pose<DataType> &pose,
 	
 	this->_twist = twist;                                                                       // Update the linear & angular velocity
 	
-	Eigen::Vector<DataType,3> w = this->_twist.tail(3);
+	Eigen::Vector<DataType,3> w = this->_twist.tail(3);                                         // Needed so we can do cross product
 	
-	for(int i = 0; i < 3; i++) this->_inertiaDerivative.col(i) = w.cross(this->_inertia.col(i));
+	for(int i = 0; i < 3; i++) this->_inertiaDerivative.col(i) = w.cross(this->_inertia.col(i)); // Perform cross product on every column
 }
 #endif
