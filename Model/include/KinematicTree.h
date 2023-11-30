@@ -198,7 +198,7 @@ class KinematicTree
  //                                        Constructor                                            //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <class DataType>
-KinematicTree<DataType>::KinematicTree(const string &pathToURDF)
+KinematicTree<DataType>::KinematicTree(const std::string &pathToURDF)
 {
 	using namespace Eigen;                                                                      // Eigen::Matrix, Eigen::Vector
 	using namespace std;                                                                        // std::string, std::map
@@ -416,16 +416,16 @@ KinematicTree<DataType>::KinematicTree(const string &pathToURDF)
 		{
 			Link<DataType> *parentLink = currentLink.parent_link();                     // Pointer to the parent link
 		
-			if(parentLink == nullptr)                                                   // Must be the base link!
+			if(parentLink == nullptr)                                                   // No parent link, must be attached to the base!
 			{
 				this->base.combine_inertia(currentLink,currentLink.joint().origin()); // Combine inertia of this link with the base
 				
 				for(auto childLink : currentLink.child_links())                     // Cycle through all the child links
 				{
-					childLink->clear_parent_link();                             // Parent link has been merged, so sever the connection
+					childLink->clear_parent_link();                             // Link has been merged, so sever the connection
 				}
 			}
-			else parentLink->merge(currentLink);                                        // Merge this link in to the list
+			else parentLink->merge(currentLink);                                        // Merge this link in to the previous
 		
 			ReferenceFrame<DataType> frame = {parentLink, currentLink.joint().origin()};
 			
@@ -514,7 +514,7 @@ bool KinematicTree<DataType>::update_state(const Eigen::Vector<DataType, Eigen::
 	this->_jointBaseInertiaMatrix.setZero();
 	this->_jointBaseCoriolisMatrix.setZero();
 
-	vector<Link<DataType>*> candidateList = this->_baseLinks;                                   // Start with links attached to base
+	std::vector<Link<DataType>*> candidateList = this->_baseLinks;                              // Start with links attached to base
 	
 	while(candidateList.size() > 0)
 	{
@@ -718,8 +718,8 @@ KinematicTree<DataType>::partial_derivative(const Eigen::Matrix<DataType,6,Eigen
 	{
 		throw std::invalid_argument("[ERROR] [KINEMATIC TREE] partial_derivative(): "
 		                            "Cannot take the derivative with respect to joint number "
-		                            + to_string(jointNumber) + " for a Jacobian with only "
-		                            + to_string(numberOfColumns) + " columns.");
+		                            + std::to_string(jointNumber) + " for a Jacobian with only "
+		                            + std::to_string(numberOfColumns) + " columns.");
 	}
 
 	Eigen::Matrix<DataType,6,Eigen::Dynamic> dJ(6,numberOfColumns);                             // Value to be returned
@@ -761,8 +761,8 @@ KinematicTree<DataType>::partial_derivative(const Eigen::Matrix<DataType,6,Eigen
 				dJ(2,i) = jacobianMatrix(0,j)*jacobianMatrix(1,i) - jacobianMatrix(1,j)*jacobianMatrix(0,i);
 			}
 		}
-		else if(this->link[i]->joint().is_prismatic()			            // J_i = [a_i ; 0]
-		    and this->link[j]->joint().is_revolute()				    // J_j = [a_j x r_j; a_j]
+		else if(this->link[i]->joint().is_prismatic()			                    // J_i = [a_i ; 0]
+		    and this->link[j]->joint().is_revolute()				            // J_j = [a_j x r_j; a_j]
 	            and j < i)
 		{
 			// a_j x a_i
@@ -779,22 +779,22 @@ KinematicTree<DataType>::partial_derivative(const Eigen::Matrix<DataType,6,Eigen
  //                         Compute the Jacobian to a given frame                                  //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 template <class DataType> inline
-Eigen::Matrix<DataType,6,Eigen::Dynamic> KinematicTree<DataType>::jacobian(const string &frameName)
+Eigen::Matrix<DataType,6,Eigen::Dynamic> KinematicTree<DataType>::jacobian(const std::string &frameName)
 {
 	ReferenceFrame<DataType> frame = this->_frameList.find(frameName)->second;
 	
 	// NOTE: Need an error check here
 	
-	return jacobian(frame.link,                                                  // Is this supposed to be the parent link? I forget (ಥ﹏ಥ)
-	               (frame.link->pose()*frame.relativePose).translation(),        // The point for which to compute the Jacobian
-	                frame.link->number()+1);                                    // The link/joint number to start from
+	return jacobian(frame.link,                                                                 // Is this supposed to be the parent link? I forget (ಥ﹏ಥ)
+	               (frame.link->pose()*frame.relativePose).translation(),                       // The point for which to compute the Jacobian
+	                frame.link->number()+1);                                                    // The link/joint number to start from
 }
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                          Get the a reference frame on the robot                                //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 template <class DataType> inline
-Pose<DataType> KinematicTree<DataType>::frame_pose(const string &frameName)
+Pose<DataType> KinematicTree<DataType>::frame_pose(const std::string &frameName)
 {
 	ReferenceFrame<DataType> frame = this->_frameList.find(frameName)->second;
 	
@@ -804,7 +804,7 @@ Pose<DataType> KinematicTree<DataType>::frame_pose(const string &frameName)
 }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
- //                   Convert a char of numbers to an Vector<DataType,  3> object                 //
+ //               Convert a char of numbers to an Eigen::Vector<DataType,  3> object              //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <class DataType>
 Eigen::Vector<DataType,3> KinematicTree<DataType>::char_to_vector(const char* character)
