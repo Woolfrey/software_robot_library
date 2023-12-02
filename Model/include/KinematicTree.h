@@ -827,8 +827,7 @@ Eigen::Vector<DataType,3> KinematicTree<DataType>::char_to_vector(const char* ch
 		}
 	}
 	
-	// Get the last number in the char array
-	for(int i = startPoint; i < std::strlen(character); i++) numberAsString += character[i];
+	for(int i = startPoint; i < std::strlen(character); i++) numberAsString += character[i];    // Get the last number in the char array
 	
 	numberAsVector.push_back(std::stof(numberAsString));
 
