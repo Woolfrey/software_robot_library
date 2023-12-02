@@ -1,34 +1,70 @@
+/**
+ * @file   SerialLinkKinematics.h
+ * @author Jon Woolfrey
+ * @data   December 2023
+ * @brief  A class for velocity control of a robot arm.
+ */
+
 #ifndef SERIALLINKKINEMATICS_H_
 #define SERIALLINKKINEMATICS_H_
 
 #include <SerialLinkBase.h>
 
-using namespace Eigen;
-using namespace std;
-
 template <class DataType>
 class SerialLinkKinematics : public SerialLinkBase<DataType>
 {
 	public:
-		SerialLinkKinematics(const string &pathToURDF,
-		                     const string &endpointName)
-		: SerialLinkBase<DataType>(pathToURDF, endpointName) {}
+		/**
+		 * Constructor.
+		 * @param model A pointer to a KinematicTree object.
+		 * @param endpointName The name of the reference frame in the KinematicTree to be controlled.
+		 */
+		SerialLinkKinematics(KinematicTree<DataType> *model,
+		                     const std::string &endpointName)
+		:
+		SerialLinkBase<DataType>(model, endpointName) {}
 		
-		// Functions derived from the base class
+		/**
+		 * Solve the joint velocities required to move the endpoint at a given speed.
+		 * @param endpointMotion A twist vector (linear & angular velocity).
+		 * @return A nx1 vector of joint velocities.
+		 */
+		Eigen::Vector<DataType,Eigen::Dynamic>
+		resolve_endpoint_motion(const Eigen::Vector<DataType,6> &endPointMotion);
 		
-		Vector<DataType,Dynamic> resolve_endpoint_motion(const Vector<DataType,6> &endPointMotion); // Solve the joint motion to execute a given endpoint motion
-		
-		Vector<DataType,Dynamic> track_endpoint_trajectory(const Pose<DataType>     &desiredPose,
-							           const Vector<DataType,6> &desiredVel,
-							           const Vector<DataType,6> &desiredAcc);
-							  
-		Vector<DataType,Dynamic> track_joint_trajectory(const Vector<DataType,Dynamic> &desiredPos,
-		                                                const Vector<DataType,Dynamic> &desiredVel,
-		                                                const Vector<DataType,Dynamic> &desiredAcc);
+		/**
+		 * Solve the joint velocities required to track a Cartesian trajectory.
+		 * @param desiredPose The desired position & orientation (pose) for the endpoint.
+		 * @param desiredVel The desired linear & angular velocity (twist) for the endpoint.
+		 * @param desiredAcc Not used in velocity control.
+		 * @return The joint velocities (nx1) required to track the trajectory.
+		 */
+		Eigen::Vector<DataType,Eigen::Dynamic>
+		track_endpoint_trajectory(const Pose<DataType>            &desiredPose,
+					  const Eigen::Vector<DataType,6> &desiredVel,
+					  const Eigen::Vector<DataType,6> &desiredAcc);
+
+		/**
+		 * Solve the joint velocities required to track a joint space trajectory.
+		 * @param desiredPos The desired joint position (nx1).
+		 * @param desiredVel The desired joint velocity (nx1).
+		 * @param desiredAcc Not used in velocity control.
+		 * @return The control velocity (nx1).
+                 */			  
+		Eigen::Vector<DataType,Eigen::Dynamic>
+		track_joint_trajectory(const Eigen::Vector<DataType,Eigen::Dynamic> &desiredPos,
+		                       const Eigen::Vector<DataType,Eigen::Dynamic> &desiredVel,
+		                       const Eigen::Vector<DataType,Eigen::Dynamic> &desiredAcc);
 													   		
 	protected:
 	
-		bool compute_control_limits(DataType &lower, DataType &upper, const unsigned int &jointNumber);
+		/**
+		 * Compute the instantaneous limits on the joint velocity control.
+		 * It computes the minimum between joint positions, speed, and acceleration limits.
+		 * @param jointNumber The joint for which to compute the limits.
+		 * @return The upper and lower joint speed at the current time.
+		 */
+		Limits<DataType> compute_control_limits(const unsigned int &jointNumber);
 	
 };                                                                                                  // Semicolon needed after a class declaration
 
@@ -37,178 +73,185 @@ class SerialLinkKinematics : public SerialLinkBase<DataType>
  //              Solve the endpoint motion required to achieve a given endpoint motion             //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 template <class DataType> inline
-Vector<DataType,Dynamic> SerialLinkKinematics<DataType>::resolve_endpoint_motion(const Vector<DataType,6>&endpointMotion)
+Eigen::Vector<DataType,Eigen::Dynamic>
+SerialLinkKinematics<DataType>::resolve_endpoint_motion(const Eigen::Vector<DataType,6> &endpointMotion)
 {
-	Matrix<DataType,6,Dynamic> J = this->endpoint_jacobian();                                   // Need 'this->' or it won't compile
+	using namespace Eigen;
 	
-	Matrix<DataType,6,6> JJt = J*J.transpose();                                                 // Makes calcs a little easier
+	unsigned int numJoints = this->_model->number_of_joints();                                  // Makes things easier
 	
-	DataType manipulability = sqrt((JJt).determinant());                                        // Proximity to a singularity
+	Vector<DataType,Dynamic> controlVelocity(numJoints); controlVelocity.setZero();             // Value to be returned
 	
-	if(manipulability <= this->threshold)
+	Vector<DataType,Dynamic> startPoint = this->_model->joint_velocities();                     // For the QP solver
+	
+	Vector<DataType,Dynamic> lowerBound(numJoints), upperBound(numJoints);                      // On the joint control
+	
+	for(int i = 0; i < numJoints; i++)
 	{
-		cout << "[WARNING] [SERIAL LINK CONTROL] resolve_endpoint_motion(): "
-		     << "Robot is in a singular configuration! "
-		     << "(Manipulability " << manipulability << " <  threshold " << this->threshold << ").\n";
-		
-		return 0.9*this->jointVelocity;                                                     // Slow down
+		// NOTE: Can't use structured binding on Eigen::Vector because its size is not
+		//       known at compile time, so we have to assign to variable and transfer:
+		const auto &[lower, upper] = compute_control_limits(i);                             // Get the control limits for the ith joint
+	
+		lowerBound(i) = lower;                                                              // Assign to vectors
+		upperBound(i) = upper;
+	
+		     if(startPoint(i) <= lowerBound(i)) startPoint(i) = lowerBound(i) + 1e-03;      // Just above the lower limit
+		else if(startPoint(i) >= upperBound(i)) startPoint(i) = upperBound(i) - 1e-03;      // Just below the upper limit
 	}
-
-	Vector<DataType,Dynamic> gradient(this->numJoints); gradient(0) = 0;                        // Gradient of manipulability
 	
-	Vector<DataType,Dynamic> startPoint = this->jointVelocity;                                  // Needed for the QP solver
-
-	Vector<DataType,Dynamic> upperBound(this->numJoints),
-                                 lowerBound(this->numJoints);                                       // Instantaneous limits on solution
-
-	// Compute joint control limits and gradient of manipulability
-	for(int i = 0; i < this->numJoints; i++)
+	if(this->_manipulability < this->_minManipulability)                                        // Near-singular, solve damped-least squares problem
 	{
-		// Maximum speed permissable
-		if(not compute_control_limits(lowerBound(i), upperBound(i), i))
+		// Chiaverini, S., Egeland, O., & Kanestrom, R. K. (1991, June).
+		// "Achieving user-defined accuracy with damped least-squares inverse kinematics."
+		// International Conference on Advanced Robotics' Robots in Unstructured Environments (pp. 672-677). IEEE.
+		
+		DataType dampingFactor = pow((1 - this->_manipulability/this->_minManipulability),2) * 1e-03;
+
+		try
 		{
-			throw runtime_error("[FLAGRANT SYSTEM ERROR] resolve_endpoint_motion(): "
-				            "Unable to compute the joint limits.");
+			controlVelocity =
+			QPSolver<DataType>::constrained_least_squares(this->_jacobianMatrix.transpose()*this->_jacobianMatrix + dampingFactor*Matrix<DataType,Dynamic,Dynamic>::Identity(numJoints,numJoints),
+				                                     -this->_jacobianMatrix.transpose()*endpointMotion,
+				                                      lowerBound,
+				                                      upperBound,
+				                                      startPoint);
 		}
-		
-		// Ensure start point is inside bounds or QP solver will fail
-		     if(startPoint(i) <= lowerBound(i)) startPoint(i) = lowerBound(i) + 0.001;
-		else if(startPoint(i) >= upperBound(i)) startPoint(i) = upperBound(i) - 0.001;
-		
-		// Get the gradient of manipulability
-		if(i > 0)
+		catch(const std::exception &exception)
 		{
-			Matrix<DataType,6,Dynamic> dJ = partial_derivative(J,i);                    // Partial derivative w.r.t. ith joint
+			std::cerr << exception.what() << "\n"; // Use std::endl to print immediately???
 			
-			gradient(i) = manipulability*(JJt.ldlt().solve(dJ*J.transpose()));          // Gradient of manipulability
+			controlVelocity = 0.9*this->_model->joint_velocities();                     // Slow down
 		}
-	}
-	
-	// Set up the inequality constraints for the QP solver B*qdot > z
-	
-	// B = [     I     ]   >   z = [  upperBound ]
-	//     [    -I     ]           [ -lowerBound ]
-	//     [ (dmu/dq)' ]           [ -gamma*mu   ]
-	
-	unsigned int n = this->numJoints;                                                           // I'm too lazy to type 'this->numJoints' every time
-	
-	Matrix<DataType,Dynamic,Dynamic> B(2*n+1,n);
-	B.block(0,0,n,n).setIdentity();
-	B.block(n,0,n,n) = -B.block(0,0,n,n);
-	B.row(2*n+1) = gradient.transpose();
-	
-	Vector<DataType,Dynamic> z(2*n+1);
-	
-	z.block(0,0,n,1) =  upperBound;
-	z.block(n,0,n,1) = -lowerBound;
-	z(2*n+1) = -this->barrierScalar*manipulability;
-	
-	// Solve optimisation problem based on number of joints
-	
-	if(this->numJoints <= 6)                                                                    // No redundancy
-	{
-		// min || xdot - J*qdot ||^2
-		// subject to:   qdot_min < qdot < qdot_max
-		//               (dmu/dq)'*qdot > -gamma*mu 
-		
-		return QPSolver<DataType>::solve(J.transpose()*J,-endpointMotion,B,z,startPoint);   // Too easy lol				
 	}
 	else
-	{
-		if(not this->redundantTaskSet) this->redundantTask = gradient;                      // Optimise manipulability by default
+	{	
+		// Formulate the constraints B*qdot < z
 		
-		this->redundantTaskSet = false;                                                     // Reset for next loop
-	
-		return QPSolver<DataType>::redundant_least_squares(this->redundantTask,
-		                                                   this->jointInertiaMatrix,
-		                                                   J, endpointMotion, B, z, startPoint);
+		// B = [    I   ]
+		//     [   -I   ]
+		//     [ dmu/dq ]
+		
+		Matrix<DataType,Dynamic,Dynamic> B(2*numJoints+1,numJoints);
+		B.block(          0,0,numJoints,numJoints).setIdentity();
+		B.block(  numJoints,0,numJoints,numJoints) = -B.block(0,0,numJoints,numJoints);
+		B.block(2*numJoints,0,        1,numJoints) = this->manipulability_gradient().transpose(); // Need to use 'this->' or it won't compile
+		
+		// z = [       upperLimit      ]
+		//     [       lowerLimit      ]
+		//     [ -scalar*(mu - mu_min) ]
+		
+		Vector<DataType,Dynamic> z(2*numJoints+1);
+		z.block(          0,0,numJoints,1) = upperBound;
+		z.block(  numJoints,0,numJoints,1) = lowerBound;
+		z.block(2*numJoints,1,        1,1) = this->_controlBarrierScalar*(this->_minManipulability - this->manipulability);
+		
+		if(numJoints <= 6)
+		{
+			controlVelocity =
+			QPSolver<DataType>::solve(this->_jacobianMatrix.transpose()*this->_jacobianMatrix,
+			                         -this->_jacobianMatrix.transpose()*endpointMotion,
+			                          B, z, startPoint);
+		}
+		else                                                                                        // Redundant case
+		{
+			// NOTE TO FUTURE SELF: If redundant_task() is to maximise manipulability,
+			// then we're computing it twice here, which is inefficient...
+			
+			try
+			{
+				controlVelocity =
+				QPSolver<DataType>::constrained_least_squares(this->redundant_task(), // Need to use `this->` or it won't compile
+					                                      this->_model->joint_inertia_matrix(),
+					                                      this->_jacobianMatrix,
+					                                      endpointMotion,
+					                                      B, z, startPoint);
+			}
+			catch(const std::exception &exception)
+			{
+				std::cerr << exception.what() << "\n"; // Use std::endl to print immediately??
+				
+				controlVelocity = 0.9*this->_model->joint_velocities();             // Slow down
+			}
+		}
 	}
+	
+	return controlVelocity;
 }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //               Compute the endpoint velocity needed to track a given trajectory                //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <class DataType> inline
-Vector<DataType,Dynamic> SerialLinkKinematics<DataType>::track_endpoint_trajectory(const Pose<DataType>     &desiredPose,
-                                                                                   const Vector<DataType,6> &desiredVel,
-                                                                                   const Vector<DataType,6> &desiredAcc)
+Eigen::Vector<DataType,Eigen::Dynamic>
+SerialLinkKinematics<DataType>::track_endpoint_trajectory(const Pose<DataType>            &desiredPose,
+                                                          const Eigen::Vector<DataType,6> &desiredVel,
+                                                          const Eigen::Vector<DataType,6> &desiredAcc)
 {
-	return resolve_endpoint_motion(desiredVel + this->K*this->endpoint_pose().error(desiredPose)); // Feedforward + feedback
+	return resolve_endpoint_motion(desiredVel + this->_cartesianStiffness*this->_endpointPose.error(desiredPose)); // Feedforward + feedback control
 }
  
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //                  Compute the joint velocities needs to track a given trajectory               //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <class DataType> inline
-Vector<DataType,Dynamic> SerialLinkKinematics<DataType>::track_joint_trajectory(const Vector<DataType,Dynamic> &desiredPos,
-                                                                                const Vector<DataType,Dynamic> &desiredVel,
-                                                                                const Vector<DataType,Dynamic> &desiredAcc)
+Eigen::Vector<DataType,Eigen::Dynamic>
+SerialLinkKinematics<DataType>::track_joint_trajectory(const Eigen::Vector<DataType,Eigen::Dynamic> &desiredPos,
+                                                       const Eigen::Vector<DataType,Eigen::Dynamic> &desiredVel,
+						       const Eigen::Vector<DataType,Eigen::Dynamic> &desiredAcc)
 {
-	if(desiredPos.size() != this->numJoints	or desiredVel.size() != this->numJoints)
-	{
-		cerr << "[ERROR] [SERIAL LINK CONTROL] track_joint_trajectory(): "
-		     << "This robot has " << this->numJoints << " joints but "
-		     << "the position argument had " << desiredPos.size() << " elements and "
-		     << "the velocity argument had " << desiredVel.size() << " elements.\n";
-		
-		return 0.9*this->jointVelocity;
-	}
-	else
-	{
-		Vector<DataType,Dynamic> vel = desiredVel + this->kp*(desiredPos - this->jointPosition);    // Feedforward + feedback
+	unsigned int numJoints = this->_model->number_of_joints();                                  // Makes things easier
 	
-		// Ensure kinematic feasibility	
-		for(int i = 0; i < this->numJoints; i++)
-		{
-			DataType lowerBound, upperBound;
-			
-			if(not compute_joint_limits(lowerBound,upperBound,i))
-			{
-				cerr << "[ERROR] [SERIAL LINK CONTROL] track_joint_trajectory(): "
-				     << "Could not compute joint limits for the '"
-				     << this->activeLink[i].joint().name() << "' joint.\n";
-			}
-			else
-			{
-				     if(vel(i) <= lowerBound) vel(i) = lowerBound + 0.001;
-				else if(vel(i) >= upperBound) vel(i) = upperBound - 0.001;
-			}
-		}
-		
-		return vel;
+	if(desiredPos.size() != numJoints or desiredVel != numJoints)
+	{
+		throw std::invalid_argument("[ERROR] [SERIAL LINK] track_joint_trajectory(): "
+		                            "Incorrect size for input arguments. This robot has "
+		                            + std::to_string(numJoints) + " joints, but "
+		                            "the position argument had " + std::to_string(desiredPos.size()) + " elements, and"
+		                            "the velocity argument had " + std::to_string(desiredVel.size()) + " elements.");
 	}
+	
+	Eigen::Vector<DataType,Eigen::Dynamic> velocityControl(numJoints);                          // Value to be returned
+	
+	for(int i = 0; i < numJoints; i++)
+	{
+		Limits<DataType> controlLimits = compute_control_limits(numJoints);                 // Get the instantaneous limits on the joint speed
+		
+		velocityControl(i) = desiredVel(i) + this->_jointPositionGain*(desiredPos(i) - this->_model->joint_position(i)); // Feedforward + feedback control
+		                   
+		     if(velocityControl(i) <= controlLimits.lower) velocityControl(i) = controlLimits.lower + 1e-03; // Just above the limit
+		else if(velocityControl(i) >= controlLimits.upper) velocityControl(i) = controlLimits.upper - 1e-03; // Just below the limit
+	}
+	
+	return velocityControl;
 }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //                   Compute the instantaneous limits on the joint velocities                    //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <class DataType> inline
-bool SerialLinkKinematics<DataType>::compute_control_limits(DataType &lower,
-                                                            DataType &upper,
-                                                            const unsigned int &jointNumber)
+Limits<DataType> SerialLinkKinematics<DataType>::compute_control_limits(const unsigned int &jointNumber)
 {
-	DataType dq = this->jointPosition[jointNumber] - this->positionLimit[jointNumber][0];       // Distance to lower limit
+	// Flacco, F., De Luca, A., & Khatib, O. (2015).
+	// "Control of redundant robots under hard joint constraints: Saturation in the null space."
+	// IEEE Transactions on Robotics, 31(3), 637-654.
 	
-	lower = max( -this->hertz*dq,                                                               
-	        max( -this->velocityLimit[jointNumber],
-	             -sqrt(2*this->accelLimit[jointNumber]*dq) ));
-	                  
-	dq = this->positionLimit[jointNumber][1] - this->jointPosition[jointNumber];
+	Limits<DataType> limits;                                                                    // Value to be returned
+
+	DataType delta = this->_model->joint_position(jointNumber)
+	               - this->_model->link(jointNumber).joint().position_limits().lower;           // Distance from the lower joint limit
 	
-	upper = min( this->hertz*dq,
-	        min( this->velocityLimit[jointNumber],
-	                  sqrt(2*this->accelLimit[jointNumber]*dq) ));
-	                  
-	if(lower >= upper)
-	{
-		cerr << "[ERROR] [SERIAL LINK CONTROL] compute_joint_limits(): "
-		     << "Lower bound is greater than upper bound for the '"
-		     << this->joint[jointNumber].name() << "' joint. "
-		     << "(" << lower << " >= " << upper << "). How did that happen?\n";
+	limits.lower = std::max(-delta*this->_controlFrequency,
+	                        -this->_model->link(jointNumber).joint().speed_limit(),
+	                        -2*sqrt(this->_maxJointAccel*delta));
+	                        
+	delta = this->_model->link(jointNumber).joint().position_limits().upper
+	      - this->_model->joint_position(jointNumber);                                          // Distance to upper limit
 	
-		return false;
-	}
-	else 	return true;        
+	limits.upper = std::min(delta*this->_controlFrequency,
+	                        this->_model->link(jointNumber).joint().speed_limit(),
+	                        2*sqrt(this->_maxJointAccel*delta));
+	                        
+	return limits;
 }
 
 #endif
