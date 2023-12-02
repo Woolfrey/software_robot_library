@@ -12,7 +12,6 @@
 #include <KinematicTree.h>                                                                          // Computes the kinematics and dynamics
 #include <QPSolver.h>                                                                               // Control optimisation
 
-
 template <class DataType>
 class SerialLinkBase : public QPSolver<DataType>
 {
@@ -90,6 +89,11 @@ class SerialLinkBase : public QPSolver<DataType>
 		bool set_max_joint_acceleration(const DataType &accel);
 		
 		/**
+		 * @return Returns the gradient of manipulability.
+		 */
+		Eigen::Vector<DataType,Eigen::Dynamic> manipulability_gradient();
+		
+		/**
 		 * Set a pointer to a function that computes the redundant task.
 		 * Default set at construction is `manipulability_gradient`.
 		 * It must be set every time before calling a Cartesian control function.
@@ -105,11 +109,6 @@ class SerialLinkBase : public QPSolver<DataType>
 		 */
 		Eigen::Matrix<DataType,6,Eigen::Dynamic> endpoint_jacobian()
 		{ return this->_model->jacobian(this->_endpointName); }
-		
-		/**
-		 * @return Returns the gradient of manipulability.
-		 */
-		Eigen::Vector<DataType,Eigen::Dynamic> manipulability_gradient();
 		 
 		/**
 		 * Updates properties specific to this SerialLink object.
@@ -118,6 +117,7 @@ class SerialLinkBase : public QPSolver<DataType>
 		 */
 		void update_state()
 		{
+			this->_endpointPose   = this->_endpointFrame.link.pose()*this->_endpointFrame.offset();
 			this->_jacobianMatrix = this->_model->jacobian(this->_endpointName);
 			this->_forceEllipsoid = this->_jacobianMatrix*this->_jacobianMatrix.transpose();
 			this->_manipulability = sqrt(this->_forceEllipsoid.determinant());
@@ -308,7 +308,11 @@ bool SerialLinkBase<DataType>::set_redundant_task(functionArgument &functionName
 template <class DataType> inline
 Eigen::Vector<DataType,Eigen::Dynamic> SerialLinkBase<DataType>::manipulability_gradient()
 {
-	Eigen::Vector<DataType,Eigen::Dynamic> gradient(this->_model->number_of_joints());
+	// NOTE TO FUTURE SELF: Gradient with respect to first joint in a chain is always zero.
+	//                      It is possible to reduce calcs if this condition can be efficiently
+	//                      integrated in the loop below.
+	
+	Eigen::Vector<DataType,Eigen::Dynamic> gradient(this->_model->number_of_joints());          // Value to be returned
 	
 	Link<DataType> *currentLink = this->_endpointFrame->link;                                   // Starting link for computation
 	
@@ -317,7 +321,7 @@ Eigen::Vector<DataType,Eigen::Dynamic> SerialLinkBase<DataType>::manipulability_
 	while(currentLink != nullptr)
 	{
 		Eigen::Matrix<DataType,Eigen::Dynamic,Eigen::Dynamic> dJ =
-		this->_model->partial_derivative(this->_jacobianMatrix,currentLink->number());
+		this->_model->partial_derivative(this->_jacobianMatrix,currentLink->number());      
 	
 		gradient(currentLink->number()) =
 		this->_manipulability*(JJT.solve(dJ*this->_jacobianMatrix.transpose())).trace();
