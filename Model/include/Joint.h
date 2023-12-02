@@ -122,6 +122,11 @@ class Joint
 		 */
 		Limits<DataType> position_limits() const { return this->_positionLimit; }
 		
+		/**
+		 * @return The speed limit for the specified joint.
+		 */
+		DataType speed_limit() const { return this->_speedLimit; }
+		
 	private:
 	
 		bool _isRevolute = true;                                                            ///< Used for logic purposes when computing kinematics. 
