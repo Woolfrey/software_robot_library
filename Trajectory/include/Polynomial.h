@@ -27,10 +27,10 @@ class Polynomial : public TrajectoryBase<DataType>
 		 * @param order The order of the polynomial (should be an odd number)
 		 */
 		Polynomial(const Eigen::Vector<DataType,Eigen::Dynamic> &startPoint,
-			   const Eigen::Vector<DataType,Eigen::Dynamic> &endPoint,
-			   const DataType                               &startTime,
-			   const DataType                               &endTime,
-			   const unsigned int                           &order)
+                     const Eigen::Vector<DataType,Eigen::Dynamic> &endPoint,
+                     const DataType                               &startTime,
+                     const DataType                               &endTime,
+                     const unsigned int                           &order)
 		:
 		Polynomial(startPoint, endPoint,
                            Eigen::Vector<DataType,Eigen::Dynamic>::Zero(startPoint.size()),
@@ -49,12 +49,12 @@ class Polynomial : public TrajectoryBase<DataType>
 		 * @param order The order of the polynomial (should be an odd number)
 		 */
 		Polynomial(const Eigen::Vector<DataType,Eigen::Dynamic> &startPoint,
-			   const Eigen::Vector<DataType,Eigen::Dynamic> &endPoint,
-			   const Eigen::Vector<DataType,Eigen::Dynamic> &startVelocity,
-			   const Eigen::Vector<DataType,Eigen::Dynamic> &endVelocity,
-			   const DataType                               &startTime,
-			   const DataType                               &endTime,
-			   const unsigned int                           &order)
+			      const Eigen::Vector<DataType,Eigen::Dynamic> &endPoint,
+			      const Eigen::Vector<DataType,Eigen::Dynamic> &startVelocity,
+			      const Eigen::Vector<DataType,Eigen::Dynamic> &endVelocity,
+			      const DataType                               &startTime,
+			      const DataType                               &endTime,
+			      const unsigned int                           &order)
 		:
 		Polynomial(startPoint, endPoint, startVelocity, endVelocity,
 		           Eigen::Vector<DataType,Eigen::Dynamic>::Zero(startPoint.size()),
@@ -74,14 +74,14 @@ class Polynomial : public TrajectoryBase<DataType>
 		 * @param order The order of the polynomial (should be an odd number)
 		 */
 		 Polynomial(const Eigen::Vector<DataType,Eigen::Dynamic> &startPoint,
-			    const Eigen::Vector<DataType,Eigen::Dynamic> &endPoint,
-			    const Eigen::Vector<DataType,Eigen::Dynamic> &startVelocity,
-			    const Eigen::Vector<DataType,Eigen::Dynamic> &endVelocity,
-			    const Eigen::Vector<DataType,Eigen::Dynamic> &startAcceleration,
-			    const Eigen::Vector<DataType,Eigen::Dynamic> &endAcceleration,
-			    const DataType                               &startTime,
-			    const DataType                               &endTime,
-			    const unsigned int                           &order);
+                      const Eigen::Vector<DataType,Eigen::Dynamic> &endPoint,
+			       const Eigen::Vector<DataType,Eigen::Dynamic> &startVelocity,
+			       const Eigen::Vector<DataType,Eigen::Dynamic> &endVelocity,
+			       const Eigen::Vector<DataType,Eigen::Dynamic> &startAcceleration,
+			       const Eigen::Vector<DataType,Eigen::Dynamic> &endAcceleration,
+			       const DataType                               &startTime,
+			       const DataType                               &endTime,
+			       const unsigned int                           &order);
 		
 		/**
 		 * Compute the position on the trajectory for the given time.
@@ -90,7 +90,7 @@ class Polynomial : public TrajectoryBase<DataType>
 		 */
 		Eigen::Vector<DataType,Eigen::Dynamic> query_position(const DataType &time)
 		{
-			return query_state(time).position;                                          // Too easy lol ( •_•)  ( •_•)>⌐■-■  (⌐■_■)
+			return query_state(time).position;                                                   // Too easy lol ( •_•)  ( •_•)>⌐■-■  (⌐■_■)
 		}
 		
 		/**
@@ -101,9 +101,9 @@ class Polynomial : public TrajectoryBase<DataType>
 		State<DataType> query_state(const DataType &time);
 		
 	private:
-		unsigned int _order;                                                                ///< The order of the polynomial
+		unsigned int _order;                                                                      ///< The order of the polynomial
 		
-		Eigen::Matrix<DataType,Eigen::Dynamic,Eigen::Dynamic> _coefficients;                ///< Array of coefficients for every dimension
+		Eigen::Matrix<DataType,Eigen::Dynamic,Eigen::Dynamic> _coefficients;                      ///< Array of coefficients for every dimension
 
 };                                                                                                  // Semicolon needed after class declaration
 
@@ -127,9 +127,9 @@ Polynomial<DataType>::Polynomial(const Eigen::Vector<DataType,Eigen::Dynamic> &s
                                  TrajectoryBase<DataType>(startPoint, endPoint, startTime, endTime, startPoint.size()),   // Construct base object
                                  _order(order)                                                      // Order of polynomial
 {
-	using namespace Eigen;                                                                      // Eigen::Matrix, Eigen::Vector, Eigen::Dynamic
+	using namespace Eigen;                                                                         // Eigen::Matrix, Eigen::Vector, Eigen::Dynamic
 	
-	this->_coefficients.resize(this->_dimensions,this->_order+1);                               // NOTE: A nth order polynomial has n+1 coefficients
+	this->_coefficients.resize(this->_dimensions,this->_order+1);                                  // NOTE: A nth order polynomial has n+1 coefficients
 	
 	if(startPoint.size()        != endPoint.size()
 	or endPoint.size()          != startVelocity.size()
@@ -138,7 +138,7 @@ Polynomial<DataType>::Polynomial(const Eigen::Vector<DataType,Eigen::Dynamic> &s
 	or startAcceleration.size() != endAcceleration.size())
 	{	
 		throw std::logic_error("[ERROR] [POLYNOMIAL] Constructor: "
-	                               "Dimensons of input arguments do not match. "
+	                            "Dimensons of input arguments do not match. "
 		                       "The start point had " + std::to_string(startPoint.size()) + " elements, "
 		                       "the end point had " + std::to_string(endPoint.size()) + " elements, "
 		                       "the start velocity had " + std::to_string(startVelocity.size()) + " elements, "
@@ -159,9 +159,9 @@ Polynomial<DataType>::Polynomial(const Eigen::Vector<DataType,Eigen::Dynamic> &s
 	}
 	
 	// Decent explanation of polynomial trajectories here:
-        // Angeles, J. (Ed.). (2014). Fundamentals of robotic mechanical systems:
-        // theory, methods, and algorithms (Fourth Edition)
-        // Springer,  p. 258 - 276
+     // Angeles, J. (Ed.). (2014). Fundamentals of robotic mechanical systems:
+     // theory, methods, and algorithms (Fourth Edition)
+     // Springer,  p. 258 - 276
         
         unsigned int n = (this->_order+1)/2;                                                        // Makes indexing for start and end points easier...
         
@@ -224,9 +224,9 @@ State<DataType> Polynomial<DataType>::query_state(const DataType &time)
 	                         Eigen::Vector<DataType,Eigen::Dynamic>::Zero(this->_dimensions),
 	                         Eigen::Vector<DataType,Eigen::Dynamic>::Zero(this->_dimensions)};
 	                         
-	// Determine where are on the trajectory
-	     if(time < this->_startTime) state.position = this->_startPoint;                        // Remain at the start
-	else if(time > this->_endTime)  state.position = this->_endPoint;                          // Remain at the end
+	// Determine where we are on the trajectory
+	     if(time < this->_startTime) state.position = this->_startPoint;                           // Remain at the start
+	else if(time > this->_endTime)  state.position = this->_endPoint;                              // Remain at the end
 	else
 	{
 		// Interpolate along the trajectory for the given time
@@ -234,7 +234,7 @@ State<DataType> Polynomial<DataType>::query_state(const DataType &time)
 		{
 			for(int j = i; j < this->_order+1; j++)
 			{
-					  state.position(i)     +=         this->_coefficients(i,j)*pow(time,j-0);
+					     state.position(i)     +=         this->_coefficients(i,j)*pow(time,j-0);
 				if(j > 0) state.velocity(i)     +=       j*this->_coefficients(i,j)*pow(time,j-1);
 				if(j > 1) state.acceleration(i) += (j-1)*j*this->_coefficients(i,j)*pow(time,j-2);
 			}
