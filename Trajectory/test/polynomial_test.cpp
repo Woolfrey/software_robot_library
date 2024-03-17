@@ -37,7 +37,7 @@ int main(int argc, char* argv[])
 	 
 		float hertz = 50.0;
 		
-		unsigned int steps = 51;
+		unsigned int steps = 52;
 		
 		Eigen::MatrixXf state(steps,3);
 		

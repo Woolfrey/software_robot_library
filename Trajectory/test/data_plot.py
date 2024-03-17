@@ -9,6 +9,8 @@ import os                                        # For obtaining file directorie
 import pandas                                    # For reading csv files
 import matplotlib.pyplot                         # For plotting data
 
+title = "5th Order Polynomial" # !!! MAKE SURE THIS IS CORRECT
+
 ########## Load the data from file ##############
 path = os.path.abspath(os.path.join(os.path.dirname(__file__),
                                     "../../build/polynomial_test_data.csv"))
@@ -20,7 +22,7 @@ data.columns = ["Time", "Position", "Velocity", "Acceleration"] # Give a name to
 ################### Plot the data ###############
 fig,ax = matplotlib.pyplot.subplots(3,1)         # Create figure with 3 subplots
 
-fig.suptitle("5th Order Polynomial") # <-- MAKE SURE THIS IS CORRECT
+fig.suptitle(title)
 
 ax[0].plot(data["Time"],data["Position"],     color=[0,0,0])
 ax[1].plot(data["Time"],data["Velocity"],     color=[0,0,0])
