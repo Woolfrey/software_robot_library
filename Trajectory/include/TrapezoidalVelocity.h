@@ -30,10 +30,10 @@ class TrapezoidalVelocity : public TrajectoryBase<DataType>
 		 * @param startTime The time that the trajectory begins.
 		 */
 		TrapezoidalVelocity(const Eigen::Vector<DataType, Eigen::Dynamic> &startPoint,
-                                    const Eigen::Vector<DataType, Eigen::Dynamic> &endPoint,
-                                    const DataType                                &maxVel,
-                                    const DataType                                &maxAccel,
-                                    const DataType                                &startTime);
+                              const Eigen::Vector<DataType, Eigen::Dynamic> &endPoint,
+                              const DataType                                &maxVel,
+                              const DataType                                &maxAccel,
+                              const DataType                                &startTime);
 		
 		/**
 		 * Query the state for the given time. Override from TrajectoryBase class.
@@ -45,14 +45,19 @@ class TrapezoidalVelocity : public TrajectoryBase<DataType>
 		 */
 		State<DataType> query_state(const DataType &time);
 		
+		/**
+		 * Query the total execution time for the trajectory.
+		 */
+          DataType duration() const { return this->_coastTime + 2*this->_rampTime; }
+		
 	private:
 	
-		DataType _coastDistance;                                                            ///< Distance covered at maximum speed
-		DataType _coastTime;                                                                ///< Length of time to move at max speed
-		DataType _normalisedVel;                                                            ///< Maximum velocity, normalised so total distance  = 1
-		DataType _normalisedAcc;                                                            ///< Maximum acceleration, normalised so total distance = 1
-		DataType _rampDistance;                                                             ///< Distance traveled whilst accelerating
-		DataType _rampTime;                                                                 ///< Length of time to accelerate
+		DataType _coastDistance;                                                                  ///< Distance covered at maximum speed
+		DataType _coastTime;                                                                      ///< Length of time to move at max speed
+		DataType _normalisedVel;                                                                  ///< Maximum velocity, normalised so total distance  = 1
+		DataType _normalisedAcc;                                                                  ///< Maximum acceleration, normalised so total distance = 1
+		DataType _rampDistance;                                                                   ///< Distance traveled whilst accelerating
+		DataType _rampTime;                                                                       ///< Length of time to accelerate
 				
 };                                                                                                  // Semicolon needed after class declaration
 
@@ -67,7 +72,7 @@ TrapezoidalVelocity<DataType>::TrapezoidalVelocity(const Eigen::Vector<DataType,
                                                    const DataType &startTime)
 {
 	// Assign initial values in underlying TrajectoryBase class
-	this->_dimensions = startPoint.size();                                                      // Assign to variable in base class
+	this->_dimensions = startPoint.size();
 	this->_endPoint   = endPoint;
 	this->_startPoint = startPoint;
 	this->_startTime  = startTime;
@@ -87,34 +92,34 @@ TrapezoidalVelocity<DataType>::TrapezoidalVelocity(const Eigen::Vector<DataType,
 		                            " but must be positive.");
 	}
 
-	DataType normaliser = -1;                                                                   // Needed to scale velocity to be dimensionless
+	DataType normaliser = -1;                                                                      // Needed to scale velocity to be dimensionless
 	
-	DataType vel = maxVel;                                                                      // Temporary placeholder
+	DataType vel = maxVel;                                                                         // Temporary placeholder
 	
 	for(int i = 0; i < this->_dimensions; i++)
 	{
-		DataType distance = abs(startPoint(i) - endPoint(i));                               // Magnitude of distance between points
+		DataType distance = abs(startPoint(i) - endPoint(i));                                     // Magnitude of distance between points
 		
-		normaliser = (distance > normaliser) ? distance : normaliser;                       // Normaliser must be the largest distance
+		normaliser = (distance > normaliser) ? distance : normaliser;                             // Normaliser must be the largest distance
 		
-		DataType temp = sqrt(maxAccel*distance);                                            // Peak velocity as a function of max acceleration
+		DataType temp = sqrt(maxAccel*distance);                                                  // Peak velocity as a function of max acceleration
 		
-		vel = (vel > temp) ? temp : vel;                                                    // Ensure max velocity does not exceed acceleration, distance constraints
+		vel = (vel > temp) ? temp : vel;                                                          // Ensure max velocity does not exceed acceleration, distance constraints
 	}
 	
-	this->_normalisedVel = vel/normaliser;                                                      // Need to normalise so we can scale between 0 and 1
+	this->_normalisedVel = vel/normaliser;                                                         // Need to normalise so we can scale between 0 and 1
 	
-	this->_normalisedAcc = maxAccel/normaliser;                                                 // Scale the acceleration to match the velocity
+	this->_normalisedAcc = maxAccel/normaliser;                                                    // Scale the acceleration to match the velocity
 	
-	this->_rampTime = vel/maxAccel;                                                             // Length of time to accelerate to max speed
+	this->_rampTime = vel/maxAccel;                                                                // Length of time to accelerate to max speed
 	
-	this->_rampDistance = 0.5*this->_normalisedAcc*this->_rampTime*this->_rampTime;             // s = 0.5*a*t^2
+	this->_rampDistance = 0.5*this->_normalisedAcc*this->_rampTime*this->_rampTime;                // s = 0.5*a*t^2
 	
-	this->_coastTime = (1.0 - 2*this->_rampDistance)/this->_normalisedVel;                      // Time spent moving at max speed
+	this->_coastTime = (1.0 - 2*this->_rampDistance)/this->_normalisedVel;                         // Time spent moving at max speed
 	
-	this->_coastDistance = this->_normalisedVel*this->_coastTime;                               // Distance travelled moving at max speed
+	this->_coastDistance = this->_normalisedVel*this->_coastTime;                                  // Distance travelled moving at max speed
 	
-	this->_endTime = this->_startTime + 2*this->_rampTime + this->_coastTime;                   // Total time passed
+	this->_endTime = this->_startTime + 2*this->_rampTime + this->_coastTime;                      // Total time passed
 }
 
 typedef TrapezoidalVelocity<float>  TrapezoidalVelocityf;
@@ -126,25 +131,25 @@ typedef TrapezoidalVelocity<double> TrapezoidalVelocityd;
 template <class DataType> inline
 State<DataType> TrapezoidalVelocity<DataType>::query_state(const DataType &time)
 {
-	State<DataType> state;                                                                      // Value to be returned
+	State<DataType> state;                                                                         // Value to be returned
 	
 	if(time <= this->_startTime)
 	{
-		state.position     = this->_startPoint;
-		state.velocity     = Eigen::Vector<DataType,Eigen::Dynamic>::Zero(this->_dimensions);
+		state.position     = this->_startPoint;                                                   // Remain at start
+		state.velocity     = Eigen::Vector<DataType,Eigen::Dynamic>::Zero(this->_dimensions);     // Don't move
 		state.acceleration = Eigen::Vector<DataType,Eigen::Dynamic>::Zero(this->_dimensions);
 	}
 	else if(time > this->_endTime)
 	{
-		state.position     = this->_endPoint;
-		state.velocity     = Eigen::Vector<DataType,Eigen::Dynamic>::Zero(this->_dimensions);
-		state.acceleration = Eigen::Vector<DataType,Eigen::Dynamic>::Zero(this->_dimensions);
+		state.position     = this->_endPoint;                                                     // Remain at end
+		state.velocity     = Eigen::Vector<DataType,Eigen::Dynamic>::Zero(this->_dimensions);     // Don't move
+		state.acceleration = Eigen::Vector<DataType,Eigen::Dynamic>::Zero(this->_dimensions);     
 	}
 	else
 	{
-		DataType elapsedTime = time - this->_startTime;
+		DataType elapsedTime = time - this->_startTime;                                           // As it says
 		
-		DataType s, sd, sdd;                                                                // Interpolating scalars
+		DataType s, sd, sdd;                                                                      // Interpolating scalars
 		
 		if(elapsedTime < this->_rampTime)
 		{
