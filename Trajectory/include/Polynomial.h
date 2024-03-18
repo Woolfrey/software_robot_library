@@ -226,7 +226,7 @@ State<DataType> Polynomial<DataType>::query_state(const DataType &time)
 	                         
 	// Determine where we are on the trajectory
 	     if(time < this->_startTime) state.position = this->_startPoint;                           // Remain at the start
-	else if(time > this->_endTime)  state.position = this->_endPoint;                              // Remain at the end
+	else if(time > this->_endTime)   state.position = this->_endPoint;                             // Remain at the end
 	else
 	{
 		// Interpolate along the trajectory for the given time
