@@ -1,3 +1,11 @@
+/**	
+ * @file  : multi_trapezoid_test.cpp
+ * @author: Jon Woolfrey
+ * @date  : March 2024
+ * @brief : Saves data on trapezoidal velocity trajectory with waypoints.
+ */
+ 
+#include <fstream>
 #include <iostream>                                                                                 // std::cerr, std::cout
 #include <MultiTrapezoid.h>                                                                         // We want to test this
 #include <string>
@@ -24,7 +32,10 @@ int main(int argc, char* argv[])
 	
 	for(int i = 0; i < n; i++)
 	{
-		Eigen::Vector<double,Eigen::Dynamic> temp(1); temp(0) = i;
+		Eigen::Vector<double,Eigen::Dynamic> temp(1);                                             // 1D vector
+		
+          if(i%2 == 0) temp(0) = 1;
+          else         temp(0) =-1;
 		
 		points.push_back(temp);
 	}
@@ -35,13 +46,13 @@ int main(int argc, char* argv[])
 		
 		double hertz = 20.0;
 		
-		unsigned int steps = 50;
+		unsigned int steps = (int)(trajectory.end_time()*hertz+3);
 		
 		Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> state(steps,3);
 		
 		for(int i = 0; i < steps; i++)
 		{
-			double t = i/hertz;
+			double t = (i-1)/hertz;
 			
 			const auto &[pos, vel, acc] = trajectory.query_state(t);
 			
@@ -50,8 +61,18 @@ int main(int argc, char* argv[])
 			state(i,2) = acc(0);
 		}
 		
-		std::cout << "\nHere is the state:\n\n";
-		std::cout << state << std::endl;
+		// Save the data to .csv file
+	     std::ofstream file;
+	     file.open("multi_trapezoid_test_data.csv");
+          
+          for(int i = 0; i < steps; i++)
+          {
+               file << i/hertz;                                                                     // Time
+               for(int j = 0; j < 3; j++) file << "," << state(i,j);                                // Position, velocity, acceleration
+               file << "\n";                                                                        // New line
+          }
+          
+          file.close();                                                                             // As it says on the label
 	}
 	catch(const std::exception &exception)
 	{
