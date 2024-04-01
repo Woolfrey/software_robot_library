@@ -231,8 +231,10 @@ bool Link<DataType>::update_state(const Pose<DataType>     &previousPose,
 		this->_twist.head(3) += Eigen::Vector<DataType,3>(previousTwist.tail(3)).cross(this->_pose.translation() - previousPose.translation());
 
 		     if(this->_joint.is_revolute())  this->_twist.tail(3) += jointVelocity * this->_jointAxis; // Add effect of joint motion
-		else if(this->_joint.is_prismatic()) this->_twist.head(3) += jointVelocity * this->_jointAxis;		
-	
+		else if(this->_joint.is_prismatic()) this->_twist.head(3) += jointVelocity * this->_jointAxis;
+
+		this->_centerOfMass = this->_pose*this->_localCenterOfMass;
+
 		Eigen::Matrix<DataType,3,3> R = this->_pose.rotation();
 		
 		this->_inertia = R*this->_localInertia*R.transpose();
