@@ -78,28 +78,28 @@ SerialLinkKinematics<DataType>::resolve_endpoint_motion(const Eigen::Vector<Data
 {
 	using namespace Eigen;
 	
-	unsigned int numJoints = this->_model->number_of_joints();                                  // Makes things easier
+	unsigned int numJoints = this->_model->number_of_joints();                                     // Makes things easier
 	
-	Vector<DataType,Dynamic> controlVelocity(numJoints); controlVelocity.setZero();             // Value to be returned
+	Vector<DataType,Dynamic> controlVelocity(numJoints); controlVelocity.setZero();                // Value to be returned
 	
-	Vector<DataType,Dynamic> startPoint = this->_model->joint_velocities();                     // For the QP solver
+	Vector<DataType,Dynamic> startPoint = this->_model->joint_velocities();                        // For the QP solver
 	
-	Vector<DataType,Dynamic> lowerBound(numJoints), upperBound(numJoints);                      // On the joint control
+	Vector<DataType,Dynamic> lowerBound(numJoints), upperBound(numJoints);                         // On the joint control
 	
 	for(int i = 0; i < numJoints; i++)
 	{
 		// NOTE: Can't use structured binding on Eigen::Vector because its size is not
 		//       known at compile time, so we have to assign to variable and transfer:
-		const auto &[lower, upper] = compute_control_limits(i);                             // Get the control limits for the ith joint
+		const auto &[lower, upper] = compute_control_limits(i);                                   // Get the control limits for the ith joint
 	
-		lowerBound(i) = lower;                                                              // Assign to vectors
+		lowerBound(i) = lower;                                                                    // Assign to vectors
 		upperBound(i) = upper;
 	
-		     if(startPoint(i) <= lowerBound(i)) startPoint(i) = lowerBound(i) + 1e-03;      // Just above the lower limit
-		else if(startPoint(i) >= upperBound(i)) startPoint(i) = upperBound(i) - 1e-03;      // Just below the upper limit
+		     if(startPoint(i) <= lowerBound(i)) startPoint(i) = lowerBound(i) + 1e-03;            // Just above the lower limit
+		else if(startPoint(i) >= upperBound(i)) startPoint(i) = upperBound(i) - 1e-03;            // Just below the upper limit
 	}
 	
-	if(this->_manipulability < this->_minManipulability)                                        // Near-singular, solve damped-least squares problem
+	if(this->_manipulability < this->_minManipulability)                                           // Near-singular, solve damped-least squares problem
 	{
 		// Chiaverini, S., Egeland, O., & Kanestrom, R. K. (1991, June).
 		// "Achieving user-defined accuracy with damped least-squares inverse kinematics."
@@ -118,9 +118,9 @@ SerialLinkKinematics<DataType>::resolve_endpoint_motion(const Eigen::Vector<Data
 		}
 		catch(const std::exception &exception)
 		{
-			std::cerr << exception.what() << "\n"; // Use std::endl to print immediately???
+			std::cerr << exception.what() << "\n";                                               // Use std::endl to print immediately???
 			
-			controlVelocity = 0.9*this->_model->joint_velocities();                     // Slow down
+			controlVelocity = 0.9*this->_model->joint_velocities();                              // Slow down
 		}
 	}
 	else
@@ -152,7 +152,7 @@ SerialLinkKinematics<DataType>::resolve_endpoint_motion(const Eigen::Vector<Data
 			                         -this->_jacobianMatrix.transpose()*endpointMotion,
 			                          B, z, startPoint);
 		}
-		else                                                                                        // Redundant case
+		else                                                                                      // Redundant case
 		{
 			// NOTE TO FUTURE SELF: If redundant_task() is to maximise manipulability,
 			// then we're computing it twice here, which is inefficient...
@@ -160,7 +160,7 @@ SerialLinkKinematics<DataType>::resolve_endpoint_motion(const Eigen::Vector<Data
 			try
 			{
 				controlVelocity =
-				QPSolver<DataType>::constrained_least_squares(this->redundant_task(), // Need to use `this->` or it won't compile
+				QPSolver<DataType>::constrained_least_squares(this->redundant_task(),           // Need to use `this->` or it won't compile
 					                                      this->_model->joint_inertia_matrix(),
 					                                      this->_jacobianMatrix,
 					                                      endpointMotion,
@@ -168,9 +168,9 @@ SerialLinkKinematics<DataType>::resolve_endpoint_motion(const Eigen::Vector<Data
 			}
 			catch(const std::exception &exception)
 			{
-				std::cerr << exception.what() << "\n"; // Use std::endl to print immediately??
+				std::cerr << exception.what() << "\n";                                          // Use std::endl to print immediately??
 				
-				controlVelocity = 0.9*this->_model->joint_velocities();             // Slow down
+				controlVelocity = 0.9*this->_model->joint_velocities();                         // Slow down
 			}
 		}
 	}
@@ -199,7 +199,7 @@ SerialLinkKinematics<DataType>::track_joint_trajectory(const Eigen::Vector<DataT
                                                        const Eigen::Vector<DataType,Eigen::Dynamic> &desiredVel,
 						       const Eigen::Vector<DataType,Eigen::Dynamic> &desiredAcc)
 {
-	unsigned int numJoints = this->_model->number_of_joints();                                  // Makes things easier
+	unsigned int numJoints = this->_model->number_of_joints();                                     // Makes things easier
 	
 	if(desiredPos.size() != numJoints or desiredVel != numJoints)
 	{
@@ -210,11 +210,11 @@ SerialLinkKinematics<DataType>::track_joint_trajectory(const Eigen::Vector<DataT
 		                            "the velocity argument had " + std::to_string(desiredVel.size()) + " elements.");
 	}
 	
-	Eigen::Vector<DataType,Eigen::Dynamic> velocityControl(numJoints);                          // Value to be returned
+	Eigen::Vector<DataType,Eigen::Dynamic> velocityControl(numJoints);                             // Value to be returned
 	
 	for(int i = 0; i < numJoints; i++)
 	{
-		Limits<DataType> controlLimits = compute_control_limits(numJoints);                 // Get the instantaneous limits on the joint speed
+		Limits<DataType> controlLimits = compute_control_limits(numJoints);                       // Get the instantaneous limits on the joint speed
 		
 		velocityControl(i) = desiredVel(i) + this->_jointPositionGain*(desiredPos(i) - this->_model->joint_position(i)); // Feedforward + feedback control
 		                   
@@ -235,17 +235,17 @@ Limits<DataType> SerialLinkKinematics<DataType>::compute_control_limits(const un
 	// "Control of redundant robots under hard joint constraints: Saturation in the null space."
 	// IEEE Transactions on Robotics, 31(3), 637-654.
 	
-	Limits<DataType> limits;                                                                    // Value to be returned
+	Limits<DataType> limits;                                                                       // Value to be returned
 
 	DataType delta = this->_model->joint_position(jointNumber)
-	               - this->_model->link(jointNumber).joint().position_limits().lower;           // Distance from the lower joint limit
+	               - this->_model->link(jointNumber).joint().position_limits().lower;              // Distance from the lower joint limit
 	
 	limits.lower = std::max(-delta*this->_controlFrequency,
 	                        -this->_model->link(jointNumber).joint().speed_limit(),
 	                        -2*sqrt(this->_maxJointAccel*delta));
 	                        
 	delta = this->_model->link(jointNumber).joint().position_limits().upper
-	      - this->_model->joint_position(jointNumber);                                          // Distance to upper limit
+	      - this->_model->joint_position(jointNumber);                                             // Distance to upper limit
 	
 	limits.upper = std::min(delta*this->_controlFrequency,
 	                        this->_model->link(jointNumber).joint().speed_limit(),
