@@ -3,7 +3,7 @@ This section of the library contains useful mathematical functions.
 
 [:rewind: Back to the foyer.](../README.md)
 
-## Contents
+### Contents:
 - [Simple QP Solver](#simple-qp-solver)
 - [Skew Symmetric Class](#skew-symmetric-class)
 
