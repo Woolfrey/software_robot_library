@@ -82,9 +82,9 @@ class Pose
 		
 	private:
 	
-		Vector<DataType,3> _translation = {0.0, 0.0, 0.0};                                  ///< The position or translation component
+		Vector<DataType,3> _translation = {0.0, 0.0, 0.0};                                        ///< The position or translation component
 		
-		Quaternion<DataType> _quaternion = {1.0, 0.0, 0.0, 0.0};                            ///< The orientation or rotation component
+		Quaternion<DataType> _quaternion = {1.0, 0.0, 0.0, 0.0};                                  ///< The orientation or rotation component
 	
 };                                                                                                  // Semicolon needed after class declaration
 
@@ -94,18 +94,18 @@ class Pose
 template <class DataType> inline
 Vector<DataType,6> Pose<DataType>::error(const Pose &desired)
 {
-	Vector<DataType,6> error;                                                                   // Value to be returned
+	Vector<DataType,6> error;                                                                      // Value to be returned
 
-	error.head(3) = desired.translation() - this->_translation;                                 // translation error
+	error.head(3) = desired.translation() - this->_translation;                                    // translation error
 	
-	DataType angle = this->_quaternion.angularDistance(desired.quaternion());                   // Distance between vectors (i.e. dot product)
+	DataType angle = this->_quaternion.angularDistance(desired.quaternion());                      // Distance between vectors (i.e. dot product)
 	
 	Vector<DataType,3> temp = this->_quaternion.w()    * desired.quaternion().vec()
-		                - desired.quaternion().w() * this->_quaternion.vec()
-		                - desired.quaternion().vec().cross(this->_quaternion.vec()); 
+		                   - desired.quaternion().w() * this->_quaternion.vec()
+		                   - desired.quaternion().vec().cross(this->_quaternion.vec()); 
 	
 	if(angle <= M_PI) error.tail(3) =  temp;
-	else              error.tail(3) = -temp;                                                    // Spin the other way
+	else              error.tail(3) = -temp;                                                       // Spin the other way
 	
 	return error;
 }
@@ -115,12 +115,12 @@ Vector<DataType,6> Pose<DataType>::error(const Pose &desired)
 template <class DataType> inline
 Matrix<DataType,4,4> Pose<DataType>::as_matrix()
 {
-	Matrix<DataType,4,4> T;                                                                     // Value to be returned
+	Matrix<DataType,4,4> T;                                                                        // Value to be returned
 	
-	T.block(0,0,3,3) = this->_quaternion.toRotationMatrix();                                    // Convert to SO(3) and insert
+	T.block(0,0,3,3) = this->_quaternion.toRotationMatrix();                                       // Convert to SO(3) and insert
 	T.block(0,3,3,1) = this->_translation;                                                         // Insert translation component
 	
-	T.row(3) << 0, 0, 0, 1;                                                                     // Assign the bottom row
+	T.row(3) << 0, 0, 0, 1;                                                                        // Assign the bottom row
 	
 	return T;
 }

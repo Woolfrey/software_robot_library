@@ -71,7 +71,7 @@ class Joint
 		/**
 		 * @return Returns true if this is a translational joint.
 		 */
-		bool is_prismatic() const { return not this->_isRevolute; }                         // Because I'm lazy
+		bool is_prismatic() const { return not this->_isRevolute; }                               // Because I'm lazy
 		
 		/**
 		 * @return Returns true if this is a rotational joint.
@@ -129,27 +129,27 @@ class Joint
 		
 	private:
 	
-		bool _isRevolute = true;                                                            ///< Used for logic purposes when computing kinematics. 
+		bool _isRevolute = true;                                                                  ///< Used for logic purposes when computing kinematics. 
 		
-		bool _isFixed = false;                                                              ///< Links connected by fixed joints are merged together.
+		bool _isFixed = false;                                                                    ///< Links connected by fixed joints are merged together.
 		
-		Eigen::Vector<DataType,3> _axis;                                                    ///< Axis of actuation in LOCAL frame
+		Eigen::Vector<DataType,3> _axis;                                                          ///< Axis of actuation in LOCAL frame
 
-		DataType _damping;                                                                  ///< Viscous friction of the joint actuator.
+		DataType _damping;                                                                        ///< Viscous friction of the joint actuator.
 
-		DataType _effortLimit;                                                              ///< The maximum force/torque for the joint actuator.
+		DataType _effortLimit;                                                                    ///< The maximum force/torque for the joint actuator.
 		
-		DataType _friction;                                                                 ///< Static friction of the joint actuator.
+		DataType _friction;                                                                       ///< Static friction of the joint actuator.
 		
-		DataType _speedLimit;                                                               ///< The maximum velocity of the joint actuator.s
+		DataType _speedLimit;                                                                     ///< The maximum velocity of the joint actuator.s
 
-		Limits<DataType> _positionLimit;                                                    ///< Lower and upper limits on the joint position
+		Limits<DataType> _positionLimit;                                                          ///< Lower and upper limits on the joint position
 				
-		Pose<DataType> _origin;                                                             ///< Pose with respect to joint of parent link
+		Pose<DataType> _origin;                                                                   ///< Pose with respect to joint of parent link
+		 
+		std::string _type = "unknown";                                                            ///< Joint type as a string
 		
-		std::string _type = "unknown";                                                      ///< Joint type as a string
-		
-		std::string _name = "unnamed";                                                      ///< Unique identifier
+		std::string _name = "unnamed";                                                            ///< Unique identifier
 		
 };                                                                                                  // Semicolon needed after a class declaration
 
@@ -157,25 +157,25 @@ class Joint
  //                                          Constructor                                           //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 template <class DataType>
-Joint<DataType>::Joint(const std::string                 &name,
-	               const std::string                 &type,
-                       const Eigen::Vector<DataType,3>   &axis,
-                       const Pose<DataType>              &origin,
-                       const Limits<DataType>            &positionLimit,
-      		       const DataType                    &speedLimit,
-      		       const DataType                    &effortLimit,
-		       const DataType                    &damping,
-		       const DataType                    &friction)
-		       :
-		       _name(name),
-		       _type(type),
-		       _axis(axis.normalized()),                                                    // Ensure unit norm for good measure
-		       _origin(origin),
-		       _positionLimit(positionLimit),
-		       _speedLimit(speedLimit),
-		       _effortLimit(effortLimit),
-		       _damping(damping),
-		       _friction(friction)
+Joint<DataType>::Joint(const std::string               &name,
+	                  const std::string               &type,
+                       const Eigen::Vector<DataType,3> &axis,
+                       const Pose<DataType>            &origin,
+                       const Limits<DataType>          &positionLimit,
+      		        const DataType                  &speedLimit,
+      		        const DataType                  &effortLimit,
+		             const DataType                  &damping,
+		             const DataType                  &friction)
+		             :
+		             _name(name),
+		             _type(type),
+		             _axis(axis.normalized()),                                                    // Ensure unit norm for good measure
+		             _origin(origin),
+		             _positionLimit(positionLimit),
+		             _speedLimit(speedLimit),
+		             _effortLimit(effortLimit),
+		             _damping(damping),
+		             _friction(friction)
 {
 	using namespace std; // std::to_string, std::logic_error, std::invalid_argument
 	
