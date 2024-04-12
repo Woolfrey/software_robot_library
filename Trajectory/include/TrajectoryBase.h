@@ -39,9 +39,9 @@ class TrajectoryBase
 		 */
 		TrajectoryBase(const Eigen::Vector<DataType,Eigen::Dynamic> &startPoint,
 		               const Eigen::Vector<DataType,Eigen::Dynamic> &endPoint,
-		               const DataType &startTime,
-		               const DataType &endTime,
-		               const unsigned int &dimensions);
+		               const DataType                               &startTime,
+		               const DataType                               &endTime,
+		               const unsigned int                           &dimensions);
 		    
 		/**
 		 * Query the position of the trajectory for the given time.
@@ -50,7 +50,7 @@ class TrajectoryBase
 		 */
 		Eigen::Vector<DataType,Eigen::Dynamic> query_position(const DataType &time)
 		{
-			return query_state(time).position;                                          // Too easy lol (☞⌐▀͡ ͜ʖ͡▀ )☞
+			return query_state(time).position;                                                   // Too easy lol (☞⌐▀͡ ͜ʖ͡▀ )☞
 		}
 		       
 		/**
@@ -71,11 +71,11 @@ class TrajectoryBase
 		              
 	protected:
 	
-		DataType _startTime;                                                                ///< The start time for the trajectory
+		DataType _startTime;                                                                      ///< The start time for the trajectory
 		
-		DataType _endTime;                                                                  ///< The end time for the trajectory
+		DataType _endTime;                                                                        ///< The end time for the trajectory
 		
-		unsigned int _dimensions;                                                           ///< The number of spatial dimensions the trajectory moves through
+		unsigned int _dimensions;                                                                 ///< The number of spatial dimensions the trajectory moves through
 
 		Eigen::Vector<DataType,Eigen::Dynamic> _startPoint;
 		
@@ -89,9 +89,9 @@ class TrajectoryBase
 template <class DataType>
 TrajectoryBase<DataType>::TrajectoryBase(const Eigen::Vector<DataType,Eigen::Dynamic> &startPoint,
                                          const Eigen::Vector<DataType,Eigen::Dynamic> &endPoint,
-                                         const DataType &startTime,
-                                         const DataType &endTime,
-                                         const unsigned int &dimensions)
+                                         const DataType                               &startTime,
+                                         const DataType                               &endTime,
+                                         const unsigned int                           &dimensions)
                                          :
                                          _startPoint(startPoint),
                                          _endPoint(endPoint),

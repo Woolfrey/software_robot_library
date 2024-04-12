@@ -27,7 +27,7 @@ class Waypoints
 		 */
 		 Eigen::Vector<DataType,Eigen::Dynamic> query_position(const DataType &time)
 		 {
-			return query_state(time).position;                                          // Too easy lol
+			return query_state(time).position;                                                   // Too easy lol
 		 }
 		 
 		 /**
@@ -39,13 +39,13 @@ class Waypoints
 		  {
 		  	if(time <= this->_time.front())
 		  	{
-		  		return this->_trajectory.front().query_state(time);                 // Must be on the initial trajectory
+		  		return this->_trajectory.front().query_state(time);                             // Must be on the initial trajectory
 		  	}
 		  	else if(time > this->_time.back())
 		  	{
-		  		return this->_trajectory.back().query_state(time);                  // Must be on the final trajectory
+		  		return this->_trajectory.back().query_state(time);                              // Must be on the final trajectory
 		  	}
-		  	else                                                                        // Somewhere inbetween
+		  	else                                                                                 // Somewhere inbetween
 		  	{
 		  		unsigned int number;
 		  		
@@ -66,9 +66,9 @@ class Waypoints
 		
 		unsigned int _numberOfWaypoints;
 		
-		std::vector<DataType> _time;                                                        // The time at which to  pass each waypoint
+		std::vector<DataType> _time;                                                              // The time at which to  pass each waypoint
 		
-		std::vector<ClassType> _trajectory;                                                 // An array of trajectories
+		std::vector<ClassType> _trajectory;                                                       // An array of trajectories
 	
 };                                                                                                  // Semicolon needed after class declaration
 

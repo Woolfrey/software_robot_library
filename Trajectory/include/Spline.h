@@ -23,7 +23,7 @@
 		 * @param times The time at which to pass each point.
 		 */
 		Spline(const std::vector<Eigen::Vector<DataType,Eigen::Dynamic>> &waypoints,
-		       const std::vector<DataType> &times)
+		       const std::vector<DataType>                               &times)
 		:
 		Spline(waypoints,times,
 		       Eigen::Vector<DataType,Eigen::Dynamic>::Zero(waypoints.front().size()),
@@ -36,8 +36,8 @@
  		 * @param times The time at which to pass through each waypoint.
  		 */
  		Spline(const std::vector<Eigen::Vector<DataType,Eigen::Dynamic>> &waypoints,
- 		       const std::vector<DataType> &times,
- 		       const unsigned int &polynomialOrder)
+ 		       const std::vector<DataType>                               &times,
+ 		       const unsigned int                                        &polynomialOrder)
 		:
 		Spline(waypoints,times,
 		       Eigen::Vector<DataType,Eigen::Dynamic>::Zero(waypoints.front().size()),
@@ -53,25 +53,22 @@
  		 * @polynomialOrder The number of coefficients in the polynomial.
  		 */
  		Spline(const std::vector<Eigen::Vector<DataType,Eigen::Dynamic>> &waypoints,
- 		       const std::vector<DataType> &times,
-		       const Eigen::Vector<DataType,Eigen::Dynamic> &startVelocity,
-		       const Eigen::Vector<DataType,Eigen::Dynamic> &endVelocity,
-		       const unsigned int &polynomialOrder);
+ 		       const std::vector<DataType>                               &times,
+		       const Eigen::Vector<DataType,Eigen::Dynamic>              &startVelocity,
+		       const Eigen::Vector<DataType,Eigen::Dynamic>              &endVelocity,
+		       const unsigned int                                        &polynomialOrder);
  		       
-};                                                                                                 // Semicolon needed after class declaration
- 
-typedef Spline<float>  Splinef;
-typedef Spline<double> Splined;
+};                                                                                                  // Semicolon needed after class declaration
  
    //////////////////////////////////////////////////////////////////////////////////////////////////
   //                                        Constructor                                           //
  //////////////////////////////////////////////////////////////////////////////////////////////////
  template <class DataType>
  Spline<DataType>::Spline(const std::vector<Eigen::Vector<DataType,Eigen::Dynamic>> &waypoints,
- 		          const std::vector<DataType> &times,
- 		          const Eigen::Vector<DataType,Eigen::Dynamic> &startVelocity,
- 		          const Eigen::Vector<DataType,Eigen::Dynamic> &endVelocity,
- 		          const unsigned int &polynomialOrder)
+ 		                const std::vector<DataType>                               &times,
+ 		                const Eigen::Vector<DataType,Eigen::Dynamic>              &startVelocity,
+ 		                const Eigen::Vector<DataType,Eigen::Dynamic>              &endVelocity,
+ 		                const unsigned int                                        &polynomialOrder)
 {
 	using namespace Eigen;
 	
@@ -151,9 +148,9 @@ typedef Spline<double> Splined;
 		
 		A(this->_numberOfWaypoints-1, this->_numberOfWaypoints-1) = 1;
 		
-		PartialPivLU<Matrix<DataType,Dynamic,Dynamic>> LU(A);                               // Compute decompisition to make things faster
+		PartialPivLU<Matrix<DataType,Dynamic,Dynamic>> LU(A);                                     // Compute decompisition to make things faster
 
-		unsigned int dim = waypoints[0].size();                                             // Number of dimensions
+		unsigned int dim = waypoints[0].size();                                                   // Number of dimensions
 		
 		Eigen::Matrix<DataType,Dynamic,Dynamic> velocity(dim,this->_numberOfWaypoints);
 		
@@ -161,25 +158,21 @@ typedef Spline<double> Splined;
 		{
 			Vector<DataType,Dynamic> pos(this->_numberOfWaypoints);
 
-			for(int j = 0; j < this->_numberOfWaypoints; j++) pos(j) = waypoints[j][i]; // Get the ith dimension of the jth waypoint
+			for(int j = 0; j < this->_numberOfWaypoints; j++) pos(j) = waypoints[j][i];          // Get the ith dimension of the jth waypoint
 			
-			Vector<DataType,Dynamic> des(this->_numberOfWaypoints); des.setZero();      // All numbers inbetween should be zero
-			des(0)   = startVelocity(i);                                                // Start point of the ith dimension
-			des(this->_numberOfWaypoints-1) = endVelocity(i);                           // End point for the ith dimension
+			Vector<DataType,Dynamic> des(this->_numberOfWaypoints); des.setZero();               // All numbers inbetween should be zero
+			des(0)   = startVelocity(i);                                                         // Start point of the ith dimension
+			des(this->_numberOfWaypoints-1) = endVelocity(i);                                    // End point for the ith dimension
 
-			velocity.row(i) = (LU.solve(B*pos + des)).transpose();                      // Solve the velocities
+			velocity.row(i) = (LU.solve(B*pos + des)).transpose();                               // Solve the velocities
 		}
 		
 		// Now create n-1 polynomials that define the spline
 		for(int i = 0; i < this->_numberOfWaypoints-1; i++)
 		{
-			this->_trajectory.push_back(Polynomial<DataType>(waypoints[i],
-				                                         waypoints[i+1],
-				                                         velocity.col(i),
-				                                         velocity.col(i+1),
-				                                         times[i],
-				                                         times[i+1],
-				                                         polynomialOrder));
+			this->_trajectory.push_back(Polynomial<DataType>(waypoints[i], waypoints[i+1],
+				                                            velocity.col(i), velocity.col(i+1),
+				                                            times[i], times[i+1], polynomialOrder));
 		}
 	}
 }

@@ -90,7 +90,7 @@ class Polynomial : public TrajectoryBase<DataType>
 		 */
 		Eigen::Vector<DataType,Eigen::Dynamic> query_position(const DataType &time)
 		{
-			return query_state(time).position;                                                   // Too easy lol ( •_•)  ( •_•)>⌐■-■  (⌐■_■)
+			return query_state(time).position;                                                   // Too easy lol ( •_•)   ( •_•)>⌐■-■   (⌐■_■)
 		}
 		
 		/**
@@ -106,9 +106,6 @@ class Polynomial : public TrajectoryBase<DataType>
 		Eigen::Matrix<DataType,Eigen::Dynamic,Eigen::Dynamic> _coefficients;                      ///< Array of coefficients for every dimension
 
 };                                                                                                  // Semicolon needed after class declaration
-
-typedef Polynomial<float>  Polynomialf;
-typedef Polynomial<double> Polynomiald;
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //                                           Cosntructor                                         //
@@ -163,37 +160,37 @@ Polynomial<DataType>::Polynomial(const Eigen::Vector<DataType,Eigen::Dynamic> &s
      // theory, methods, and algorithms (Fourth Edition)
      // Springer,  p. 258 - 276
         
-        unsigned int n = (this->_order+1)/2;                                                        // Makes indexing for start and end points easier...
-        
-        Matrix<DataType,Dynamic,Dynamic> timeMatrix(this->_order+1,this->_order+1);                 // Needed to solve polynomial coefficients
-       
-        timeMatrix.setZero();
+     unsigned int n = (this->_order+1)/2;                                                           // Makes indexing for start and end points easier...
 
-        for(int i = 0; i < n; i++)
-        {
-        	for(int j = i; j < timeMatrix.cols(); j++)
-        	{
-        		DataType derivativeCoeff;
-        		
-        		     if(i == 0) derivativeCoeff = 1.0;
-        		else if(i == 1) derivativeCoeff = j;
-        		else
-        		{
-        			derivativeCoeff = 1.0;
-        			for(int k = 0; k < i; k++) derivativeCoeff *= (j-k);
-        		}
-        		
-        		timeMatrix(i,j)   = derivativeCoeff*pow(this->_startTime,j-i);
-        		timeMatrix(i+n,j) = derivativeCoeff*pow(this->_endTime,j-i);
-        	}
-        }
-        
-        PartialPivLU<Matrix<DataType,Dynamic,Dynamic>> timeMatrixDecomp(timeMatrix);                // Pre-compute to speed up calcs
-        
-        Vector<DataType,Dynamic> supportPoints(this->_order+1); supportPoints.setZero();
-        
-        for(int i = 0; i < this->_dimensions; i++)
-        {
+     Matrix<DataType,Dynamic,Dynamic> timeMatrix(this->_order+1,this->_order+1);                    // Needed to solve polynomial coefficients
+
+     timeMatrix.setZero();
+
+     for(int i = 0; i < n; i++)
+     {
+          for(int j = i; j < timeMatrix.cols(); j++)
+          {
+	          DataType derivativeCoeff;
+	          
+	               if(i == 0) derivativeCoeff = 1.0;
+	          else if(i == 1) derivativeCoeff = j;
+	          else
+	          {
+		          derivativeCoeff = 1.0;
+		          for(int k = 0; k < i; k++) derivativeCoeff *= (j-k);
+	          }
+	          
+	          timeMatrix(i,j)   = derivativeCoeff*pow(this->_startTime,j-i);
+	          timeMatrix(i+n,j) = derivativeCoeff*pow(this->_endTime,j-i);
+          }
+     }
+
+     PartialPivLU<Matrix<DataType,Dynamic,Dynamic>> timeMatrixDecomp(timeMatrix);                   // Pre-compute to speed up calcs
+
+     Vector<DataType,Dynamic> supportPoints(this->_order+1); supportPoints.setZero();
+
+     for(int i = 0; i < this->_dimensions; i++)
+     {
 	  	supportPoints(0) = startPoint(i);
 	  	supportPoints(n) = endPoint(i);
 	  	

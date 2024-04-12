@@ -11,13 +11,16 @@
 #include <Pose.h>
 #include <Spline.h>
 
+/**
+ * A data structure for returning state information from functions.
+ */
 template <typename DataType>
 struct CartesianState
 {
-	Pose<DataType>            pose;
-	Eigen::Vector<DataType,6> twist;
-	Eigen::Vector<DataType,6> acceleration;
-};                                                                                                  // Semicolon needed after class declaration
+	Pose<DataType>            pose;                                                                // Does this really need an explanation?
+	Eigen::Vector<DataType,6> twist;                                                               // Linear and angular velocity
+	Eigen::Vector<DataType,6> acceleration;                                                        // Linear and angular acceleration
+};                                                                                                  // Semicolon needed after declaration
 
 template <class DataType, class TrajectoryType>
 class CartesianTrajectory : public Waypoints<DataType,TrajectoryType>
@@ -52,7 +55,7 @@ class CartesianTrajectory : public Waypoints<DataType,TrajectoryType>
 		 */
 		Pose<DataType> query_pose(const DataType &time)
 		{
-			return query_state(time).pose;                                              // Too easy lol ᕙ(▀̿̿ĺ̯̿̿▀̿ ̿) ᕗ
+			return query_state(time).pose;                                                       // Too easy lol ᕙ(▀̿̿ĺ̯̿̿▀̿ ̿) ᕗ
 		}
 		
 		/**
@@ -64,7 +67,7 @@ class CartesianTrajectory : public Waypoints<DataType,TrajectoryType>
 		
 	private:
 	
-		TrajectoryType _trajectory;                                                         // The underlying trajectory object
+		TrajectoryType _trajectory;                                                               // The underlying trajectory object
 		
 };                                                                                                  // Semicolon needed after class declaration
 
@@ -84,32 +87,32 @@ CartesianTrajectory<DataType,TrajectoryType>::CartesianTrajectory(const std::vec
 	else if(poses.size() != times.size())
 	{
 		throw std::invalid_argument("[ERROR] [CARTESIAN TRAJECTORY] Constructor: "
-                                            "Length of input arguments do not match. "
-                                            "There were " + std::to_string(poses.size()) + " waypoints "
-                                            "and " + std::to_string(times.size()) + " times.");
+                                      "Length of input arguments do not match. "
+                                      "There were " + std::to_string(poses.size()) + " waypoints "
+                                      "and " + std::to_string(times.size()) + " times.");
 	}
 
-	std::vector<Eigen::Vector<DataType,6>> points;                                              // Convert SE(3) to 6x1 vectors
+	std::vector<Eigen::Vector<DataType,6>> points;                                                 // Convert SE(3) to 6x1 vectors
 	
 	for(auto pose : poses)
 	{
-		Eigen::Vector<DataType,6> point;                                                    // Temporary placeholder
+          Eigen::Vector<DataType,6> point;                                                          // Temporary placeholder
 		
-		point.head(3) = pose.translation();                                                 // Assign the translation component
+          point.head(3) = pose.translation();                                                       // Assign the translation component
 		
-		Eigen::Vector<DataType,3> vec = pose.quaternion().vec();                            // Vector component of quaternion
+          Eigen::Vector<DataType,3> vec = pose.quaternion().vec();                                  // Vector component of quaternion
 		
-		DataType norm = vec.norm();                                                         // As it says on the label
+          DataType norm = vec.norm();                                                               // As it says on the label
 		
-		DataType angle = 2*asin(norm);                                                      // vec = (angle/2)*axis; asin = [-pi, pi]
+          DataType angle = 2*asin(norm);                                                            // vec = (angle/2)*axis; asin = [-pi, pi]
 		
-		if(abs(angle) < 1e-04) point.tail(3) = Eigen::Vector<DataType,3>::Zero();           // Trivially small; zero rotation
-		else                   point.tail(3) = angle*(vec/norm);                            // angle*axis
+		if(abs(angle) < 1e-04) point.tail(3) = Eigen::Vector<DataType,3>::Zero();                 // Trivially small; zero rotation
+		else                   point.tail(3) = angle*(vec/norm);                                  // angle*axis
 	
-		points.push_back(point);                                                            // Add to end
+		points.push_back(point);                                                                  // Add to end
 	}
 	
-	this->_trajectory = TrajectoryType(points,times);                                           // Construct the trajectory
+	this->_trajectory = TrajectoryType(points,times);                                              // Construct the trajectory
 }
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -118,18 +121,18 @@ CartesianTrajectory<DataType,TrajectoryType>::CartesianTrajectory(const std::vec
 template <class DataType, class TrajectoryType> inline
 CartesianState<DataType> CartesianTrajectory<DataType, TrajectoryType>::query_state(const DataType &time)
 {
-	auto &[position, velocity, acceleration] = this->_trajectory.query_state(time);             // Get the state for the given time
+	auto &[position, velocity, acceleration] = this->_trajectory.query_state(time);                // Get the state for the given time
 	
 	// Convert the position vector to a pose object
 	
-	DataType angle = position.tail(3).norm();                                                   // Norm of the angle*axis component
+	DataType angle = position.tail(3).norm();                                                      // Norm of the angle*axis component
 	
-	Pose pose;                                                                                  // We need to compute this
+	Pose pose;                                                                                     // We need to compute this
 	
-	if(abs(angle) < 1e-04) pose = Pose(position.head(3), Eigen::Quaternion<DataType>(1,0,0,0)); // Assume zero rotation
+	if(abs(angle) < 1e-04) pose = Pose(position.head(3), Eigen::Quaternion<DataType>(1,0,0,0));    // Assume zero rotation
 	else
 	{
-		Eigen::Vector<DataType,3> axis = position.tail(3).normalized();                     // 
+		Eigen::Vector<DataType,3> axis = position.tail(3).normalized();                           // Ensure magnitude of 1 
 		
 		pose = Pose<DataType>(position.head(3), 
 		                      Eigen::Quaternion<DataType>(cos(0.5*angle),
@@ -138,7 +141,7 @@ CartesianState<DataType> CartesianTrajectory<DataType, TrajectoryType>::query_st
 		                                                  sin(0.5*angle)*axis(2)));
 	}
 	
-	CartesianState<DataType> returnValue = {pose, velocity, acceleration};                      // Put them together in data structure
+	CartesianState<DataType> returnValue = {pose, velocity, acceleration};                         // Put them together in data structure
 	
 	return returnValue;
 }

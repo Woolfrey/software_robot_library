@@ -32,9 +32,6 @@
 		DataType end_time() const { return this->_trajectory.back().end_time(); }
  };                                                                                                 // Semicolon needed after class declaration
  
-typedef MultiTrapezoid<float>  MultiTrapezoidf;
-typedef MultiTrapezoid<double> MultiTrapezoidd;
- 
   //////////////////////////////////////////////////////////////////////////////////////////////////
  //                                          Constructor                                         //
 //////////////////////////////////////////////////////////////////////////////////////////////////
