@@ -1,6 +1,8 @@
 # :heavy_plus_sign: Math
 This section of the library contains useful mathematical functions.
 
+[:rewind: Back to the foyer.](../README.md)
+
 ## Contents
 - [Simple QP Solver](#simple-qp-solver)
 - [Skew Symmetric Class](#skew-symmetric-class)
@@ -22,8 +24,12 @@ where:
 
 [SimpleQPSolver](https://github.com/Woolfrey/software_simple_qp) is a single header file that is automatically downloaded in to RobotLibrary. It contains useful functions for solving QP problems, both constrained and uncontrained.
 
-[:arrow_backward: Go Back.](#contents)
+[:arrow_backward: Back to contents.](#contents)
+
+[:rewind: Back to the foyer.](../README.md)
 
 ## Skew Symmetric Class
 
-[:arrow_backward: Go Back.](#contents)
+[:arrow_backward: Back to contents.](#contents)
+
+[:rewind: Back to the foyer.](../README.md)
