@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.8)					                            # Minimum cmake requirement
+cmake_minimum_required(VERSION 3.8)					                                        # Minimum cmake requirement
 
 project(RobotLibrary VERSION 1.0.0 LANGUAGES CXX)                                                   # Can use ${PROJECT_NAME} as a reference
 
@@ -36,12 +36,11 @@ endif()
 add_library(RobotLibrary INTERFACE)                                                                 # Declaration of RobotLibrary  
 
 # Specify location of other CMakeLists.txt files
-add_subdirectory(Control)
 add_subdirectory(Math)
 add_subdirectory(Model)
 add_subdirectory(Trajectory)
 
-target_link_libraries(RobotLibrary INTERFACE Control Math Model Trajectory)                         # Link the subdirectories
+target_link_libraries(RobotLibrary INTERFACE Math Model Trajectory)                                 # Link the subdirectories
 
 ################################### Installation Instructions ######################################
 
@@ -49,17 +48,17 @@ include(GNUInstallDirs)
 
 set(INSTALL_CONFIGDIR ${CMAKE_INSTALL_LIBDIR}/cmake/RobotLibrary)                                   # Declare the location for installing config files
 
-install(TARGETS             RobotLibrary Control Math Model Trajectory                              # Specify targets to be installed
-	EXPORT              RobotLibrary-targets
-	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-	ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+install(TARGETS RobotLibrary Math Model Trajectory                                                  # Specify targets to be installed
+	   EXPORT  RobotLibrary-targets
+	   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+	   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
 
 # Export the targets to a script
-install(EXPORT      RobotLibrary-targets
-	FILE        RobotLibraryTargets.cmake
-	NAMESPACE   RobotLibrary::
-	DESTINATION ${INSTALL_CONFIGDIR}
+install(EXPORT RobotLibrary-targets
+	   FILE   RobotLibraryTargets.cmake
+	   NAMESPACE RobotLibrary::
+	   DESTINATION ${INSTALL_CONFIGDIR}
 )
 
 # Create a ConfigVersion.cmake file
