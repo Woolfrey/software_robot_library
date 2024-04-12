@@ -26,10 +26,6 @@ where:
 
 [:arrow_backward: Back to contents.](#contents)
 
-[:rewind: Back to the foyer.](../README.md)
-
 ## Skew Symmetric Class
 
 [:arrow_backward: Back to contents.](#contents)
-
-[:rewind: Back to the foyer.](../README.md)
