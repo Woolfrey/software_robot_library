@@ -1,10 +1,7 @@
-#include <iostream>                                                                                  // std::cerr, std::cout
+#include <iostream>                                                                                 // std::cerr, std::cout
 #include <fstream>
-#include <KinematicTree.h>                                                                           // Custom class for robot physics
-#include <time.h>                                                                                    // Timer
-
-#include <CartesianTrajectory.h> // Only here to test if this file compiles
-#include <SerialLinkKinematics.h> // Only here to test if it compiles
+#include <KinematicTree.h>                                                                          // Custom class for robot physics
+#include <time.h>                                                                                   // Timer
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //                                          MAIN                                                 //
@@ -23,15 +20,15 @@ int main(int argc, char **argv)
 	
 	try
 	{
-		KinematicTree<float> model(pathToURDF);
+		KinematicTree<float> model(pathToURDF);                                                   
 		
 		int numJoints = model.number_of_joints();
 	
 		clock_t timer;
 		
-		timer = clock();                                                                    // Start the timer
+		timer = clock();                                                                          // Start the timer
 
-		srand((unsigned int) time(0));					                    // Random seed generator
+		srand((unsigned int) time(0));					                                   // Random seed generator
 
 		VectorXf q    = VectorXf::Random(numJoints);
 		VectorXf qdot = VectorXf::Random(numJoints);
@@ -41,9 +38,9 @@ int main(int argc, char **argv)
 			std::cerr << "[ERROR] [URDF TEST] Couldn't update the state for some reason." << std::endl;
 		}
 		
-		timer = clock() - timer;                                                            // Difference from the start
+		timer = clock() - timer;                                                                  // Difference from the start
 		
-		float time = (float)timer/CLOCKS_PER_SEC;                                           // Convert
+		float time = (float)timer/CLOCKS_PER_SEC;                                                 // Convert
 		
 		std::cout << "\nIt took " << time*1000 << " milliseconds (" << 1/time << " Hz) "
 		          << "to compute the inverse dynamics.\n";
