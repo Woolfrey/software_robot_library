@@ -1,16 +1,22 @@
-cmake_minimum_required(VERSION 3.8)					                                        # Minimum cmake requirement
+####################################################################################################
+#                                         ROBOT LIBRARY                                            #
+#                                       └[∵┌] └|∵|┘ [┐∵]┘                                         #
+####################################################################################################
 
-project(RobotLibrary VERSION 1.0.0 LANGUAGES CXX)                                                   # Can use ${PROJECT_NAME} as a reference
+cmake_minimum_required(VERSION 3.8)					                                        # As it says on the label
+
+project(RobotLibrary                                                                                # Reference to ${PROJECT_NAME} below
+        DESCRIPTION "Modeling and control classes for robots [┐∵]┘"
+        LANGUAGES CXX
+        VERSION 1.0
+)
 
 set(CMAKE_CXX_STANDARD 17)                                                                          # For structured bindings
+set(CMAKE_DEBUG_POSTFIX _debug)                                                                     # Adds '_debug' to all .so and .dll files
+set(CMAKE_BUILD_TYPE Release)                                                                       # Release = optimised, debug = detailed info, no optimisation
 
-set(CMAKE_BUILD_TYPE Release)
-
-# Default build is Release. To build in other modes use:
-#	Debug		(Information, not optimised)
-#	Release		(No information, optimised)
-#	RelWithDebInfo	(Information & optimised)
-#	MinSizeRel	(Same as Release, but optimised for size)
+find_package(Eigen3 REQUIRED)                                                                       # Necessary for linear algebra
+include_directories(${EIGEN3_INCLUDE_DIRS})
 
 #################################### Download QPSolver #############################################
 
@@ -32,59 +38,53 @@ else()
 	endif()
 endif()
 
-####################################################################################################
-add_library(RobotLibrary INTERFACE)                                                                 # Declaration of RobotLibrary  
+###################################### Declare library #############################################
 
-# Specify location of other CMakeLists.txt files
+# Location of other CMakeLists.txt files
 add_subdirectory(Math)
 add_subdirectory(Model)
 add_subdirectory(Trajectory)
 
-target_link_libraries(RobotLibrary INTERFACE Math Model Trajectory)                                 # Link the subdirectories
+add_library(${PROJECT_NAME} INTERFACE)                                                              # Refered to by all `target` commands below 
+
+target_link_libraries(RobotLibrary INTERFACE Math Model Trajectory)                                 # Link the subdirectories to RobotLibrary
 
 ################################### Installation Instructions ######################################
 
-include(GNUInstallDirs)
+include(GNUInstallDirs)                                                                             # Defines canonical install paths
+include(CMakePackageConfigHelpers)                                                                  # Functions for creating a package
 
-set(INSTALL_CONFIGDIR ${CMAKE_INSTALL_LIBDIR}/cmake/RobotLibrary)                                   # Declare the location for installing config files
+set(INSTALL_CONFIGDIR ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME})                                # Create variable for install path
 
-install(TARGETS RobotLibrary Math Model Trajectory                                                  # Specify targets to be installed
-	   EXPORT  RobotLibrary-targets
-	   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-	   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+install(TARGETS ${PROJECT_NAME} Math Model Trajectory                                               # Specify targets to be installed
+	   EXPORT  ${PROJECT_NAME}Targets                                                              # Name of target exports
+	   ARCHIVE  DESTINATION ${CMAKE_INSTALL_LIBDIR}                                                # For STATIC libraries
+	   INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}                                            # Installs the `include` directories
+	   LIBRARY  DESTINATION ${CMAKE_INSTALL_LIBDIR}                                                # For SHARED libraries
+	   RUNTIME  DESTINATION ${CMAKE_INSTALL_BINDIR}                                                # For executables?
 )
 
-# Export the targets to a script
-install(EXPORT RobotLibrary-targets
-	   FILE   RobotLibraryTargets.cmake
-	   NAMESPACE RobotLibrary::
-	   DESTINATION ${INSTALL_CONFIGDIR}
-)
+install(EXPORT      ${PROJECT_NAME}Targets                                                          # The thing to be exported
+        FILE        ${PROJECT_NAME}Targets.cmake                                                    # What we're exporting it into
+        NAMESPACE   ${PROJECT_NAME}::
+        DESTINATION ${INSTALL_CONFIGDIR})                                                           # Location
 
-# Create a ConfigVersion.cmake file
-include(CMakePackageConfigHelpers)
-write_basic_package_version_file(
-	${CMAKE_CURRENT_BINARY_DIR}/RobotLibraryConfigVersion.cmake
-	VERSION ${PROJECT_VERSION}
-	COMPATIBILITY AnyNewerVersion
-)
+# Create version file concurrent with this project version
+write_basic_package_version_file(${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake VERSION ${PROJECT_VERSION}
+                                                                                                COMPATIBILITY AnyNewerVersion)
+# Generate config files
+configure_package_config_file(${CMAKE_CURRENT_LIST_DIR}/cmake/${PROJECT_NAME}Config.cmake.in        # Instructions located here?
+	                         ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake               # Config file to be created
+	                         INSTALL_DESTINATION ${INSTALL_CONFIGDIR})                             # As says
+	                         
+# Install config files
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
+	         ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
+	   DESTINATION ${INSTALL_CONFIGDIR})               
 
-configure_package_config_file(${CMAKE_CURRENT_LIST_DIR}/cmake/RobotLibraryConfig.cmake.in
-	${CMAKE_CURRENT_BINARY_DIR}/RobotLibraryConfig.cmake
-	INSTALL_DESTINATION ${INSTALL_CONFIGDIR}
-)
-
-# Install the config, config version and custom find modules
-install(FILES
-	${CMAKE_CURRENT_BINARY_DIR}/RobotLibraryConfig.cmake
-	${CMAKE_CURRENT_BINARY_DIR}/RobotLibraryConfigVersion.cmake
-	DESTINATION ${INSTALL_CONFIGDIR}
-)
-
-################################# Export from the Build Tree #######################################
-export(EXPORT RobotLibrary-targets
-	FILE ${CMAKE_CURRENT_BINARY_DIR}/RobotLibraryTargets.cmake
-	NAMESPACE RobotLibrary::
-)
-
-export(PACKAGE RobotLibrary)                                                                        # Register package so other projects can find it
+# Export the package
+export(EXPORT    ${PROJECT_NAME}Targets
+	  FILE      ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Targets.cmake
+	  NAMESPACE ${PROJECT_NAME}::)
+	  
+export(PACKAGE ${PROJECT_NAME})
