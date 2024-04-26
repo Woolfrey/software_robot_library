@@ -60,7 +60,7 @@ class RigidBody
 		/**
 		 * @return The center of mass for this object in its local reference frame.
 		 */
-		Eigen::Vector<DataType,3> center_of_mass() const { return this->_centerOfMass; }    // Get the center of mass
+		Eigen::Vector<DataType,3> center_of_mass() const { return this->_centerOfMass; }          // Get the center of mass
 		
 		/**
 		 * @return The linear and angular velocity of this object.

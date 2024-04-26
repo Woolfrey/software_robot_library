@@ -1,4 +1,5 @@
 get_filename_component(ROBOTLIBRARY_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
+
 include(CMakeFindDependencyMacro)
 
 list(APPEND CMAKE_MODULE_PATH ${ROBOTLIBRARY_CMAKE_DIR})
@@ -9,4 +10,4 @@ endif()
 
 message("${ROBOTLIBRARY_CMAKE_DIR}")
 
-set(ROBOTLIBRARY_lIBRARIES RobotLibrary::RobotLibrary)
+set(ROBOTLIBRARY_LIBRARIES RobotLibrary::RobotLibrary)
