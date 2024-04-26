@@ -27,6 +27,8 @@ target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/s
                                                   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>       # Reference install/include directory after the fact
 )
 
+####################################################################################################
+
 add_executable(polynomial_test test/polynomial_test.cpp)                                            # Create name of exe from source file
 add_dependencies(polynomial_test RobotLibrary)                                                      # Depends on RobotLibrary (obviously)
 target_link_libraries(polynomial_test RobotLibrary)                                                 # Link RobotLibrary

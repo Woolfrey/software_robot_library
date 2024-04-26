@@ -25,6 +25,8 @@ target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/s
                                                   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>       # Reference install/include directory after the fact
 )
 
+####################################################################################################
+
 add_executable(urdf_test test/urdf_test.cpp src/tinyxml2.cpp)                                       # Create name of exe from source file
 add_dependencies(urdf_test RobotLibrary)                                                            # Depends on RobotLibrary (obviously)
 target_link_libraries(urdf_test RobotLibrary)                                                       # Link RobotLibrary
