@@ -25,10 +25,10 @@ if(EXISTS "${CMAKE_SOURCE_DIR}/Math/include/QPSolver.h")
 else()
 	message([WARNING] " QPSolver class not found in ${CMAKE_SOURCE_DIR}/Math/include/")
 	
-	message([STATUS] " Downloading from https://github.com/Woolfrey/SimpleQPSolver ...")
+	message([STATUS] " Downloading from https://github.com/Woolfrey/software_simple_qp ...")
 	
 	file(DOWNLOAD
-	    https://raw.githubusercontent.com/Woolfrey/SimpleQPSolver/master/include/QPSolver.h
+	    https://raw.githubusercontent.com/Woolfrey/software_simple_qp/master/include/QPSolver.h
 	    ${CMAKE_SOURCE_DIR}/Math/include/QPSolver.h)
 	    
 	if(EXISTS "${CMAKE_SOURCE_DIR}/Math/include/QPSolver.h")
