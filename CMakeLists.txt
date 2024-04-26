@@ -41,13 +41,14 @@ endif()
 ###################################### Declare library #############################################
 
 # Location of other CMakeLists.txt files
+add_subdirectory(Control)
 add_subdirectory(Math)
 add_subdirectory(Model)
 add_subdirectory(Trajectory)
 
 add_library(${PROJECT_NAME} INTERFACE)                                                              # Refered to by all `target` commands below 
 
-target_link_libraries(RobotLibrary INTERFACE Math Model Trajectory)                                 # Link the subdirectories to RobotLibrary
+target_link_libraries(RobotLibrary INTERFACE Control Math Model Trajectory)                         # Link the subdirectories to RobotLibrary
 
 ################################### Installation Instructions ######################################
 
@@ -56,7 +57,7 @@ include(CMakePackageConfigHelpers)                                              
 
 set(INSTALL_CONFIGDIR ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME})                                # Create variable for install path
 
-install(TARGETS ${PROJECT_NAME} Math Model Trajectory                                               # Specify targets to be installed
+install(TARGETS ${PROJECT_NAME} Control Math Model Trajectory                                       # Specify targets to be installed
 	   EXPORT  ${PROJECT_NAME}Targets                                                              # Name of target exports
 	   ARCHIVE  DESTINATION ${CMAKE_INSTALL_LIBDIR}                                                # For STATIC libraries
 	   INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}                                            # Installs the `include` directories
