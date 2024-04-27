@@ -15,6 +15,10 @@ set(CMAKE_CXX_STANDARD 17)                                                      
 set(CMAKE_DEBUG_POSTFIX _debug)                                                                     # Adds '_debug' to all .so and .dll files
 set(CMAKE_BUILD_TYPE Release)                                                                       # Release = optimised, debug = detailed info, no optimisation
 
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+     message([WARNING] " BUILDING IN DEBUG MODE.")
+endif()
+
 find_package(Eigen3 REQUIRED)                                                                       # Necessary for linear algebra
 include_directories(${EIGEN3_INCLUDE_DIRS})
 
@@ -47,7 +51,7 @@ add_subdirectory(Trajectory)
 
 add_library(${PROJECT_NAME} INTERFACE)                                                              # Refered to by all `target` commands below 
 
-target_link_libraries(RobotLibrary INTERFACE Math Model Trajectory)                                 # Link the subdirectories to RobotLibrary
+target_link_libraries(RobotLibrary INTERFACE Math Model Trajectory)                                 # Link the subdirectoriesto RobotLibrary
 
 ################################### Installation Instructions ######################################
 

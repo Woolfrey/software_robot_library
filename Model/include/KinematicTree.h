@@ -454,31 +454,33 @@ KinematicTree<DataType>::KinematicTree(const std::string &pathToURDF)
 	std::cout << "[INFO] [KINEMATIC TREE] Successfully created the '" << this->_name << "' robot."
 	          << " It has " << this->_numberOfJoints << " joints (reduced from " << this->_fullLinkList.size() << ").\n";
 	
-//	Debugging stuff:
-/*
-	std::cout << "\nHere is a list of all the joints on the robot:\n";		
-	vector<Link<DataType>*> candidateList = this->_baseLinks;                                      // Start with links connect to base
-	while(candidateList.size() > 0)
-	{
-		Link<DataType> *currentLink = candidateList.back();                                       // Get the one at the end
-		
-		candidateList.pop_back();                                                                 // Delete it from the search list
-		
-		std::cout << " - " << currentLink->joint().name() << "\n";
-		
-		vector<Link<DataType>*> temp = currentLink->child_links();                                // All the links attached to the current link
-		
-		if(temp.size() != 0) candidateList.insert(candidateList.end(), temp.begin(), temp.end());
-	}
+	#ifndef NDEBUG
 	
-	std::cout << "\nHere are the reference frames on the robot:\n";
-	for(const auto &[name, frame] : this->_frameList)
-	{
-		std::cout << " - " << name << " is on the ";
-		
-		if(frame.link == nullptr) std::cout << this->base.name() << ".\n";
-		else                      std::cout << "'" << frame.link->name() << "' link.\n";
-	}*/
+          std::cout << "\nHere is a list of all the joints on the robot:\n";		
+	     vector<Link<DataType>*> candidateList = this->_baseLinks;                                 // Start with links connect to base
+	     while(candidateList.size() > 0)
+	     {
+		     Link<DataType> *currentLink = candidateList.back();                                  // Get the one at the end
+		     
+		     candidateList.pop_back();                                                            // Delete it from the search list
+		     
+		     std::cout << " - " << currentLink->joint().name() << "\n";
+		     
+		     vector<Link<DataType>*> temp = currentLink->child_links();                           // All the links attached to the current link
+		     
+		     if(temp.size() != 0) candidateList.insert(candidateList.end(), temp.begin(), temp.end());
+	     }
+	     
+	     std::cout << "\nHere are the reference frames on the robot:\n";
+	     for(const auto &[name, frame] : this->_frameList)
+	     {
+		     std::cout << " - " << name << " is on the ";
+		     
+		     if(frame.link == nullptr) std::cout << this->base.name() << ".\n";
+		     else                      std::cout << "'" << frame.link->name() << "' link.\n";
+	     }
+	     
+     #endif
 }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
