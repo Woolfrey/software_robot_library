@@ -101,7 +101,7 @@ class KinematicTree
 		/**
 		 * @return Returns a 6xn Jacobian matrix to a given reference frame in the tree.
 		 */
-                Eigen::Matrix<DataType, 6, Eigen::Dynamic> jacobian(const std::string &frameName); 
+          Eigen::Matrix<DataType, 6, Eigen::Dynamic> jacobian(const std::string &frameName); 
 
 		/**
 		 * Compute the time derivative for a given Jacobian matrix
@@ -141,6 +141,44 @@ class KinematicTree
 		 */
 		std::string name() const { return this->_name; }
 		
+		/**
+		 * Returns a pointer to a reference frame on this model.
+		 * @param name In the URDF, the name of the parent link attached to a fixed joint
+		 * @return A ReferenceFrame data structure
+		 */
+		ReferenceFrame<DataType>* find_frame(const std::string &frameName)
+		{
+               auto container = this->_frameList.find(frameName);                                   // Find the frame in the list
+               
+               if(container != this->_frameList.end()) return &container->second;                    // Return the ReferenceFrame struct
+               else
+               {    
+                    throw std::runtime_error("[ERROR] [KINEMATIC TREE] find_frame(): "
+                                             "Unable to find the frame '" + frameName + "' in the model.");
+               }
+          }
+          
+          /**
+           * Get the joint position vector in the underlying model.
+           * @return An nx1 Eigen::Vector object of all the joint positions.
+           */
+          Eigen::Vector<DataType,Eigen::Dynamic> joint_positions() const { return this->_jointPosition; }
+          
+          /**
+           * Return a pointer to a link on the structure.
+           * @param The number of the link in the model.
+           * @return A RobotLibrary::Link object
+           */
+          Link<DataType>* link(const unsigned int &linkNumber)
+          {
+               if(linkNumber >= this->_link.size())
+               {
+                    throw std::runtime_error("[ERROR] [KINEMATIC TREE] link(): "
+                                             "There are only " + std::to_string(this->_link.size()) + " in this model, "
+                                             "but you requested " + std::to_string(linkNumber+1) + ".");
+               }
+               return this->_link[linkNumber];
+          }
 
 		RigidBody<DataType> base;                                                                 ///< Specifies the dynamics for the base.
 		
