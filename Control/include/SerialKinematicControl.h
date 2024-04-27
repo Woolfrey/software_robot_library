@@ -41,8 +41,8 @@ class SerialKinematicControl : public SerialLinkBase<DataType>
 		 */
 		Eigen::Vector<DataType,Eigen::Dynamic>
 		track_endpoint_trajectory(const Pose<DataType>            &desiredPose,
-					           const Eigen::Vector<DataType,6> &desiredVel,
-					           const Eigen::Vector<DataType,6> &desiredAcc);
+					           const Eigen::Vector<DataType,6> &desiredVelocity,
+					           const Eigen::Vector<DataType,6> &desiredAcceleration);
 
 		/**
 		 * Solve the joint velocities required to track a joint space trajectory.
@@ -52,9 +52,9 @@ class SerialKinematicControl : public SerialLinkBase<DataType>
 		 * @return The control velocity (nx1).
            */			  
 		Eigen::Vector<DataType,Eigen::Dynamic>
-		track_joint_trajectory(const Eigen::Vector<DataType,Eigen::Dynamic> &desiredPos,
-		                       const Eigen::Vector<DataType,Eigen::Dynamic> &desiredVel,
-		                       const Eigen::Vector<DataType,Eigen::Dynamic> &desiredAcc);
+		track_joint_trajectory(const Eigen::Vector<DataType,Eigen::Dynamic> &desiredPosition,
+		                       const Eigen::Vector<DataType,Eigen::Dynamic> &desiredVelocity,
+		                       const Eigen::Vector<DataType,Eigen::Dynamic> &desiredAcceleration);
 													   		
 	protected:
 	
@@ -90,7 +90,6 @@ SerialKinematicControl<DataType>::resolve_endpoint_motion(const Eigen::Vector<Da
 		// NOTE: Can't use structured binding on Eigen::Vector because its size is not
 		//       known at compile time, so we have to assign to variable and transfer:
 		const auto &[lower, upper] = compute_control_limits(i);                                   // Get the control limits for the ith joint
-	
 		lowerBound(i) = lower;                                                                    // Assign to vectors
 		upperBound(i) = upper;
 	
@@ -99,30 +98,44 @@ SerialKinematicControl<DataType>::resolve_endpoint_motion(const Eigen::Vector<Da
 		else if(startPoint(i) >= upperBound(i)) startPoint(i) = upperBound(i) - 1e-03;            // Just below the upper limit
 	}
 	
-	if(this->_manipulability > this->_minManipulability)
+	if(this->_manipulability > this->_minManipulability)                                           // Not singular
 	{
-	     if(this->_model.number_of_joints() < 7) // Non redundant
+	     if(this->_model->number_of_joints() < 7)                                                  // Non redundant
 	     {
+	          // Solve problem of the form:
+	          // min 0.5*(y - A*x)'*W*(y - A*x)
+	          // subject to: x_min <= x <= x_max
+	          
+	          // See: github.com/Woolfrey/software_simple_qp
+	          
                controlVelocity
-               = QPSolver<DataType>::constrained_least_squares(endpointMotion,
-                                                               this->_jacobianMatrix,
-                                                               lowerBound,
-                                                               upperBound,
-                                                               startPoint);
+               = QPSolver<DataType>::constrained_least_squares(endpointMotion,                      // y
+                                                               this->_jacobianMatrix,               // A
+                                                               this->_cartesianStiffness,           // W
+                                                               lowerBound,                          // x_min
+                                                               upperBound,                          // x_max
+                                                               startPoint);                         // Initial guess for solution x
 	     }
-	     else // redundant robot
+	     else                                                                                      // Redundant robot
 	     {
+	          // Solve a problem of the form:
+	          // min (x_d - x)'*W*(x_d - x)
+	          // subject to: A*x = y
+	          //          x_min <= x <= x_max
+	          
+	          // See: github.com/Woolfrey/software_simple_qp
+	          
 	          controlVelocity
-	          = QPSolver<DataType>::constrained_least_squares(this->_redundantTaskScalar*this->redundant_task(),
-	                                                          this->_model.joint_inertia_matrix(),
-	                                                          endpointMotion,
-	                                                          this->_jacobianMatrix,
-	                                                          lowerBound,
-	                                                          upperBound,
-	                                                          startPoint);
+	          = QPSolver<DataType>::constrained_least_squares(this->_redundantTaskScalar*this->_redundantTask(), // x_d
+	                                                          this->_model->joint_inertia_matrix(),              // W
+	                                                          endpointMotion,                                    // y
+	                                                          this->_jacobianMatrix,                             // A
+	                                                          lowerBound,                                        // x_min
+	                                                          upperBound,                                        // x_max
+	                                                          startPoint);                                       // Initial guess for x
 	     }
 	}
-	else // Apply damped least squares
+	else                                                                                           // Apply damped least squares
 	{
 	     // Chiaverini, S., Egeland, O., & Kanestrom, R. K. (1991, June).
 		// "Achieving user-defined accuracy with damped least-squares inverse kinematics."
@@ -130,12 +143,15 @@ SerialKinematicControl<DataType>::resolve_endpoint_motion(const Eigen::Vector<Da
 		
 		DataType dampingFactor = (1.0 - this->_manipulability/this->_minManipulability)*0.1;      // Attenuate damping factor based on proximity to singularity
 		
+		// Solve a problem of the form:
+		// min 0.5*x'*H*x + x'*f
+		// subject to: B*x <= z
 		
-		// H = (J'*J + lambda^2*I)		
+		// H = (J'*J + lambda^2*I)	
 		Eigen::Matrix<DataType,Eigen::Dynamic,Eigen::Dynamic> H
 		= this->_jacobianMatrix.transpose()*this->_jacobianMatrix;
 		
-		for(int i = 0; i < this->_model.number_of_joints(); i++) H(i,i) += dampingFactor;         // Add error to diagonals (i.e. singular values)
+		for(int i = 0; i < this->_model->number_of_joints(); i++) H(i,i) += dampingFactor;        // Add error to diagonals (i.e. singular values)
 		
 		// f = -J'*xdot
 		Eigen::Vector<DataType,Eigen::Dynamic> f = -this->_jacobianMatrix.transpose()*endpointMotion;
@@ -167,39 +183,44 @@ SerialKinematicControl<DataType>::resolve_endpoint_motion(const Eigen::Vector<Da
 template <class DataType> inline
 Eigen::Vector<DataType,Eigen::Dynamic>
 SerialKinematicControl<DataType>::track_endpoint_trajectory(const Pose<DataType>            &desiredPose,
-                                                            const Eigen::Vector<DataType,6> &desiredVel,
-                                                            const Eigen::Vector<DataType,6> &desiredAcc)
+                                                            const Eigen::Vector<DataType,6> &desiredVelocity,
+                                                            const Eigen::Vector<DataType,6> &desiredAcceleration)
 {
-     (void)desiredAcc;                                                                              // Not needed in velocity control
+     (void)desiredAcceleration;                                                                     // Not needed in velocity control
      
-	return resolve_endpoint_motion(desiredVel + this->_cartesianStiffness*this->_endpointPose.error(desiredPose)); // Feedforward + feedback control
+     Pose<DataType> actualPose = this->_endpointFrame->link->pose()
+                                *this->_endpointFrame->relativePose;
+     
+	return resolve_endpoint_motion(desiredVelocity
+	                             + this->_cartesianStiffness*actualPose.error(desiredPose));       // Feedforward + feedback control
 }
  
   ///////////////////////////////////////////////////////////////////////////////////////////////////
- //                  Compute the joint velocities needs to track a given trajectory               //
+ //                  Compute the joint velocities needed to track a given trajectory              //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <class DataType> inline
 Eigen::Vector<DataType,Eigen::Dynamic>
-SerialKinematicControl<DataType>::track_joint_trajectory(const Eigen::Vector<DataType,Eigen::Dynamic> &desiredPos,
-                                                         const Eigen::Vector<DataType,Eigen::Dynamic> &desiredVel,
-						                           const Eigen::Vector<DataType,Eigen::Dynamic> &desiredAcc)
+SerialKinematicControl<DataType>::track_joint_trajectory(const Eigen::Vector<DataType,Eigen::Dynamic> &desiredPosition,
+                                                         const Eigen::Vector<DataType,Eigen::Dynamic> &desiredVelocity,
+						                           const Eigen::Vector<DataType,Eigen::Dynamic> &desiredAcceleration)
 {
 	unsigned int numJoints = this->_model->number_of_joints();                                     // Makes things easier
 	
-	if(desiredPos.size() != numJoints or desiredVel != numJoints)
+	if(desiredPosition.size() != numJoints or desiredVelocity.size() != numJoints)
 	{
 		throw std::invalid_argument("[ERROR] [SERIAL LINK] track_joint_trajectory(): "
 		                            "Incorrect size for input arguments. This robot has "
 		                            + std::to_string(numJoints) + " joints, but "
-		                            "the position argument had " + std::to_string(desiredPos.size()) + " elements, and"
-		                            "the velocity argument had " + std::to_string(desiredVel.size()) + " elements.");
+		                            "the position argument had " + std::to_string(desiredPosition.size()) + " elements, and"
+		                            "the velocity argument had " + std::to_string(desiredVelocity.size()) + " elements.");
 	}
 	
 	Eigen::Vector<DataType,Eigen::Dynamic> velocityControl(numJoints);                             // Value to be returned
 	
 	for(int i = 0; i < numJoints; i++)
 	{
-		velocityControl(i) = desiredVel(i) + this->_jointPositionGain*(desiredPos(i) - this->_model->joint_position(i)); // Feedforward + feedback control
+		velocityControl(i) = desiredVelocity(i)                                                                  // Feedforward control
+		                   + this->_jointPositionGain*(desiredPosition(i) - this->_model->joint_positions()[i]); // Feedback control
 		
 		Limits<DataType> controlLimits = compute_control_limits(numJoints);                       // Get the instantaneous limits on the joint speed
 		                   
@@ -222,19 +243,19 @@ Limits<DataType> SerialKinematicControl<DataType>::compute_control_limits(const 
 	
 	Limits<DataType> limits;                                                                       // Value to be returned
 
-	DataType delta = this->_model->joint_position(jointNumber)
-	               - this->_model->link(jointNumber).joint().position_limits().lower;              // Distance from lower limit
+	DataType delta = this->_model->joint_positions()[jointNumber]
+	               - this->_model->link(jointNumber)->joint().position_limits().lower;              // Distance from lower limit
 	
 	limits.lower = std::max(-delta*this->_controlFrequency,
-	                        -this->_model->link(jointNumber).joint().speed_limit(),
-	                        -2*sqrt(this->_maxJointAccel*delta));
+	               std::max(-this->_model->link(jointNumber)->joint().speed_limit(),
+	                        -2*sqrt(this->_maxJointAcceleration*delta)));
 	                        
-	delta = this->_model->link(jointNumber).joint().position_limits().upper
-	      - this->_model->joint_position(jointNumber);                                             // Distance to upper limit
+	delta = this->_model->link(jointNumber)->joint().position_limits().upper
+	      - this->_model->joint_positions()[jointNumber];                                          // Distance to upper limit
 	
 	limits.upper = std::min(delta*this->_controlFrequency,
-	                        this->_model->link(jointNumber).joint().speed_limit(),
-	                        2*sqrt(this->_maxJointAccel*delta));
+	               std::min(this->_model->link(jointNumber)->joint().speed_limit(),
+	                        2*sqrt(this->_maxJointAcceleration*delta)));
 	                        
 	return limits;
 }
