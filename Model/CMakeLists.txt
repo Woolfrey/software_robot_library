@@ -10,6 +10,7 @@ add_library(${PROJECT_NAME}
             include/Link.h
             include/KinematicTree.h
             include/RigidBody.h
+            src/tinyxml2.cpp
 )
 
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_VISIBILITY_PRESET "hidden"                     # Helps reduce size of library?
