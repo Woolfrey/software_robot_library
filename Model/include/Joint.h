@@ -233,14 +233,14 @@ Pose<DataType> Joint<DataType>::position_offset(const DataType &position)
 	if(position > this->_positionLimit.upper)
 	{
 		throw std::runtime_error("[ERROR] [JOINT] position_offset(): "
-		                         "Joint position exceeds upper limit ("
+		                         "Position for the " + this->_name + " joint exceeds upper limit ("
 		                         + std::to_string(position) + " > "
 		                         + std::to_string(this->_positionLimit.upper) + ").");
 	}
 	else if(position < this->_positionLimit.lower)
 	{
 		throw std::runtime_error("[ERROR] [JOINT] position_offset(): "
-		                         "Joint position exceeds lower limit ("
+		                         "Position for the " + this->_name + " joint exceeds lower limit ("
 		                         + std::to_string(position) + " < "
 		                         + std::to_string(this->_positionLimit.lower) + ").");
 	}
