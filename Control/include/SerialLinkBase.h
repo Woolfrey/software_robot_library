@@ -2,7 +2,7 @@
  * @file   SerialLinkBase.h
  * @author Jon Woolfrey
  * @date   September 2023
- * @brief  A base class for control of serial link mechanisms.
+ * @brief  A base class for control of serial link robot arms.
  */
 
 #ifndef SERIALLINKBASE_H_
@@ -89,31 +89,21 @@ class SerialLinkBase : public QPSolver<DataType>
 		bool set_max_joint_acceleration(const DataType &accel);
 		
 		/**
-		 * @return Returns the gradient of manipulability.
+		 * @return Returns a vector that points away from the closest singular joint configuration.
 		 */
 		Eigen::Vector<DataType,Eigen::Dynamic> manipulability_gradient();
 		
 		/**
-		 * Set a pointer to a function that computes the redundant task.
-		 * Default set at construction is `manipulability_gradient`.
-		 * It must be set every time before calling a Cartesian control function.
-		 * @param task The task to be executed.
-		 * @return Returns false if there were any problems.
-		 */
-		typedef Eigen::Vector<DataType,Eigen::Dynamic> (*functionArgument)(void);
-		
-		bool set_redundant_task(functionArgument &functionName);
-		
-		/**
+		 * NOTE TO FUTURE SELF: FIX THIS! IT'S DOING A LOOKUP OF A STD::MAP OBJECT WHICH IS SLOW
 		 * @return Returns a 6xn matrix for the Jacobian to the endpoint of this serial link object.
 		 */
 		Eigen::Matrix<DataType,6,Eigen::Dynamic> endpoint_jacobian()
 		{ return this->_model->jacobian(this->_endpointName); }
 		 
 		/**
-		 * Updates properties specific to this SerialLink object.
-		 * NOTE You must update the state of the KinematicTree first.
-		 * This is done since multiple serial link objects may exist on a single kinematic tree.
+		 * Updates properties specific to this controller.
+		 * The underlying KinematicTree model MUST be updated first.
+		 * This is because multiple serial link objects may exist on a single kinematic tree.
 		 */
 		void update_state()
 		{
@@ -122,10 +112,34 @@ class SerialLinkBase : public QPSolver<DataType>
 			this->_forceEllipsoid = this->_jacobianMatrix*this->_jacobianMatrix.transpose();
 			this->_manipulability = sqrt(this->_forceEllipsoid.determinant());
 		}
+		
+		/**
+		 * Assign the redundant task for use in the next control calculation.
+		 * @param task A vector for the joint motion to be executed using extra degrees of freedom in a redundant robot.
+		 * @return True if successful, false otherwise.
+		 */
+		bool set_redundant_task(const Eigen::Vector<DataType,Eigen::Dynamic> &task)
+		{
+		     if(task.size() != this->_model->number_of_joints())
+		     {
+		          std::cerr << "[ERROR] [SERIAL LINK] set_redundant_task(): "
+		                    << "This robot model has " << this->_model->number_of_joints() << " joints, "
+		                    << "but you assigned a task with " << task.size() << " elements.\n";
+                    
+                    return false;
+               }
+               else
+               {
+                    this->_redundantTask = task;
+                    this->_redundantTaskSet = true;
+                    
+                    return true;
+               }
+          }
 		                           
 	protected:
 		
-		DataType _controlBarrierScalar = 1.0;                                                     ///< Used in singularity avoidance
+		bool _redundantTaskSet = false;                                                           ///< When false, a redundant robot will autonomously reconfigure away from a singularity
 		
 		DataType _jointPositionGain = 1.0;                                                        ///< On position tracking error
 		
@@ -137,15 +151,13 @@ class SerialLinkBase : public QPSolver<DataType>
 		
 		DataType _maxJointAcceleration = 10.0;                                                    ///< As it says.
 		
-		DataType _redundantTaskScalar = 1.0;                                                      ///< Used to increase or decrease effect of redundant task.
-		
-		Eigen::Matrix<DataType,6,6> _gainFormat =
-		(Eigen::Matrix<DataType,6,6>(6,6) << 1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-		                                     0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
-		                                     0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
-		                                     0.0, 0.0, 0.0, 0.1, 0.0, 0.0,
-		                                     0.0, 0.0, 0.0, 0.0, 0.1, 0.0,
-		                                     0.0, 0.0, 0.0, 0.0, 0.0, 0.1).finished();            ///< Structure for the Cartesian gain matrices
+		Eigen::Matrix<DataType,6,6> _gainFormat
+		= (Eigen::Matrix<DataType,6,6>(6,6) << 1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+		                                       0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
+		                                       0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+		                                       0.0, 0.0, 0.0, 0.1, 0.0, 0.0,
+		                                       0.0, 0.0, 0.0, 0.0, 0.1, 0.0,
+		                                       0.0, 0.0, 0.0, 0.0, 0.0, 0.1).finished();          ///< Structure for the Cartesian gain matrices
 		
 		Eigen::Matrix<DataType,6,6> _cartesianDamping = 0.1*this->_gainFormat;                    ///< Derivative gain on endpoint velocity error
 		
@@ -155,13 +167,13 @@ class SerialLinkBase : public QPSolver<DataType>
 		
 		Eigen::Matrix<DataType,6,6> _forceEllipsoid;                                              ///< Jacobian multiplied with its tranpose: J*J.transpose()
 		
+		Eigen::Vector<DataType,Eigen::Dynamic> _redundantTask;                                    ///< Used to control null space of redundant robots
+		
 		KinematicTree<DataType>* _model;                                                          ///< Pointer to the underlying robot model
 		
-		ReferenceFrame<DataType> *_endpointFrame;                                                 ///< The frame on the model controlled by this object
+		ReferenceFrame<DataType> *_endpointFrame;                                                 ///< Pointer to frame controlled in underlying model
 		
 		unsigned int _controlFrequency = 100;                                                     ///< Used in certain control calculations.
-		
-		Eigen::Vector<DataType,Eigen::Dynamic> (*_redundantTask)(void);                           ///< Pointer to function that computes redundant task
 		
 		/**
 		 * Computes the instantaneous limits on the joint control.
@@ -177,21 +189,16 @@ class SerialLinkBase : public QPSolver<DataType>
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <class DataType>
 SerialLinkBase<DataType>::SerialLinkBase(KinematicTree<DataType> *model, const std::string &endpointName)
-					 : _model(model)
+					               : _model(model)
 {
-     // Save a pointer to the endpoint frame to be controlled by this object.
-     // This will save time searching later.
-     // NOTE: This will throw a runtime error if it doesn't exist ;)
+     // Record pointer to the endpoint frame to be controlled so we don't need to search for it later.
+     
+     // NOTE: This will throw a runtime error if it doesn't exist.
+     
      this->_endpointFrame = this->_model->find_frame(endpointName);
-
-     /* THIS THROWS ERRORS; NEED TO FIX.
-        The problem is with assigning a function pointer to a member function...
-	if(not set_redundant_task(&this->manipulability_gradient))
-	{
-		throw std::runtime_error("[ERROR] [SERIAL LINK] Constructor: "
-		                         "Unable to set the redundant task. How did that happen?");
-	}
-	*/
+     
+     std::cout << "[INFO] [SERIAL LINK CONTROL] Successfully generated a controller for the '"
+               << endpointName << "' frame on the '" << this->_model->name() << "' robot.\n";
 }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -281,31 +288,6 @@ bool SerialLinkBase<DataType>::set_max_joint_acceleration(const DataType &accele
 		return true;
 	}
 }
-
-  ///////////////////////////////////////////////////////////////////////////////////////////////////
- //              Set the joint motion for controlling the extra joints in the robot               //
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template <class DataType> inline
-bool SerialLinkBase<DataType>::set_redundant_task(functionArgument &functionName)
-{
-	unsigned int returnSize = functionName().size();                                              // Query the function (use * to de-reference)
-	unsigned int numJoints  = this->_model->number_of_joints();                                    // As it says
-	
-	if(returnSize != numJoints)
-	{
-		std::cerr << "[ERROR] [SERIAL LINK] set_redundant_task(): "
-		          << "This robot has " << numJoints << " joints but the vector returned "
-		          << "from the redundant task has only " << returnSize <<  " elements." << std::endl;
-		          
-		return false;
-	}
-	else
-	{	
-		this->_redundantTask = functionName;                                                      // Assign the function
-		
-		return true;
-	}
-}
  
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                            Compute the gradient of manipulability                              //
@@ -319,10 +301,12 @@ Eigen::Vector<DataType,Eigen::Dynamic> SerialLinkBase<DataType>::manipulability_
 	
 	Eigen::Vector<DataType,Eigen::Dynamic> gradient(this->_model->number_of_joints());             // Value to be returned
 	
-	Link<DataType> *currentLink = this->_endpointFrame->link;                                      // Starting link for computation
+	gradient.setZero();                                                                            // Any branching chains off of this one must be zero
 	
 	Eigen::LDLT<Matrix<DataType,6,6>> JJT(this->_forceEllipsoid);                                  // Pre-compute the decomposition
 
+	Link<DataType> *currentLink = this->_endpointFrame->link;                                      // Starting link for computation
+	
 	while(currentLink != nullptr)
 	{
 		Eigen::Matrix<DataType,Eigen::Dynamic,Eigen::Dynamic> dJ

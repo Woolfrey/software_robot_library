@@ -22,7 +22,7 @@ class SerialKinematicControl : public SerialLinkBase<DataType>
 		SerialKinematicControl(KinematicTree<DataType> *model,
 		                       const std::string       &endpointName)
 		:
-		SerialLinkBase<DataType>(model, endpointName) {}
+		SerialLinkBase<DataType>(model, endpointName){}
 		
 		/**
 		 * Solve the joint velocities required to move the endpoint at a given speed.
@@ -125,14 +125,23 @@ SerialKinematicControl<DataType>::resolve_endpoint_motion(const Eigen::Vector<Da
 	          
 	          // See: github.com/Woolfrey/software_simple_qp
 	          
+	          
+	          if(not this->_redundantTaskSet)
+	          {
+	               this->_redundantTask = (this->_controlFrequency/50)                             // NOTE: NEED TO EXPERIMENT TO DETERMINE SCALAR
+	                                      *this->manipulability_gradient();                        // Autonomously reconfigure the robot away from singularities
+               }
+            
 	          controlVelocity
-	          = QPSolver<DataType>::constrained_least_squares(this->_redundantTaskScalar*this->_redundantTask(), // x_d
-	                                                          this->_model->joint_inertia_matrix(),              // W
-	                                                          endpointMotion,                                    // y
-	                                                          this->_jacobianMatrix,                             // A
-	                                                          lowerBound,                                        // x_min
-	                                                          upperBound,                                        // x_max
-	                                                          startPoint);                                       // Initial guess for x
+	          = QPSolver<DataType>::constrained_least_squares(this->_redundantTask,                // x_d
+	                                                          this->_model->joint_inertia_matrix(),// W
+	                                                          endpointMotion,                      // y
+	                                                          this->_jacobianMatrix,               // A
+	                                                          lowerBound,                          // x_min
+	                                                          upperBound,                          // x_max
+	                                                          startPoint);                         // Initial guess for x
+	     
+	          this->_redundantTaskSet = false;                                                     // Reset for next control loop
 	     }
 	}
 	else                                                                                           // Apply damped least squares
