@@ -61,6 +61,9 @@ class TrapezoidalVelocity : public TrajectoryBase<DataType>
 				
 };                                                                                                  // Semicolon needed after class declaration
 
+using TrapezoidalVelocity_f = TrapezoidalVelocity<float>;
+using TrapezoidalVelocity_d = TrapezoidalVelocity<double>;
+
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                                            Constructor                                         //
 ////////////////////////////////////////////////////////////////////////////////////////////////////

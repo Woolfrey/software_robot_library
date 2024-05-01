@@ -22,6 +22,7 @@ struct CartesianState
 	Eigen::Vector<DataType,6> acceleration;                                                        // Linear and angular acceleration
 };                                                                                                  // Semicolon needed after declaration
 
+
 template <class DataType, class TrajectoryType>
 class CartesianTrajectory : public Waypoints<DataType,TrajectoryType>
 {
@@ -70,6 +71,9 @@ class CartesianTrajectory : public Waypoints<DataType,TrajectoryType>
 		TrajectoryType _trajectory;                                                               // The underlying trajectory object
 		
 };                                                                                                  // Semicolon needed after class declaration
+
+using CartesianTrajectory_f = CartesianTrajectory<float>;
+using CartesianTrajectory_d = CartesianTrajectory<double>;
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                                        Constructor                                             //

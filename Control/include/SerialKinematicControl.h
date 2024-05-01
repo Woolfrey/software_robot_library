@@ -186,6 +186,9 @@ SerialKinematicControl<DataType>::resolve_endpoint_motion(const Eigen::Vector<Da
 	return controlVelocity;
 }
 
+using SerialKinematicControl_f = SerialKinematicControl<float>;
+using SerialKinematicControl_d = SerialKinematicControl<double>;
+
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //               Compute the endpoint velocity needed to track a given trajectory                //
 ///////////////////////////////////////////////////////////////////////////////////////////////////

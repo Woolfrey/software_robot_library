@@ -83,6 +83,9 @@ class TrajectoryBase
 	
 };                                                                                                  // Semicolon needed after class declaration
 
+using TrajectoryBase_f = TrajectoryBase<float>;
+using TrajectoryBase_d = TrajectoryBase<double>;
+
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //                                       Constructor                                             //
 ///////////////////////////////////////////////////////////////////////////////////////////////////

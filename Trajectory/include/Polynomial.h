@@ -107,6 +107,9 @@ class Polynomial : public TrajectoryBase<DataType>
 
 };                                                                                                  // Semicolon needed after class declaration
 
+using Polynomial_f = Polynomial<float>;
+using Polynomial_d = Polynomial<double>;
+
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //                                           Cosntructor                                         //
 ///////////////////////////////////////////////////////////////////////////////////////////////////

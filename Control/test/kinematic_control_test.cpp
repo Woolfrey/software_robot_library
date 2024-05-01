@@ -18,9 +18,9 @@ int main(int argc, char** argv)
 		return 1;
 	}
 	
-	KinematicTree<double> model(argv[1]);                                                          // Create model from urdf
+	KinematicTree_d model(argv[1]);                                                                 // Create model from urdf
 	
-	SerialKinematicControl<double> controller(&model,"right_hand");
+	SerialKinematicControl_d controller(&model,"right_hand");
 	
      return 0;                                                                                      // No problems with main()
 }

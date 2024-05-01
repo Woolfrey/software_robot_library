@@ -88,6 +88,9 @@ class Pose
 	
 };                                                                                                  // Semicolon needed after class declaration
 
+using Pose_f = Pose<float>;
+using Pose_d = Pose<double>;
+
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //                     Get the error between this pose and another one                           //
 ///////////////////////////////////////////////////////////////////////////////////////////////////

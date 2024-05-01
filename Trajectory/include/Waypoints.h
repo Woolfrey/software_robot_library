@@ -72,4 +72,10 @@ class Waypoints
 	
 };                                                                                                  // Semicolon needed after class declaration
 
+template <typename ClassType>
+using Waypoints_f = Waypoints<float,  ClassType>;
+
+template <typename ClassType>
+using Waypoints_d = Waypoints<double, ClassType>;
+
 #endif

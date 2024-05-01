@@ -121,6 +121,10 @@ class Link : public RigidBody<DataType>
 		
 };                                                                                                  // Semicolon needed at the end of class declaration
 
+using Link_f = Link<float>;
+using Link_d = Link<double>;
+
+
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //                          Add a proceeding link in the kinematic chain                         //
 ///////////////////////////////////////////////////////////////////////////////////////////////////

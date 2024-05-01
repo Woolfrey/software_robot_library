@@ -552,6 +552,9 @@ KinematicTree<DataType>::KinematicTree(const std::string &pathToURDF)
 	     }
      #endif
 }
+ 
+using KinematicTree_f = KinematicTree<float>;
+using KinematicTree_d = KinematicTree<double>;
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //                              Update the kinematics and dynamics                               //        

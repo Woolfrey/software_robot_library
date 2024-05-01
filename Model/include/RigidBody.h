@@ -105,6 +105,9 @@ class RigidBody
 		
 };                                                                                                  // Semicolon needed after a class declaration
 
+using RigidBody_f = RigidBody<float>;
+using RigidBody_d = RigidBody<double>;
+
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                                          Constructor                                           //
 ////////////////////////////////////////////////////////////////////////////////////////////////////

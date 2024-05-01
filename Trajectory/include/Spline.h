@@ -59,7 +59,10 @@
 		       const unsigned int                                        &polynomialOrder);
  		       
 };                                                                                                  // Semicolon needed after class declaration
- 
+
+using Spline_f = Spline<float>;
+using Spline_d = Spline<double>;
+
    //////////////////////////////////////////////////////////////////////////////////////////////////
   //                                        Constructor                                           //
  //////////////////////////////////////////////////////////////////////////////////////////////////

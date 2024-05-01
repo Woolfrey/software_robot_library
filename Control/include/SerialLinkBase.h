@@ -184,6 +184,9 @@ class SerialLinkBase : public QPSolver<DataType>
 	
 };                                                                                                  // Semicolon needed after a class declaration
 
+using SerialLinkBase_f = SerialLinkBase<float>;
+using SerialLinkBase_d = SerialLinkBase<double>;
+
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //                                           Constructor                                         //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
