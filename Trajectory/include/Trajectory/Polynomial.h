@@ -9,7 +9,7 @@
 #define POLYNOMIAL_H_
 
 #include <Eigen/Dense>                                                                              // Eigen::PartialPivLU
-#include <TrajectoryBase.h>
+#include <Trajectory/TrajectoryBase.h>
 #include <string>                                                                                   // std::cerr, std::cout
 #include <vector>                                                                                   // std::vector
 

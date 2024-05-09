@@ -7,7 +7,7 @@
  
 #include <fstream>                                                                                  // For opening/creating/saving text files
 #include <iostream>                                                                                 // std::cerr, std::cout
-#include <Polynomial.h>                                                                             // We want to test this
+#include <Trajectory/Polynomial.h>                                                                  // We want to test this
 #include <string>
  
   ////////////////////////////////////////////////////////////////////////////////////////////////////

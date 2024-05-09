@@ -5,13 +5,13 @@ project(Trajectory)                                                             
 
 # Generate target reference,
 # list associated headers containing class definitions
-add_library(${PROJECT_NAME}
-            include/Polynomial.h
-            include/MultiTrapezoid.h
-            include/Spline.h
-            include/TrajectoryBase.h
-            include/TrapezoidalVelocity.h
-            include/Waypoints.h
+add_library(${PROJECT_NAME} SHARED
+            include/Trajectory/Polynomial.h
+            include/Trajectory/MultiTrapezoid.h
+            include/Trajectory/Spline.h
+            include/Trajectory/TrajectoryBase.h
+            include/Trajectory/TrapezoidalVelocity.h
+            include/Trajectory/Waypoints.h
 )
 
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_VISIBILITY_PRESET "hidden"                     # Helps reduce size of library?

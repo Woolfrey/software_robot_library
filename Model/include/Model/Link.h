@@ -8,9 +8,9 @@
 #ifndef LINK_H_
 #define LINK_H_
 
-#include <Joint.h>
-#include <Pose.h>
-#include <RigidBody.h>                                                                              // Custom class
+#include <Model/Joint.h>
+#include <Model/Pose.h>
+#include <Model/RigidBody.h>                                                                        // Custom class
 #include <vector>                                                                                   // std::vector
  
 template <class DataType>

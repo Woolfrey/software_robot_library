@@ -9,7 +9,7 @@
 #define JOINT_H_
 
 #include <Eigen/Core>
-#include <Pose.h>
+#include <Model/Pose.h>
 #include <string>
 #include <vector>
 

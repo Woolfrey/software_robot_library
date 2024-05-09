@@ -9,7 +9,7 @@
 #define TRAPEZOIDAL_VELOCITY_H_
 
 #include <Eigen/Geometry>                                                                           // Eigen::Vector, Eigen::Matrix, Eigen::Quaternion
-#include <TrajectoryBase.h>
+#include <Trajectory/TrajectoryBase.h>
 
 template <class DataType>
 class TrapezoidalVelocity : public TrajectoryBase<DataType>

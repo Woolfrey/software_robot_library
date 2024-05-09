@@ -7,7 +7,7 @@
  
 #include <fstream>
 #include <iostream>                                                                                 // std::cerr, std::cout
-#include <MultiTrapezoid.h>                                                                         // We want to test this
+#include <Trajectory/MultiTrapezoid.h>                                                              // We want to test this
 #include <string>
  
   ////////////////////////////////////////////////////////////////////////////////////////////////////

@@ -4,7 +4,8 @@
 
 project(Math)                                                                                       # Refered to by ${PROJECT_NAME} below
 
-add_library(${PROJECT_NAME} include/Math.h include/QPSolver.h)                                      # Generate targets and list associated header files
+add_library(${PROJECT_NAME} include/Math/Math.h
+                            include/Math/QPSolver.h)                                                # Generate targets and list associated header files
 
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_VISIBILITY_PRESET "hidden"                     # Helps reduce size of library?
                                                  LINKER_LANGUAGE CXX                                # Need to tell the linker this is C++

@@ -9,8 +9,8 @@
 #define SERIALLINKBASE_H_
 
 #include <Eigen/Dense>                                                                              // Matrix decomposition
-#include <KinematicTree.h>                                                                          // Computes the kinematics and dynamics
-#include <QPSolver.h>                                                                               // Control optimisation
+#include <Model/KinematicTree.h>                                                                    // Computes the kinematics and dynamics
+#include <Math/QPSolver.h>                                                                               // Control optimisation
 
 template <class DataType>
 class SerialLinkBase : public QPSolver<DataType>

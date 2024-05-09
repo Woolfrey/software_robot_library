@@ -1,6 +1,6 @@
 #include <iostream>                                                                                 // std::cerr, std::cout
 #include <fstream>
-#include <KinematicTree.h>                                                                          // Custom class for robot physics
+#include <Model/KinematicTree.h>                                                                    // Custom class for robot physics
 #include <time.h>                                                                                   // Timer
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////

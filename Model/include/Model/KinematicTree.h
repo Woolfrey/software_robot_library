@@ -9,10 +9,10 @@
 #define KINEMATICTREE_H_
 
 #include <fstream>                                                                                  // For loading files
-#include <Joint.h>                                                                                  // Custom class for describing a moveable connection between links
-#include <Link.h>                                                                                   // Custom class combining a rigid body and joint
+#include <Model/Joint.h>                                                                            // Custom class for describing a moveable connection between links
+#include <Model/Link.h>                                                                             // Custom class combining a rigid body and joint
 #include <map>                                                                                      // map
-#include <Math.h>                                                                                   // Useful functions
+#include <Math/Math.h>                                                                              // Useful functions
 #include <tinyxml2.h>                                                                               // For parsing urdf files
 
 template <typename DataType>

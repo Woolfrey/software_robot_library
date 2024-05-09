@@ -5,7 +5,7 @@
  * @brief  A script for testing the SerialPositionControl class.
  */
 
-#include <SerialKinematicControl.h>
+#include <Control/SerialKinematicControl.h>
 
 int main(int argc, char** argv)
 {

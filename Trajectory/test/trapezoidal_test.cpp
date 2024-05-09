@@ -7,7 +7,7 @@
  
 #include <fstream>                                                                                  // For opening/creating/saving text files
 #include <iostream>                                                                                 // std::cerr, std::cout
-#include <TrapezoidalVelocity.h>                                                                    // We want to test this
+#include <Trajectory/TrapezoidalVelocity.h>                                                         // We want to test this
 #include <string>
  
   ////////////////////////////////////////////////////////////////////////////////////////////////////

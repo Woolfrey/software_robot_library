@@ -7,7 +7,7 @@
  
 #include <fstream>  
 #include <iostream>                                                                                 // std::cerr, std::cout
-#include <Spline.h>                                                                                 // We want to test this
+#include <Trajectory/Spline.h>                                                                      // We want to test this
 #include <string>
  
   ////////////////////////////////////////////////////////////////////////////////////////////////////

@@ -8,8 +8,8 @@
 #ifndef WAYPOINTS_H_
 #define WAYPOINTS_H_
  
-#include <Polynomial.h>
-#include <TrapezoidalVelocity.h>
+#include <Trajectory/Polynomial.h>
+#include <Trajectory/TrapezoidalVelocity.h>
 
 template <class DataType, typename ClassType>
 class Waypoints

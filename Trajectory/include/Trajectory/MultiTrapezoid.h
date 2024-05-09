@@ -8,8 +8,8 @@
 #ifndef MULTITRAPEZOID_H_
 #define MULTITRAPEZOID_H_
 
-#include <TrapezoidalVelocity.h>
-#include <Waypoints.h>
+#include <Trajectory/TrapezoidalVelocity.h>
+#include <Trajectory/Waypoints.h>
  
 template <class DataType>
 class MultiTrapezoid : public Waypoints<DataType,TrapezoidalVelocity<DataType>>

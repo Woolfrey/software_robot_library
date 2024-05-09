@@ -8,7 +8,7 @@
 #ifndef SERIALKINEMATICCONTROL_H_
 #define SERIALKINEMATICCONTROL_H_
 
-#include <SerialLinkBase.h>
+#include <Control/SerialLinkBase.h>
 
 template <class DataType>
 class SerialKinematicControl : public SerialLinkBase<DataType>

@@ -9,8 +9,8 @@
  #define SPLINE_H_
  
  #include <Eigen/Dense>                                                                             // Allows matrix decomposition
- #include <Polynomial.h>
- #include <Waypoints.h>
+ #include <Trajectory/Polynomial.h>
+ #include <Trajectory/Waypoints.h>
  
  template <class DataType>
  class Spline : public Waypoints<DataType, Polynomial<DataType>>

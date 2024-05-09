@@ -20,18 +20,18 @@ include_directories(${EIGEN3_INCLUDE_DIRS})
 
 #################################### Download QPSolver #############################################
 
-if(EXISTS "${CMAKE_SOURCE_DIR}/Math/include/QPSolver.h")
-	message([STATUS] " Found the QPSolver class in ${CMAKE_SOURCE_DIR}/Math/include/")
+if(EXISTS "${CMAKE_SOURCE_DIR}/Math/include/Math/QPSolver.h")
+	message([STATUS] " Found the QPSolver class in ${CMAKE_SOURCE_DIR}/Math/include/Math")
 else()
-	message([WARNING] " QPSolver class not found in ${CMAKE_SOURCE_DIR}/Math/include/")
+	message([WARNING] " QPSolver class not found in ${CMAKE_SOURCE_DIR}/Math/include/Math")
 	
 	message([STATUS] " Downloading from https://github.com/Woolfrey/software_simple_qp ...")
 	
 	file(DOWNLOAD
 	    https://raw.githubusercontent.com/Woolfrey/software_simple_qp/master/include/QPSolver.h
-	    ${CMAKE_SOURCE_DIR}/Math/include/QPSolver.h)
+	    ${CMAKE_SOURCE_DIR}/Math/include/Math/QPSolver.h)
 	    
-	if(EXISTS "${CMAKE_SOURCE_DIR}/Math/include/QPSolver.h")
+	if(EXISTS "${CMAKE_SOURCE_DIR}/Math/include/Math/QPSolver.h")
 		message([STATUS] " ... Done!")
 	else()
 		message([FATAL ERROR] " Could not download QPSolver.")

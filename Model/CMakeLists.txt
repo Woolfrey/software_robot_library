@@ -5,11 +5,11 @@ project(Model)                                                                  
 
 # Generate target reference,
 # list associated headers containing class definitions
-add_library(${PROJECT_NAME}
-            include/Joint.h
-            include/Link.h
-            include/KinematicTree.h
-            include/RigidBody.h
+add_library(${PROJECT_NAME} SHARED
+            include/Model/Joint.h
+            include/Model/Link.h
+            include/Model/KinematicTree.h
+            include/Model/RigidBody.h
             src/tinyxml2.cpp
 )
 

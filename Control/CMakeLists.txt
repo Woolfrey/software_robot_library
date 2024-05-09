@@ -6,9 +6,9 @@ project(Control)                                                                
 
 # Generate target reference,
 # list associated headers containing class definitions
-add_library(${PROJECT_NAME}
-            include/SerialLinkBase.h
-            include/SerialKinematicControl.h
+add_library(${PROJECT_NAME} SHARED
+            include/Control/SerialLinkBase.h
+            include/Control/SerialKinematicControl.h
 )
 
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_VISIBILITY_PRESET "hidden"                     # Helps reduce size of library?

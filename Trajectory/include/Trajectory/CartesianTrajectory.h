@@ -7,9 +7,9 @@
 #ifndef CARTESIANTRAJECTORY_H_
 #define CARTESIANTRAJECTORY_H_
 
-#include <MultiTrapezoid.h>
-#include <Pose.h>
-#include <Spline.h>
+#include <Trajectory/MultiTrapezoid.h>
+#include <Model/Pose.h>
+#include <Trajectory/Spline.h>
 
 /**
  * A data structure for returning state information from functions.
