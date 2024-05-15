@@ -1,6 +1,7 @@
 # Model
 
-:construction: This page is under construction. :construction:
+>[!WARNING]
+> Still under construction :construction:
 
 The model classes are used for computing the kinematics and dynamics of robotic systems.
 
@@ -11,21 +12,28 @@ The model classes are used for computing the kinematics and dynamics of robotic 
 - RigidBody
 - Joint
 - Link
-- KinematicTree
+- [KinematicTree](#kinematictree)
 
 ## KinematicTree
+
+The `KinematicTree` class solves the kinematics and dynamics of branching, serial link mechanisms.
+
+>[!WARNING]
+> The KinematicTree can only model open-link chains. It cannot model parallel mechanisms.
 
 You can generate a kinematic & dynamic model of a multi-limb robot from a `.urdf` file:
 
 ```
-#include <KinematicTree.h>
+#include <Model/KinematicTree.h>
 
 int main(int argc, char **argv)
 {
-     std::string filePath = "/path/to/file.urdf";
-     KinematicTree<double> model(filePath);
+     std::string filePath = "/path/to/file.urdf";    // Location of the urdf file
+     KinematicTree_f model(filePath);                // This creates a model using float data type
 
      ...
 }
 ```
-You can also use floats `KinematicTree<float>`.
+There are 2 convenient typedefs:
+1. `KinematicTree_f = KinematicTree<float>`
+2. `KinematicTree_d = KinematicTree<double>`
