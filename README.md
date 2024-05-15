@@ -1,19 +1,21 @@
 # :robot: RobotLibrary
-:construction: _This page is under construction._ :construction:
+>[!WARNING]
+> _Under construction_ :construction:
 
 RobotLibrary is a C++ library for modeling and control of robots. It is an ongoing project with more features to come soon.
 
 ### Contents:
-- Installation Instructions :clipboard: 
+- Installation Instructions
      - [Installing Eigen](#installing-eigen)
      - [Installing RobotLibrary](#installing-robotlibrary)
-- Sections of the Library :books:
-     - Control :construction: _Under construction_ :construction:
+- Sections of the Library
+     - Control :construction:
      - [Math](Math/README.md)
      - [Model](Model/README.md)
      - [Trajectory](Trajectory/README.md)
+- Using RobotLibrary in another package
 
-## Installation Instructions :clipboard:
+## Installation Instructions
 
 ### Installing Eigen
 RobotLibrary requires the Eigen libraries for linear algebra. If you're using Linux you can install it from the command line:
