@@ -217,7 +217,7 @@ class KinematicTree
                {
                     throw std::runtime_error("[ERROR] [KINEMATIC TREE] link(): "
                                              "There are only " + std::to_string(this->_link.size()) + " in this model, "
-                                             "but you requested " + std::to_string(linkNumber+1) + ".");
+                                             "but you tried to access link " + std::to_string(linkNumber+1) + ".");
                }
                return this->_link[linkNumber];
           }
