@@ -82,7 +82,12 @@ class Joint
 		 * @return Returns a unit vector for local axis of actuation.
 		 */
 		Eigen::Vector<DataType,3> axis() const { return this->_axis; }
-		
+
+		/**
+		 * @return Returns a unit vector for local axis of actuation.
+		 */
+		DataType damping() const { return this->_damping; }
+
 		/**
 		 * The relative transform due to the joint position.
 		 * @param position The joint position (radians or metres)

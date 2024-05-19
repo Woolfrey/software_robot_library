@@ -9,6 +9,7 @@ project(Control)                                                                
 add_library(${PROJECT_NAME} SHARED
             include/Control/SerialLinkBase.h
             include/Control/SerialKinematicControl.h
+            include/Control/SerialDynamicControl.h
 )
 
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_VISIBILITY_PRESET "hidden"                     # Helps reduce size of library?
@@ -29,3 +30,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/s
 add_executable(kinematic_control_test test/kinematic_control_test.cpp)                              # Create name of exe from source file
 add_dependencies(kinematic_control_test RobotLibrary)                                               # Depends on RobotLibrary (obviously)
 target_link_libraries(kinematic_control_test RobotLibrary)                                          # Link RobotLibrary
+
+add_executable(dynamic_control_test test/dynamic_control_test.cpp)                              # Create name of exe from source file
+add_dependencies(dynamic_control_test RobotLibrary)                                               # Depends on RobotLibrary (obviously)
+target_link_libraries(dynamic_control_test RobotLibrary)                                          # Link RobotLibrary

@@ -140,8 +140,14 @@ class KinematicTree
 		 * @return Returns an nx1 Eigen::Vector object.
 		 */	
 		Eigen::Vector<DataType,Eigen::Dynamic> joint_gravity_vector() const { return this->_jointGravityVector; }
-		
-		/** 
+
+        /**
+         * Get the joint damping vector.
+         * @return Returns an nx1 Eigen::Vector object.
+         */
+        Eigen::Vector<DataType,Eigen::Dynamic> joint_damping_vector() const { return this->_jointDampingVector; }
+
+		/**
 		 * Get the current joint velocities of all the joints in the model.
 		 * @return Returns an nx1 Eigen::Vector object.
 		 */
@@ -211,7 +217,9 @@ class KinematicTree
 		Eigen::Vector<DataType,Eigen::Dynamic> _jointVelocity;                                    ///< A vector of all the joint velocities.
 
 		Eigen::Vector<DataType,Eigen::Dynamic> _jointGravityVector;                               ///< A vector of all the gravitational joint torques.
-		 
+
+		Eigen::Vector<DataType,Eigen::Dynamic> _jointDampingVector;                               ///< A vector of joint damping values.
+
 		std::map<std::string, ReferenceFrame<DataType>> _frameList;                               ///< A dictionary of reference frames on the kinematic tree.
 		
 		std::vector<Link<DataType>> _fullLinkList;                                                ///< An array of all the links in the model, including fixed joints.
@@ -522,6 +530,7 @@ KinematicTree<DataType>::KinematicTree(const std::string &pathToURDF)
 	this->_jointGravityVector.resize(this->_numberOfJoints);
 	this->_jointBaseInertiaMatrix.resize(this->_numberOfJoints, NoChange);
 	this->_jointBaseCoriolisMatrix.resize(this->_numberOfJoints, NoChange);
+	this->_jointDampingVector.resize(this->_numberOfJoints);
 	
 	std::cout << "[INFO] [KINEMATIC TREE] Successfully generated the '" << this->_name << "' robot model."
 	          << " It has " << this->_numberOfJoints << " joints (reduced from " << this->_fullLinkList.size() << ").\n";
@@ -588,6 +597,7 @@ bool KinematicTree<DataType>::update_state(const Eigen::Vector<DataType, Eigen::
 	this->_jointGravityVector.setZero();
 	this->_jointBaseInertiaMatrix.setZero();
 	this->_jointBaseCoriolisMatrix.setZero();
+	this->_jointDampingVector.setZero();
 
 	std::vector<Link<DataType>*> candidateList = this->_baseLinks;                                 // Start with links attached to base
 	
@@ -618,7 +628,9 @@ bool KinematicTree<DataType>::update_state(const Eigen::Vector<DataType, Eigen::
 			
 			return false;
 		}
-		
+
+		this->_jointDampingVector(k+1) = currentLink->joint().damping()*jointVelocity(k);
+
 		// Compute the inverse dynamics
 
 		Eigen::Matrix<DataType,6,Eigen::Dynamic> J = jacobian(currentLink, currentLink->center_of_mass(), k+1); // Jacobian to centre of mass
