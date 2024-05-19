@@ -233,7 +233,7 @@ SerialKinematicControl<DataType>::track_joint_trajectory(const Eigen::Vector<Dat
 		velocityControl(i) = desiredVelocity(i)                                                                  // Feedforward control
 		                   + this->_jointPositionGain*(desiredPosition(i) - this->_model->joint_positions()[i]); // Feedback control
 		
-		Limits<DataType> controlLimits = compute_control_limits(numJoints);                       // Get the instantaneous limits on the joint speed
+		Limits<DataType> controlLimits = compute_control_limits(i);                               // Get the instantaneous limits on the joint speed
 		                   
 		     if(velocityControl(i) <= controlLimits.lower) velocityControl(i) = controlLimits.lower + 1e-03; // Just above the limit
 		else if(velocityControl(i) >= controlLimits.upper) velocityControl(i) = controlLimits.upper - 1e-03; // Just below the limit

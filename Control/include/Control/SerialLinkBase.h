@@ -107,8 +107,8 @@ class SerialLinkBase : public QPSolver<DataType>
 		 */
 		void update_state()
 		{
-			this->_endpointPose   = this->_endpointFrame->link->pose()
-			                      * this->_endpointFrame->relativePose;
+			this->_endpointPose = this->_endpointFrame->link->pose()
+			                    * this->_endpointFrame->relativePose;
 			                      
                this->_jacobianMatrix = this->_model->jacobian(this->_endpointFrame);
 			                      
