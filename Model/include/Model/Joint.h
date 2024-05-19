@@ -40,7 +40,7 @@ class Joint
                 const Limits<DataType>            &positionLimit)
           :
           Joint(name, type, axis, Pose<DataType>(), positionLimit, 100*2*M_PI/60, 10.0, 1.0, 0.0) {}
-
+          
           /**
            * Full constructor for a Joint object.
            * @param name A unique identifier for this joint.
@@ -126,6 +126,11 @@ class Joint
            * @return The speed limit for the specified joint.
            */
           DataType speed_limit() const { return this->_speedLimit; }
+          
+          /**
+           * @return The viscous friction (Ns/m^2) of this joint.
+           */
+          DataType damping() const { return this->_damping; }
           
      private:
      

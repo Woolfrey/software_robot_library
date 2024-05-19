@@ -102,14 +102,18 @@ class SerialLinkBase : public QPSolver<DataType>
 		 
 		/**
 		 * Updates properties specific to this controller.
-		 * The underlying KinematicTree model MUST be updated first.
+		 * NOTE: underlying KinematicTree model MUST be updated first.
 		 * This is because multiple serial link objects may exist on a single kinematic tree.
 		 */
 		void update_state()
 		{
-			this->_endpointPose   = this->_endpointFrame.link.pose()*this->_endpointFrame.offset();
-			this->_jacobianMatrix = this->_model->jacobian(this->_endpointName);
+			this->_endpointPose   = this->_endpointFrame->link->pose()
+			                      * this->_endpointFrame->relativePose;
+			                      
+               this->_jacobianMatrix = this->_model->jacobian(this->_endpointFrame);
+			                      
 			this->_forceEllipsoid = this->_jacobianMatrix*this->_jacobianMatrix.transpose();
+			
 			this->_manipulability = sqrt(this->_forceEllipsoid.determinant());
 		}
 		
@@ -170,6 +174,8 @@ class SerialLinkBase : public QPSolver<DataType>
 		Eigen::Vector<DataType,Eigen::Dynamic> _redundantTask;                                    ///< Used to control null space of redundant robots
 		
 		KinematicTree<DataType>* _model;                                                          ///< Pointer to the underlying robot model
+		
+		Pose<DataType> _endpointPose;                                                             ///< Class denoting position and orientation of endpoint frame
 		
 		ReferenceFrame<DataType> *_endpointFrame;                                                 ///< Pointer to frame controlled in underlying model
 		

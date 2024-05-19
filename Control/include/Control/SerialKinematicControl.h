@@ -200,11 +200,10 @@ SerialKinematicControl<DataType>::track_endpoint_trajectory(const Pose<DataType>
 {
      (void)desiredAcceleration;                                                                     // Not needed in velocity control
      
-     Pose<DataType> actualPose = this->_endpointFrame->link->pose()
-                                *this->_endpointFrame->relativePose;
-     
+     // Compute feedforward + feedback control
 	return resolve_endpoint_motion(desiredVelocity
-	                             + this->_cartesianStiffness*actualPose.error(desiredPose));       // Feedforward + feedback control
+	                             + this->_cartesianStiffness
+	                             * this->_endpointPose.error(desiredPose));
 }
  
   ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -256,7 +255,7 @@ Limits<DataType> SerialKinematicControl<DataType>::compute_control_limits(const 
 	Limits<DataType> limits;                                                                       // Value to be returned
 
 	DataType delta = this->_model->joint_positions()[jointNumber]
-	               - this->_model->link(jointNumber)->joint().position_limits().lower;              // Distance from lower limit
+	               - this->_model->link(jointNumber)->joint().position_limits().lower;             // Distance from lower limit
 	
 	limits.lower = std::max(-delta*this->_controlFrequency,
 	               std::max(-this->_model->link(jointNumber)->joint().speed_limit(),

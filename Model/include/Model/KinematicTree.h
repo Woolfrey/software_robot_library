@@ -80,7 +80,6 @@ class KinematicTree
            * Get the Coriolis matrix pertaining to coupled inertia between the actuated joints and base.
            * @return An nx6 Eigen::Matrix object.
            */
-          // Should be centripetal forces only???
           Eigen::Matrix<DataType, Eigen::Dynamic, 6>
           joint_base_coriolis_matrix() const { return this->_jointBaseCoriolisMatrix; }
           
@@ -133,19 +132,29 @@ class KinematicTree
            * Get the pose of a specified reference frame on the kinematic tree.
            * @return Returns a RobotLibrary::Pose object.
            */
-          Pose<DataType> frame_pose(const std::string &frameName);
+          Pose<DataType>
+          frame_pose(const std::string &frameName);
+          
+          /**
+           * Get the joint torques from viscous friction.
+           * @return An nx1 Eigen::Vector object
+           */
+          Eigen::Vector<DataType,Eigen::Dynamic>
+          joint_damping_vector() const { return this->_jointDampingVector; }
                
           /**
            * Get the joint torques needed to oppose gravitational acceleration.
            * @return Returns an nx1 Eigen::Vector object.
            */     
-          Eigen::Vector<DataType,Eigen::Dynamic> joint_gravity_vector() const { return this->_jointGravityVector; }
+          Eigen::Vector<DataType,Eigen::Dynamic>
+          joint_gravity_vector() const { return this->_jointGravityVector; }
           
           /** 
            * Get the current joint velocities of all the joints in the model.
            * @return Returns an nx1 Eigen::Vector object.
            */
-          Eigen::Vector<DataType,Dynamic> joint_velocities() const { return this->_jointVelocity; }
+          Eigen::Vector<DataType,Dynamic>
+          joint_velocities() const { return this->_jointVelocity; }
           
           /**
            * Get the name of this model.
@@ -167,6 +176,27 @@ class KinematicTree
                {    
                     throw std::runtime_error("[ERROR] [KINEMATIC TREE] find_frame(): "
                                              "Unable to find the frame '" + frameName + "' in the model.");
+               }
+          }
+          
+          /**
+           * Compute a matrix that relates joint motion to Cartesian motion for a frame on the robot.
+           * @param frame A pointer to the reference frame on the model.
+           * @return A 6xn Eigen::Matrix object.
+           */
+          Eigen::Matrix<DataType,6,Eigen::Dynamic> jacobian(ReferenceFrame<DataType> *frame)
+          {
+               if(frame == nullptr)
+               {
+                    throw std::runtime_error("[ERROR] [KINEMATIC TREE] jacobian(): "
+                                             "Pointer to reference frame was empty.");
+               }
+               
+               else
+               {
+                    return jacobian(frame->link,
+                                   (frame->link->pose()*frame->relativePose).translation(),
+                                    this->_numberOfJoints+1);
                }
           }
           
@@ -202,6 +232,8 @@ class KinematicTree
           
           Eigen::Matrix<DataType,Eigen::Dynamic,Eigen::Dynamic> _jointCoriolisMatrix;               ///< As it says on the label.
           
+          Eigen::Vector<DataType,Eigen::Dynamic> _jointDampingVector;                               ///< From viscous friction in the joints
+          
           Eigen::Matrix<DataType,Eigen::Dynamic,Eigen::Dynamic> _jointInertiaMatrix;                ///< As it says on the label.
 
           Eigen::Vector<DataType, 3> _gravityVector = {0,0,-9.81};                                  ///< 3x1 vector for the gravitational acceleration.
@@ -223,28 +255,7 @@ class KinematicTree
           std::string _name;                                                                        ///< A unique name for this model.
           
           unsigned int _numberOfJoints;                                                             ///< The number of actuated joint in the kinematic tree.
-          
-          /**
-           * Compute a matrix that relates joint motion to Cartesian motion for a frame on the robot.
-           * @param frame A pointer to the reference frame on the model.
-           * @return A 6xn Eigen::Matrix object.
-           */
-          Eigen::Matrix<DataType,6,Eigen::Dynamic> jacobian(ReferenceFrame<DataType> *frame)
-          {
-               if(frame == nullptr)
-               {
-                    throw std::runtime_error("[ERROR] [KINEMATIC TREE] jacobian(): "
-                                             "Pointer to reference frame was empty.");
-               }
-               
-               else
-               {
-                    return jacobian(frame->link,
-                                   (frame->link->pose()*frame->relativePose).translation(),
-                                    this->_numberOfJoints+1);
-               }
-          }
-          
+                  
           /**
            * Computes the Jacobian to a given point on a given link.
            * @param link A pointer to the link for the Jacobian
@@ -434,9 +445,9 @@ KinematicTree<DataType>::KinematicTree(const std::string &pathToURDF)
                
                string childLinkName = iterator->FirstChildElement("child")->Attribute("link");
                         
-                        const auto &rigidBody = rigidBodyList.find(childLinkName)->second;
+               const auto &rigidBody = rigidBodyList.find(childLinkName)->second;
                                       
-                        this->_fullLinkList.emplace_back(rigidBody, joint);                         // Create new link, add to vector
+               this->_fullLinkList.emplace_back(rigidBody, joint);                                  // Create new link, add to vector
                         
                linkList.emplace(childLinkName, linkNumber);                                         // Add the index to the std::map so we can find it later
                
@@ -519,13 +530,14 @@ KinematicTree<DataType>::KinematicTree(const std::string &pathToURDF)
      this->_jointVelocity.resize(this->_numberOfJoints);
      this->_jointInertiaMatrix.resize(this->_numberOfJoints, this->_numberOfJoints);
      this->_jointCoriolisMatrix.resize(this->_numberOfJoints, this->_numberOfJoints);
+     this->_jointDampingVector.resize(this->_numberOfJoints);
      this->_jointGravityVector.resize(this->_numberOfJoints);
      this->_jointBaseInertiaMatrix.resize(this->_numberOfJoints, NoChange);
      this->_jointBaseCoriolisMatrix.resize(this->_numberOfJoints, NoChange);
      
      std::cout << "[INFO] [KINEMATIC TREE] Successfully generated the '" << this->_name << "' robot model."
                << " It has " << this->_numberOfJoints << " joints (reduced from " << this->_fullLinkList.size() << ").\n";
-     
+
      #ifndef NDEBUG
           std::cout << "\nHere is a list of all the joints on the robot:\n";          
           vector<Link<DataType>*> candidateList = this->_baseLinks;                                 // Start with links connect to base
@@ -645,6 +657,8 @@ bool KinematicTree<DataType>::update_state(const Eigen::Vector<DataType, Eigen::
                                                                 + Jw.transpose()*(currentLink->inertia_derivative()*Jw + currentLink->inertia()*Jdot.block(3,0,3,k+1));
           
           this->_jointGravityVector.head(k+1) -= mass*Jv.transpose()*this->_gravityVector;          // We need to NEGATE gravity          
+          
+          this->_jointDampingVector[k] = currentLink->joint().damping()* this->_jointVelocity[k];     
           
           // Compute inertial coupling between the base and links
           this->_jointBaseInertiaMatrix.block(0,0,k+1,3) += mass * Jv.transpose();
