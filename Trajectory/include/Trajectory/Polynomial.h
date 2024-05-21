@@ -187,29 +187,30 @@ Polynomial<DataType>::Polynomial(const Eigen::Vector<DataType,Eigen::Dynamic> &s
                timeMatrix(i+n,j) = derivativeCoeff*pow(this->_endTime,j-i);
           }
      }
-
+     
      PartialPivLU<Matrix<DataType,Dynamic,Dynamic>> timeMatrixDecomp(timeMatrix);                   // Pre-compute to speed up calcs
 
-     Vector<DataType,Dynamic> supportPoints(this->_order+1); supportPoints.setZero();
-
+     Vector<DataType,Dynamic> supportPoints(this->_order+1);                                        // 1 support point for each coefficient
+     supportPoints.setZero();
+     
      for(int i = 0; i < this->_dimensions; i++)
      {
-            supportPoints(0) = startPoint(i);
-            supportPoints(n) = endPoint(i);
-            
-            if(i == 0)
-            {
-                 supportPoints(1)   = startVelocity(i);
-                 supportPoints(1+n) = endVelocity(i);
-            }
-            
-            if(i == 1)
-            {
-                 supportPoints(2)   = startAcceleration(i);
-                 supportPoints(2+n) = endAcceleration(i);
-            }
-       
-           this->_coefficients.row(i) = (timeMatrixDecomp.solve(supportPoints)).transpose();
+          supportPoints(0) = startPoint(i);
+          supportPoints(n) = endPoint(i);
+          
+          if(this->_order == 3)
+          {
+               supportPoints(1) = startVelocity(i);
+               supportPoints(3) = endVelocity(i);
+          }
+
+          if(this->_order == 5)
+          {
+               supportPoints(2) = startAcceleration(i);
+               supportPoints(5) = endAcceleration(i);
+          }
+ 
+          this->_coefficients.row(i) = (timeMatrixDecomp.solve(supportPoints)).transpose();
       }
 }
 
@@ -226,13 +227,13 @@ State<DataType> Polynomial<DataType>::query_state(const DataType &time)
                               
      // Determine where we are on the trajectory
           if(time < this->_startTime) state.position = this->_startPoint;                           // Remain at the start
-     else if(time > this->_endTime)   state.position = this->_endPoint;                             // Remain at the end
+     else if(time >= this->_endTime)  state.position = this->_endPoint;                             // Remain at the end
      else
      {
           // Interpolate along the trajectory for the given time
           for(int i = 0; i < this->_dimensions; i++)
           {
-               for(int j = i; j < this->_order+1; j++)
+               for(int j = 0; j < this->_order+1; j++)
                {
                               state.position(i)     +=         this->_coefficients(i,j)*pow(time,j-0);
                     if(j > 0) state.velocity(i)     +=       j*this->_coefficients(i,j)*pow(time,j-1);
