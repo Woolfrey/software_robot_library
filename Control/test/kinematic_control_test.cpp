@@ -10,11 +10,19 @@
 #include <iostream>                                                                                 // std::cout, std::cerr
 #include <Control/SerialKinematicControl.h>                                                         // Custom control class
 #include <Trajectory/Polynomial.h>                                                                  // Custom trajectory generator
+#include <time.h>
 
-// Parameters for the simulation:
-double simulationFrequency = 1000.0;
-double controlFrequency = 100;
-double simulationDuration = 5.0;
+// Parameters for the numerical simulation
+double simulationFrequency = 1000;
+unsigned int ratio         = 10;
+double controlFrequency    = simulationFrequency/ratio;
+double simulationDuration  = 3.0;
+unsigned int simulationSteps = simulationDuration*simulationFrequency;
+
+// Parameters for the trajectory
+double startTime = 0.0;
+double endTime = simulationDuration - 0.5;
+int polynomialOrder = 5;
 
 
 int main(int argc, char** argv)
@@ -40,37 +48,34 @@ int main(int argc, char** argv)
      jointVelocity.setZero();
      
      // Set up the trajectory
-     Polynomial_d trajectory(jointPosition,                                                         // Start point
-                             Eigen::VectorXd::Random(model.number_of_joints()),                     // Set a random endpoint
-                             0.0,                                                                   // Start time
-                             simulationDuration,                                                    // End time
-                             3);                                                                    // Order of the polynomial
+     srand(time(NULL));                                                                             // Seed the random number generator
+    
+     Eigen::VectorXd startPoint = jointPosition;
+     Eigen::VectorXd endPoint   = 3*Eigen::VectorXd::Random(model.number_of_joints());
      
-     // Run the numerical simulation
-     unsigned int simulationSteps = simulationDuration*simulationFrequency;
+     Polynomial_d trajectory(startPoint, endPoint, startTime, endTime, polynomialOrder);            // Create polynomial trajectory
+        
+     Eigen::MatrixXd positionError(simulationSteps/ratio, model.number_of_joints());                // Record trajectory tracking error (for plotting)
+     Eigen::MatrixXd velocities(simulationSteps/ratio,    model.number_of_joints());                // Record joint speeds (for plotting)
      
-     Eigen::MatrixXd positionError(simulationSteps/10,model.number_of_joints());                    // Record trajectory tracking error (for plotting)
-          
-     Eigen::MatrixXd velocities(simulationSteps/10,model.number_of_joints());                       // Record joint speeds (for plotting)
-     
-     unsigned int rowCounter = 0;
+     unsigned int rowCounter = 0; 
      
      for(int i = 0; i < simulationSteps; i++)
      {
-          double simulationTime = (i-1)/simulationFrequency;                                        // Current simulation time
+          double simulationTime = i/simulationFrequency;                                            // Current simulation time
           
-          jointPosition += jointVelocity/simulationFrequency;                                       // Update the joint position
+          jointPosition = jointPosition + jointVelocity/simulationFrequency;                        // Update the joint position
           
           // Run the control at 1/10th of the simulation
-          if(i%10 == 0)
-          {
+          if(i%ratio == 0)
+          { 
                model.update_state(jointPosition, jointVelocity);                                    // Update kinematics & dynamics
                controller.update_state();                                                           // Update the controller
 
                const auto &[desiredPosition,
                             desiredVelocity,
                             desiredAcceleration] = trajectory.query_state(simulationTime);
-               
+                            
                jointVelocity = controller.track_joint_trajectory(desiredPosition,
                                                                  desiredVelocity,
                                                                  desiredAcceleration);
@@ -81,6 +86,9 @@ int main(int argc, char** argv)
                rowCounter++;
           }
      }
+     
+     std::cout << "[INFO] [KINEMATIC JOINT CONTROL TEST]: "
+               << "Numerical simulation complete. Data saved to .csv file for analyis.\n";
      
      // Put the data in to .csv files for analysis, plotting etc.
      std::ofstream file;

@@ -13,8 +13,12 @@ import matplotlib.pyplot                                                       #
 ########## Load the data from file ##############
 path = os.path.abspath(os.path.join(os.path.dirname(__file__),
                                     "../../build/joint_position_error_data.csv"))
-
 data = pandas.read_csv(path)                                                   # Read the file
+
+# Variables
+numJoints = len(data.columns)
+cols = 2;
+rows = round(numJoints/cols)
 
 # NOTE TO SELF: I need to automate this for any number of joints...
 data.columns = ["Time",
@@ -28,27 +32,34 @@ data.columns = ["Time",
                 "Joint 8"]
 
 ################### Plot the data ###############
-fig, ax = matplotlib.pyplot.subplots(4,2)
+fig, ax = matplotlib.pyplot.subplots(rows, cols)
 
-fig.suptitle("Joint Tracking Error")
+fig.suptitle("Joint Tracking Error", fontweight = 600)
 
-ax[0][0].plot(data["Time"], data["Joint 1"], color = [0,0,0])
+jointNum = 1
+for i in range(0,rows):
+    for j in range(0,cols):
+    
+        ax[i][j].set_title("Joint " + str(jointNum), fontsize=10)              # Subfigure title
 
-# for i in range(0,7):
-#     ax[i].plot(data["Time"],data["Joint " + str(i+1)], color = [0,0,0])
-
-# ax[7].set_xlabel("Time")                    
-
-
-##### Clean up the figure and remove spines #####
-# labels = ["Position", "Velocity", "Acceleration"]
-# for i in range(0,8):
-#     ax[i].spines['top'].set_visible(False)
-#     ax[i].spines['right'].set_visible(False)
-#     ax[i].set_ylabel(labels[i])
-#     ax[i].get_yaxis().set_ticks([data[labels[i]].min(), data[labels[i]].max()])
-#     if i < 4:
-#         ax[i].spines['bottom'].set_visible(False)
-#         ax[i].get_xaxis().set_ticks([])
-#     if i > 0:
-#         ax[i].axhline(y=0, color=[0.2,0.2,0.2], linewidth=0.5)
+        # Plot error vs time
+        ax[i][j].plot(data["Time"],
+                      data["Joint " + str(jointNum)]*180/3.1416,
+                      color = [0,0,0])
+        
+        # Removes unecessary spines
+        ax[i][j].spines['top'].set_visible(False)
+        ax[i][j].spines['right'].set_visible(False)
+        
+        # Set time label only on last row
+        if(jointNum > numJoints - 3):
+            ax[i][j].set_xlabel("Time (s)")                                    # Put label on last row
+        else:
+            ax[i][j].set_xticks([])
+            ax[i][j].spines['bottom'].set_visible(False)
+        
+        # Put y-axis label only on 1st column
+        if(j == 0):
+            ax[i][j].set_ylabel('Deg')
+            
+        jointNum = jointNum + 1                                                # Increment the joint number

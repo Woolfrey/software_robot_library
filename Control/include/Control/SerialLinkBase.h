@@ -145,9 +145,9 @@ class SerialLinkBase : public QPSolver<DataType>
 		
 		bool _redundantTaskSet = false;                                                           ///< When false, a redundant robot will autonomously reconfigure away from a singularity
 		
-		DataType _jointPositionGain = 1.0;                                                        ///< On position tracking error
+		DataType _jointPositionGain = 10.0;                                                       ///< On position tracking error
 		
-		DataType _jointDerivativeGain = 0.1;                                                      ///< On velocity tracking error
+		DataType _jointDerivativeGain = 1.0;                                                      ///< On velocity tracking error
 		
 		DataType _manipulability;                                                                 ///< Proximity to a singularity
 		
