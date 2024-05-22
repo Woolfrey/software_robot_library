@@ -57,6 +57,42 @@ class SkewSymmetric
 };                                                                                                  // Semicolon needed after class declaration
 
 /**
+ * It's obvious what this function does.
+ * @param A a square matrix
+ * @return True if positive-definite, false otherwise
+ */
+template <typename DataType>
+bool is_positive_definite(const Eigen::Matrix<DataType,Eigen::Dynamic,Eigen::Dynamic> &A)
+{
+     if(A.rows() != A.cols())
+     {
+          std::cout << "[INFO] is_positive_definite(): The given matrix matrix is not square ("
+                    << std::to_string(A.rows()) << " rows, " << std::to_string(A.cols()) << " columns).\n";
+                    
+          return false;
+     }
+     
+     DataType det = A.determinant();
+     if(det <= 0)
+     {
+          std::cout << "[INFO] is_positive_definite(): Determinant = " << std::to_string(det) << " <= 0.\n";
+          
+          return false;
+     }
+     
+     DataType symmetryErrorNorm = (A - A.transpose()).norm();
+     if(symmetryErrorNorm < 1e-04)
+     {
+          std::cout << "[INFO] is_positive_defintie(): Not symmetric; ||A - A'|| = "
+                    << std::to_string(symmetryErrorNorm) << " < 0.0001.\n";
+          
+          return false;
+     }
+     
+     return true;
+}
+
+/**
  * A data structure for holding the results of the QR decomposition.
  * @param Q An orthogonal matrix such that Q*Q' = I.
  * @param R An upper-triangular matrix.
