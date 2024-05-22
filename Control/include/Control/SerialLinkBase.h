@@ -63,16 +63,9 @@ class SerialLinkBase : public QPSolver<DataType>
 		 * @param damping Derivative gain on the velocity error.
 		 * @return Returns false if there was a problem.
 		 */
-		bool set_cartesian_gains(const DataType &stiffness, const DataType &damping);
-		       
-		/**
-		 * Set the structure for the gain matrix in Cartesian feedback.
-		 * This matrix is scaled by the values used in 'set_cartesian_gains()'.
-		 * @param format A 6x6, positive-definite matrix.
-		 * @return Returns false if there were any problems.
-		 */            
-		bool set_cartesian_gain_format(const Eigen::Matrix<DataType,6,6> &format);
-		                      
+		bool set_cartesian_gains(Eigen::Matrix<DataType,6,6> &stiffness,
+		                         Eigen::Matrix<DataType,6,6> &damping);
+
 		/**
 		 * Set the feedback gains for joint control.
 		 * @param proportional Gain on position error.
@@ -155,17 +148,15 @@ class SerialLinkBase : public QPSolver<DataType>
 		
 		DataType _maxJointAcceleration = 10.0;                                                    ///< As it says.
 		
-		Eigen::Matrix<DataType,6,6> _gainFormat
-		= (Eigen::Matrix<DataType,6,6>(6,6) << 1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-		                                       0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
-		                                       0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
-		                                       0.0, 0.0, 0.0, 0.1, 0.0, 0.0,
-		                                       0.0, 0.0, 0.0, 0.0, 0.1, 0.0,
-		                                       0.0, 0.0, 0.0, 0.0, 0.0, 0.1).finished();          ///< Structure for the Cartesian gain matrices
+		Eigen::Matrix<DataType,6,6> _cartesianStiffness
+		= (Eigen::Matrix<DataType,6,6>(6,6) << 10.0,  0.0,  0.0, 0.0, 0.0, 0.0,
+		                                        0.0, 10.0,  0.0, 0.0, 0.0, 0.0,
+		                                        0.0,  0.0, 10.0, 0.0, 0.0, 0.0,
+		                                        0.0,  0.0,  0.0, 2.0, 0.0, 0.0,
+		                                        0.0,  0.0,  0.0, 0.0, 2.0, 0.0,
+		                                        0.0,  0.0,  0.0, 0.0, 0.0, 2.0).finished();       ///< Gain on the endpoint pose error
 		
-		Eigen::Matrix<DataType,6,6> _cartesianDamping = 0.1*this->_gainFormat;                    ///< Derivative gain on endpoint velocity error
-		
-		Eigen::Matrix<DataType,6,6> _cartesianStiffness = 1.0*this->_gainFormat;                  ///< Proportional gain on endpoint pose error
+		Eigen::Matrix<DataType,6,6> _cartesianDamping = 0.1*_cartesianStiffness;                  ///< Gain the endpoint velocity error
 		
 		Eigen::Matrix<DataType,6,Eigen::Dynamic> _jacobianMatrix;                                 ///< Of the endpoint frame
 		
@@ -206,52 +197,38 @@ SerialLinkBase<DataType>::SerialLinkBase(KinematicTree<DataType> *model, const s
      
      this->_endpointFrame = this->_model->find_frame(endpointName);
      
-     std::cout << "[INFO] [SERIAL LINK CONTROL] Successfully generated a controller for the '"
-               << endpointName << "' frame on the '" << this->_model->name() << "' robot.\n";
+     std::cout << "[INFO] [SERIAL LINK CONTROL] Controlling the '" << endpointName << "' frame on the '" 
+               << this->_model->name() << "' robot.\n";
 }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //                        Set the gains for Cartesian feedback control                           //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template <class DataType>
-bool SerialLinkBase<DataType>::set_cartesian_gains(const DataType &stiffness,
-                                                   const DataType &damping)
+bool SerialLinkBase<DataType>::set_cartesian_gains(Eigen::Matrix<DataType,6,6> &stiffness,
+                                                   Eigen::Matrix<DataType,6,6> &damping)
 {
-	if(stiffness < 0 or damping < 0)
-	{
-		std::cerr << "[ERROR] [SERIAL LINK CONTROL] set_cartesian_gains(): "
-		          << "Gains cannot be negative. Stiffness was " << stiffness << " and "
-		          << "damping was " << damping << "." << std::endl;
-		
-		return false;
-	}
-	else
-	{
-		this->_cartesianDamping   =   damping*this->gainFormat;
-		this->_cartesianStiffness = stiffness*this->gainFormat;
-		
-		return false;
-	} 
-}
-              
-  ///////////////////////////////////////////////////////////////////////////////////////////////////
- //                       Set the structure of the Cartesian gain matrices                        //
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template <class DataType>
-bool SerialLinkBase<DataType>::set_cartesian_gain_format(const Matrix<DataType,6,6> &format)
-{
-	if((format - format.transpose()).norm() < 1e-04)
-	{
-		std::cerr << "[ERROR] [SERIAL LINK CONTROL] set_cartesian_gain_format(): "
-		          << "Matrix does not appear to be symmetric." << std::endl;
-		          
-		return false;
-	}
-	else
-	{
-		this->_cartesianGainFormat = format;
-		return true;
-	}
+     if(not is_positive_definite(stiffness))
+     {
+          std::cerr << "[ERROR] [SERIAL LINK CONTROL] set_cartesian_gains(): "
+                    << "The stiffness matrix was not positive definite.\n";
+          
+          return false;
+     }
+     else if(not is_positive_definite(damping))
+     {
+          std::cerr << "[ERROR] [SERIAL LINK CONTROL] set_cartesian_gains(): "
+                    << "The damping matrix was not positive definite.\n";
+          
+          return false;
+     }
+     else
+     {
+          this->_cartesianStiffness = stiffness;
+          this->_cartesianDamping   = damping;
+     
+          return true;
+     }
 }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -265,7 +242,7 @@ bool SerialLinkBase<DataType>::set_joint_gains(const DataType &proportional,
 	{
 		std::cerr << "[ERROR] [SERIAL LINK CONTROL] set_cartesian_gain_format(): "
 		          << "Gains cannot be negative. Proportional gain was "
-		          << proportional << " and derivative was " << derivative << "." << std::endl;
+		          << proportional << " and derivative was " << derivative << ".\n";
 		
 		return false;
 	}
@@ -286,7 +263,7 @@ bool SerialLinkBase<DataType>::set_max_joint_acceleration(const DataType &accele
 	if(acceleration <= 0)
 	{
 		std::cerr << "[ERROR] [SERIAL LINK CONTROL] set_max_joint_acceleration(): "
-		          << "Acceleration was " << acceleration << " but it must be positive." << std::endl;
+		          << "Input was " << acceleration << " but it must be positive.\n";
 		
 		return false;
 	}
