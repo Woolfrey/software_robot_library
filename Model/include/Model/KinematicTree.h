@@ -221,6 +221,15 @@ class KinematicTree
                }
                return this->_link[linkNumber];
           }
+          
+          /**
+           * @param number The number for the joint in the model.
+           * @return A pointer to a RobotLibrary::Joint object
+           */
+          Joint<DataType> joint(const unsigned int &jointNumber)
+          {
+               return link(jointNumber)->joint();
+          }
 
           RigidBody<DataType> base;                                                                 ///< Specifies the dynamics for the base.
           
