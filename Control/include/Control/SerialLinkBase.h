@@ -105,7 +105,7 @@ class SerialLinkBase : public QPSolver<DataType>
 		 * NOTE: underlying KinematicTree model MUST be updated first.
 		 * This is because multiple serial link objects may exist on a single kinematic tree.
 		 */
-		void update_state()
+		void update()
 		{
 			this->_endpointPose = this->_endpointFrame->link->pose()
 			                    * this->_endpointFrame->relativePose;
