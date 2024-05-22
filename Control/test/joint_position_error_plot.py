@@ -13,7 +13,7 @@ import matplotlib.pyplot                                                       #
 ########## Load the data from file ##############
 path = os.path.abspath(os.path.join(os.path.dirname(__file__),
                                     "../../build/joint_position_error_data.csv"))
-data = pandas.read_csv(path)                                                   # Read the file
+data = pandas.read_csv(path, header=None)                                      # Read the file
 
 # Variables
 numJoints = len(data.columns)
