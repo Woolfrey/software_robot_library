@@ -87,11 +87,12 @@ class SerialLinkBase : public QPSolver<DataType>
 		Eigen::Vector<DataType,Eigen::Dynamic> manipulability_gradient();
 		
 		/**
-		 * NOTE TO FUTURE SELF: FIX THIS! IT'S DOING A LOOKUP OF A STD::MAP OBJECT WHICH IS SLOW
+           * Get the Jacobian matrix (partial derivative of forward kinematics) for the endpoint being controlled.
 		 * @return Returns a 6xn matrix for the Jacobian to the endpoint of this serial link object.
 		 */
-		Eigen::Matrix<DataType,6,Eigen::Dynamic> endpoint_jacobian()
-		{ return this->_model->jacobian(this->_endpointName); }
+		Eigen::Matrix<DataType,6,Eigen::Dynamic>
+		endpoint_jacobian() const { return this->_jacobianMatrix; }
+     
 		 
 		/**
 		 * Updates properties specific to this controller.
