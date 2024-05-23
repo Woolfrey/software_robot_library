@@ -191,17 +191,12 @@ SerialDynamicControl<DataType>::track_joint_trajectory(const Eigen::Vector<DataT
 
     for(int i = 0; i < numJoints; i++)
     {
-        torqueControl(i) = this->_model->joint_inertia_matrix().row(i)*desiredAcceleration                                                                   // Feedforward control
+        torqueControl(i) = this->_model->joint_inertia_matrix().row(i)*(desiredAcceleration                                                                   // Feedforward control
                          + this->_jointPositionGain*(desiredPosition(i) - this->_model->joint_positions()[i])
-                         + this->_jointDerivativeGain*(desiredVelocity(i) - this->_model->joint_velocities()[i])
+                         + this->_jointDerivativeGain*(desiredVelocity(i) - this->_model->joint_velocities()[i]))
                          + this->_model->joint_coriolis_matrix().row(i)*this->_model->joint_velocities()
                          + this->_model->joint_damping_vector()[i]; // Feedback control
 
-        // HEY SHEILA: These values should be for *acceleration*, so you should compute the PD
-        //             control for the trajectory tracking, then check the limits are satisfied,
-        //             then compute the joint torques.
-        //             (If you want to be really fancy, solve a QP problem subject to both acceleratin and torque limits)
-        
         Limits<DataType> controlLimits = compute_control_limits(numJoints);                         // Get the instantaneous limits on the joint speed
 
              if(torqueControl(i) <= controlLimits.lower) torqueControl(i) = controlLimits.lower + 1e-03; // Just above the limit
