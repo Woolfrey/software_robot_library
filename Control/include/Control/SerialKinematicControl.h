@@ -68,6 +68,9 @@ class SerialKinematicControl : public SerialLinkBase<DataType>
 	
 };                                                                                                  // Semicolon needed after a class declaration
 
+using SerialKinematicControl_f = SerialKinematicControl<float>;
+using SerialKinematicControl_d = SerialKinematicControl<double>;
+
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //              Solve the endpoint motion required to achieve a given endpoint motion             //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -100,7 +103,7 @@ SerialKinematicControl<DataType>::resolve_endpoint_motion(const Eigen::Vector<Da
 	
 	if(this->_manipulability > this->_minManipulability)                                           // Not singular
 	{
-	     if(this->_model->number_of_joints() < 7)                                                  // Non redundant
+	     if(this->_model->number_of_joints() <= 6)                                                 // Non redundant
 	     {
 	          // Solve problem of the form:
 	          // min 0.5*(y - A*x)'*W*(y - A*x)
@@ -144,26 +147,23 @@ SerialKinematicControl<DataType>::resolve_endpoint_motion(const Eigen::Vector<Da
 	          this->_redundantTaskSet = false;                                                     // Reset for next control loop
 	     }
 	}
-	else                                                                                           // Apply damped least squares
+	else
 	{
-	     // Chiaverini, S., Egeland, O., & Kanestrom, R. K. (1991, June).
-		// "Achieving user-defined accuracy with damped least-squares inverse kinematics."
-		// International Conference on Advanced Robotics' Robots in Unstructured Environments (pp. 672-677). IEEE.
-		
-		DataType dampingFactor = (1.0 - this->_manipulability/this->_minManipulability)*0.1;      // Attenuate damping factor based on proximity to singularity
-		
 		// Solve a problem of the form:
 		// min 0.5*x'*H*x + x'*f
 		// subject to: B*x <= z
 		
-		// H = (J'*J + lambda^2*I)	
-		Eigen::Matrix<DataType,Eigen::Dynamic,Eigen::Dynamic> H
-		= this->_jacobianMatrix.transpose()*this->_jacobianMatrix;
+		// Pre-compute to speed up a little
+		Eigen::Matrix<DataType, Eigen::Dynamic, Eigen::Dynamic> JtKd
+		= this->_jacobianMatrix*this->_cartesianDamping;
 		
-		for(int i = 0; i < this->_model->number_of_joints(); i++) H(i,i) += dampingFactor;        // Add error to diagonals (i.e. singular values)
+		// H = J'*Kd*J + M
+		Eigen::Matrix<DataType, Eigen::Dynamic, Eigen::Dynamic> H
+		= JtKd*this->_jacobianMatrix + this->_model->joint_inertia_matrix();
 		
-		// f = -J'*xdot
-		Eigen::Vector<DataType,Eigen::Dynamic> f = -this->_jacobianMatrix.transpose()*endpointMotion;
+		// f = -(J'*Kd*x + M*qdot)
+		Eigen::Vector<DataType, Eigen::Dynamic> f
+		= -JtKd*endpointMotion - this->_model->joint_inertia_matrix()*this->_model->joint_velocities();
 		
 		// Set up constraints:
 		// B*qdot < z
@@ -185,9 +185,6 @@ SerialKinematicControl<DataType>::resolve_endpoint_motion(const Eigen::Vector<Da
 	
 	return controlVelocity;
 }
-
-using SerialKinematicControl_f = SerialKinematicControl<float>;
-using SerialKinematicControl_d = SerialKinematicControl<double>;
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //               Compute the endpoint velocity needed to track a given trajectory                //
