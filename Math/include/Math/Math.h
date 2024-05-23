@@ -96,7 +96,7 @@ bool is_positive_definite(const Eigen::Matrix<DataType,Eigen::Dynamic,Eigen::Dyn
  * A data structure for holding the results of the QR decomposition.
  * @param Q An orthogonal matrix such that Q*Q' = I.
  * @param R An upper-triangular matrix.
- *
+ **/
 template <typename DataType>
 struct QRDecomposition
 {
@@ -107,12 +107,12 @@ struct QRDecomposition
 /**
  * Decompose a matrix A = Q*R where Q is an orthogonal matrix, and R is upper-triangular.
  * @param A The matrix to be decomposed.
- * @param Q A placeholder for the orthogonal matrix.
- * @param R A placeholder for the triangular matrix.
- * @return Returns false if there was a problem.
- *
+ * @param tolerance The rounding error on a singularity
+ * @return A QRDecomposition data structure
+ */
 template <typename DataType>
-QRDecomposition<DataType> schwarz_rutishauser(const Eigen::Matrix<DataType, Eigen::Dynamic, Eigen::Dynamic> &A)
+QRDecomposition<DataType> schwarz_rutishauser(const Eigen::Matrix<DataType, Eigen::Dynamic, Eigen::Dynamic> &A,
+                                              const DataType tolerance = 1e-04)
 {
      unsigned int m = A.rows();
      unsigned int n = A.cols();
@@ -151,12 +151,61 @@ QRDecomposition<DataType> schwarz_rutishauser(const Eigen::Matrix<DataType, Eige
                
                decomp.R(j,j) = decomp.Q.col(j).norm();
                
-               if(abs(decomp.R(j,j)) > 1E-07) decomp.Q.col(j) /= decomp.R(j,j);
-               else                           decomp.Q.col(j).setZero();                            // Singular
+               if(abs(decomp.R(j,j)) > tolerance) decomp.Q.col(j) /= decomp.R(j,j);
+               else                               decomp.Q.col(j).setZero();                        // Singular
           }
           
           return decomp;
      }
-}*/
+}
+
+/**
+ * Solve a system of equations y = U*x
+ * @param y A vector of known values.
+ * @param U An upper triangular matrix
+ * @param x0 Default solution (in case of singularities)
+ * @return Returns a value for x that minimises ||y - U*x||
+ */
+template <typename DataType>
+Eigen::Vector<DataType,Eigen::Dynamic>
+solve_upper_triangular_system(const Eigen::Vector<DataType, Eigen::Dynamic> &y,
+                              const Eigen::Matrix<DataType, Eigen::Dynamic, Eigen::Dynamic> &U,
+                              const Eigen::Vector<DataType, Eigen::Dynamic> &x0,
+                              const DataType tolerance = 1e-04)
+{
+     if(y.size() != U.rows())
+     {
+          throw std::invalid_argument("[ERROR] solve_upper_triangular_system(): "
+                                      "Dimensions of arguments do not match. "
+                                      "The vector had " + std::to_string(y.size()) + " elements, and "
+                                      "the matrix had " + std::to_string(U.rows()) + " rows.");
+     }
+     else if(U.rows() != U.cols())
+     {
+          throw std::invalid_argument("[ERROR] solve_upper_triangular_system(): "
+                                      "Expected a square matrix, but it was "
+                                      + std::to_string(U.rows()) + "x" + std::to_string(U.cols()) + ".");
+     }
+     else if(U.cols() != x0.size())
+     {
+          throw std::invalid_argument("[ERROR] solve_upper_triangular_system(): "
+                                      "Dimensions of arguments do not match. "
+                                      "The matrix had " + std::to_string(U.cols()) + " columns, but "
+                                      "the default solution x0 had " + std::to_string(x0.size()) + " elements.");
+     }
+     
+     Eigen::Vector<DataType, Eigen::Dynamic> x = x0;                                                // Value to be returned
+     
+     for(int i = y.size()-1; i <= 0; i--)
+     {
+          DataType sum = 0.0;
+          
+          for(int j = i+1; j < y.size(); j++) sum += U(i,j)*x(j);
+          
+          if(U(i,i) > tolerance) x(i) = (y(i) - sum)/U(i,i);
+     }
+     
+     return x;
+}
 
 #endif                                    
