@@ -8,17 +8,29 @@ The model classes are used for computing the kinematics and dynamics of robotic 
 [:rewind: Back to the foyer.](../README.md)
 
 ### Contents:
-- Pose
-- RigidBody
-- Joint
-- Link
+- [Pose](#pose)
+- [RigidBody](#rigidbody)
+- [Joint](#joint)
+- [Link](#link)
 - [KinematicTree](#kinematictree)
      - [Forward and Differential Kinematics](#forward--differential-kinematics)
      - [Inverse Dynamics of Fixed-base Mechanisms](#inverse-dynamics-of-fixed-base-mechanisms)
 
+## Pose
+This class is used to represent the relative position and orientation of an object and/or coordinate frame with respect to another.
+
+## RigidBody
+This class contains the mass and inertia parameters of a single solid object.
+
+## Joint
+This class contains information about an actuator on robot.
+
+## Link
+This class describes a rigid body that is connected to a joint.
+
 ## KinematicTree
 
-The `KinematicTree` class solves the kinematics and dynamics of branching, serial link mechanisms.
+This class solves the kinematics and dynamics of branching, serial link mechanisms.
 
 >[!WARNING]
 > The KinematicTree can only model open-link chains. It cannot model parallel mechanisms.
