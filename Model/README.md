@@ -35,7 +35,7 @@ This class is used to represent the relative position and orientation of an obje
   ```
   Eigen::Matrix<type,4,4> T = pose.as_matrix();
   ```
-- Error (useful for control):
+- Error:
   ```
   RobotLibrary::Pose actualPose, desiredPose;
   ...
@@ -45,6 +45,10 @@ This class is used to represent the relative position and orientation of an obje
   ```
   Eigen::Vector<type,3> positionError = poseError.head(3);
   Eigen::Vector<type,3> orientationError = poseError.tail(3);
+  ```
+  Useful for Cartesian control of robot arms:
+  ```
+  Eigen::Vector<type,6> controlVelocity = feedforwardVelocity + feedbackGainMatrix * actualPose.error(desiredPose);
   ```
 
 
