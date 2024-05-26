@@ -172,6 +172,10 @@ Eigen::Matrix<type,Eigen::Dynamic,6> Cqb = joint_base_coriolis_matrix();
 Eigen::Matrix<type,6,Eigen::Dynamic> Mbq = base_joint_inertia_matrix();
 Eigen::Matrix<type,6,Eigen::Dynamic> Cbq = base_joint_coriolis_matrix();
 ```
+>[!TIP]
+> Due to symmetry of the inertia matrix `Mbq = Mqb.transpose()`,
+> and skew symmetry properties of the Coriolis matrix `Cbq = -Cqb.transpose()`.
+> The above functions have been included for completeness.
 
 >[!NOTE]
 > To update the dynamics for a floating base mechanism you should call
