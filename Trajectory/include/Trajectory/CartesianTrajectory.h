@@ -17,9 +17,9 @@
 template <typename DataType>
 struct CartesianState
 {
-     Pose<DataType>            pose;                                                                // Does this really need an explanation?
-     Eigen::Vector<DataType,6> twist;                                                               // Linear and angular velocity
-     Eigen::Vector<DataType,6> acceleration;                                                        // Linear and angular acceleration
+     Pose<DataType>            pose;                                                                ///< Does this really need an explanation?
+     Eigen::Vector<DataType,6> twist;                                                               ///< Linear and angular velocity
+     Eigen::Vector<DataType,6> acceleration;                                                        ///<  Linear and angular acceleration
 };                                                                                                  // Semicolon needed after declaration
 
 
@@ -28,7 +28,7 @@ class CartesianTrajectory : public Waypoints<DataType,TrajectoryType>
 {
      public:
           /**
-           * Constructor for a trajectory with 2 poses.
+           * Constructor for a polynomial trajectory with 2 poses.
            * @param startPose The initial position & orientation.
            * @param endPose The final position & orientation.
            * @param startTime The time at which to begin.
@@ -36,13 +36,13 @@ class CartesianTrajectory : public Waypoints<DataType,TrajectoryType>
            */
           CartesianTrajectory(const Pose<DataType> &startPose,
                               const Pose<DataType> &endPose,
-                              const DataType &startTime,
-                              const DataType &endTime)
+                              const DataType       &startTime,
+                              const DataType       &endTime)
           :
           CartesianTrajectory(std::vector<Pose<DataType>> {startPose, endPose},
-                              std::vector<DataType> {startTime, endTime}) {}
+                              std::vector<DataType>       {startTime, endTime}) {}
           /**
-           * Constructor for a trajectory with waypoints.
+           * Constructor for a spline (i.e. polynomial with waypoints).
            * @param poses The poses that define the waypoints on the trajectory.
            * @param times The time at which to pass through each pose.
            */
@@ -72,8 +72,10 @@ class CartesianTrajectory : public Waypoints<DataType,TrajectoryType>
           
 };                                                                                                  // Semicolon needed after class declaration
 
-using CartesianTrajectory_f = CartesianTrajectory<float>;
-using CartesianTrajectory_d = CartesianTrajectory<double>;
+using CartesianPolynomial_f = CartesianTrajectory<float,Spline<float>>;
+//using CartesianPolynomial_d = CartesianTrajectory<double,Spline>;
+//using CartesianSpline_f = CartesianTrajectory<float,Spline>;
+//using CartesianSpline_d = CartesianTrajectory<double,Spline>;
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                                        Constructor                                             //
@@ -94,6 +96,12 @@ CartesianTrajectory<DataType,TrajectoryType>::CartesianTrajectory(const std::vec
                                       "Length of input arguments do not match. "
                                       "There were " + std::to_string(poses.size()) + " waypoints "
                                       "and " + std::to_string(times.size()) + " times.");
+     }
+     else if(not std::is_same<TrajectoryType, Spline<double>>::value)
+     {
+          throw std::invalid_argument("[ERROR] [CARTESIAN TRAJECTORY] Constructor: "
+                                      "This constructor is valid only for Splines. "
+                                      "Double check the template argument is correct.");
      }
 
      std::vector<Eigen::Vector<DataType,6>> points;                                                 // Convert SE(3) to 6x1 vectors
