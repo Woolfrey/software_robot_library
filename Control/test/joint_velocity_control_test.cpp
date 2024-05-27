@@ -1,7 +1,7 @@
 /**
- * @file   kinematic_control_test.cpp
+ * @file   joint_velocity_control_test.cpp
  * @author Jon Woolfrey
- * @data   April 2024
+ * @date   May 2024
  * @brief  A script for testing the SerialPositionControl class.
  */
 
@@ -36,16 +36,14 @@ int main(int argc, char** argv)
 		return 1;
 	}
 	
+	// Set up the robot model
 	KinematicTree_d model(argv[1]);                                                                // Create model from urdf
 	
 	SerialKinematicControl_d controller(&model,"right_hand");                                      // Create controller for the "right hand" frame
 
-     // Set the initial joint state
-     Eigen::VectorXd jointPosition(model.number_of_joints());
-     jointPosition.setZero(); 
+     Eigen::VectorXd jointPosition(model.number_of_joints()); jointPosition.setZero();              // Set the initial joint positions
      
-     Eigen::VectorXd jointVelocity(model.number_of_joints());
-     jointVelocity.setZero();
+     Eigen::VectorXd jointVelocity(model.number_of_joints()); jointVelocity.setZero();              // Set the initial joint velocities
      
      // Set up the trajectory
      srand(time(NULL));                                                                             // Seed the random number generator
@@ -61,7 +59,7 @@ int main(int argc, char** argv)
      Eigen::MatrixXd velocityArray(m,n);
      Eigen::MatrixXd positionErrorArray(m,n);
      
-     unsigned int rowCounter = 0; 
+     unsigned int rowCounter = 0;
      
      for(int i = 0; i < simulationSteps; i++)
      {
