@@ -41,8 +41,8 @@ class SerialLinkBase : public QPSolver<DataType>
 		 */
 		virtual Eigen::Vector<DataType,Eigen::Dynamic>
 		track_endpoint_trajectory(const Pose<DataType>   &desiredPose,
-					  const Eigen::Vector<DataType,6> &desiredVelocity,
-					  const Eigen::Vector<DataType,6> &desiredAcceleration) = 0;
+                                    const Eigen::Vector<DataType,6> &desiredVelocity,
+                                    const Eigen::Vector<DataType,6> &desiredAcceleration) = 0;
 		
 		/**
 		 * Compute the joint motion to follow a desired joint state.
@@ -87,53 +87,31 @@ class SerialLinkBase : public QPSolver<DataType>
 		Eigen::Vector<DataType,Eigen::Dynamic> manipulability_gradient();
 		
 		/**
+		 * Get the position and orientation of the endpoint frame relative to the base of the robot.
+		 * @return A RobotLibrary::Pose object.
+		 */
+		Pose<DataType> endpoint_pose() const { return this->_endpointPose; }
+		
+		/**
            * Get the Jacobian matrix (partial derivative of forward kinematics) for the endpoint being controlled.
 		 * @return Returns a 6xn matrix for the Jacobian to the endpoint of this serial link object.
 		 */
-		Eigen::Matrix<DataType,6,Eigen::Dynamic>
-		endpoint_jacobian() const { return this->_jacobianMatrix; }
+		Eigen::Matrix<DataType,6,Eigen::Dynamic> jacobian() const { return this->_jacobianMatrix; }
      
-		 
 		/**
 		 * Updates properties specific to this controller.
 		 * NOTE: underlying KinematicTree model MUST be updated first.
 		 * This is because multiple serial link objects may exist on a single kinematic tree.
 		 */
-		void update()
-		{
-			this->_endpointPose = this->_endpointFrame->link->pose()
-			                    * this->_endpointFrame->relativePose;
-			                      
-               this->_jacobianMatrix = this->_model->jacobian(this->_endpointFrame);
-			                      
-			this->_forceEllipsoid = this->_jacobianMatrix*this->_jacobianMatrix.transpose();
-			
-			this->_manipulability = sqrt(this->_forceEllipsoid.determinant());
-		}
+		void update();
 		
 		/**
 		 * Assign the redundant task for use in the next control calculation.
+		 * NOTE: In kinematic control, this is a joint velocity vector. In dyamic control, it is a joint torque vector.
 		 * @param task A vector for the joint motion to be executed using extra degrees of freedom in a redundant robot.
 		 * @return True if successful, false otherwise.
 		 */
-		bool set_redundant_task(const Eigen::Vector<DataType,Eigen::Dynamic> &task)
-		{
-		     if(task.size() != this->_model->number_of_joints())
-		     {
-		          std::cerr << "[ERROR] [SERIAL LINK] set_redundant_task(): "
-		                    << "This robot model has " << this->_model->number_of_joints() << " joints, "
-		                    << "but you assigned a task with " << task.size() << " elements.\n";
-                    
-                    return false;
-               }
-               else
-               {
-                    this->_redundantTask = task;
-                    this->_redundantTaskSet = true;
-                    
-                    return true;
-               }
-          }
+		bool set_redundant_task(const Eigen::Vector<DataType,Eigen::Dynamic> &task);
 		                           
 	protected:
 		
@@ -200,6 +178,22 @@ SerialLinkBase<DataType>::SerialLinkBase(KinematicTree<DataType> *model, const s
      
      std::cout << "[INFO] [SERIAL LINK CONTROL] Controlling the '" << endpointName << "' frame on the '" 
                << this->_model->name() << "' robot.\n";
+}
+
+  ////////////////////////////////////////////////////////////////////////////////////////////////////
+ //                        Update properties specific to this controller                           //
+////////////////////////////////////////////////////////////////////////////////////////////////////
+template <class DataType> inline
+void SerialLinkBase<DataType>::update()
+{
+	this->_endpointPose = this->_endpointFrame->link->pose()
+	                    * this->_endpointFrame->relativePose;                                      // Compute new endpoint pose
+	                      
+     this->_jacobianMatrix = this->_model->jacobian(this->_endpointFrame);                          // Jacobian for the endpoint
+	                      
+	this->_forceEllipsoid = this->_jacobianMatrix*this->_jacobianMatrix.transpose();               // Used for certain calculations
+	
+	this->_manipulability = sqrt(this->_forceEllipsoid.determinant());                             // Proximity to a singularity
 }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -274,6 +268,29 @@ bool SerialLinkBase<DataType>::set_max_joint_acceleration(const DataType &accele
 		
 		return true;
 	}
+}
+
+  ////////////////////////////////////////////////////////////////////////////////////////////////////
+ //                  Set a secondary task to be executed by a redundant robot arm                  //
+////////////////////////////////////////////////////////////////////////////////////////////////////
+template <class DataType> inline
+bool SerialLinkBase<DataType>::set_redundant_task(const Eigen::Vector<DataType, Eigen::Dynamic> &task)
+{
+     if(task.size() != this->_model->number_of_joints())
+     {
+          std::cerr << "[ERROR] [SERIAL LINK] set_redundant_task(): "
+                    << "This robot model has " << this->_model->number_of_joints() << " joints, "
+                    << "but you assigned a task with " << task.size() << " elements.\n";
+          
+          return false;
+     }
+     else
+     {
+          this->_redundantTask = task;
+          this->_redundantTaskSet = true;
+          
+          return true;
+     }
 }
  
   ////////////////////////////////////////////////////////////////////////////////////////////////////
