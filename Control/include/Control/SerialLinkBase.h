@@ -82,6 +82,13 @@ class SerialLinkBase : public QPSolver<DataType>
 		bool set_max_joint_acceleration(const DataType &accel);
 		
 		/**
+		 * Get the measure of manipulability for the current state.
+		 * The robot is in a singular configuration when manipulability = 0.
+		 * @return A scalar quantity that measures proximity to a singularity.
+		 */
+	     DataType manipulability() const { return this->_manipulability; }
+		
+		/**
 		 * @return Returns a vector that points away from the closest singular joint configuration.
 		 */
 		Eigen::Vector<DataType,Eigen::Dynamic> manipulability_gradient();
@@ -314,8 +321,8 @@ Eigen::Vector<DataType,Eigen::Dynamic> SerialLinkBase<DataType>::manipulability_
 	while(currentLink != nullptr)
 	{
 		Eigen::Matrix<DataType,Eigen::Dynamic,Eigen::Dynamic> dJ
-		= this->_model->partial_derivative(this->_jacobianMatrix,currentLink->number());      
-	
+		= this->_model->partial_derivative(this->_jacobianMatrix,currentLink->number());
+		
 		gradient(currentLink->number())
 		= this->_manipulability*(JJT.solve(dJ*this->_jacobianMatrix.transpose())).trace();
 		
