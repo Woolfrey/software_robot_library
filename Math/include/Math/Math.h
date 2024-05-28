@@ -98,7 +98,7 @@ bool is_positive_definite(const Eigen::Matrix<DataType,Eigen::Dynamic,Eigen::Dyn
  * @param R An upper-triangular matrix.
  **/
 template <typename DataType>
-struct QRDecomposition
+struct QRdecomposition
 {
      Eigen::Matrix<DataType,Eigen::Dynamic,Eigen::Dynamic> Q;
      Eigen::Matrix<DataType,Eigen::Dynamic,Eigen::Dynamic> R;
@@ -111,7 +111,7 @@ struct QRDecomposition
  * @return A QRDecomposition data structure
  */
 template <typename DataType>
-QRDecomposition<DataType> schwarz_rutishauser(const Eigen::Matrix<DataType, Eigen::Dynamic, Eigen::Dynamic> &A,
+QRdecomposition<DataType> schwarz_rutishauser(const Eigen::Matrix<DataType, Eigen::Dynamic, Eigen::Dynamic> &A,
                                               const DataType tolerance = 1e-04)
 {
      unsigned int m = A.rows();
@@ -139,7 +139,7 @@ QRDecomposition<DataType> schwarz_rutishauser(const Eigen::Matrix<DataType, Eige
           // The null space of A is obtained with N = Qn*Qn'.
           // This algorithm returns only Qr and R for efficiency.
           
-          QRDecomposition decomp = {A, Eigen::Matrix<DataType,Eigen::Dynamic,Eigen::Dynamic>::Zero(n,n)};
+          QRdecomposition decomp = {A, Eigen::Matrix<DataType,Eigen::Dynamic,Eigen::Dynamic>::Zero(n,n)};
           
           for(int j = 0; j < n; j++)
           {
@@ -157,55 +157,6 @@ QRDecomposition<DataType> schwarz_rutishauser(const Eigen::Matrix<DataType, Eige
           
           return decomp;
      }
-}
-
-/**
- * Solve a system of equations y = U*x
- * @param y A vector of known values.
- * @param U An upper triangular matrix
- * @param x0 Default solution (in case of singularities)
- * @return Returns a value for x that minimises ||y - U*x||
- */
-template <typename DataType>
-Eigen::Vector<DataType,Eigen::Dynamic>
-solve_upper_triangular_system(const Eigen::Vector<DataType, Eigen::Dynamic> &y,
-                              const Eigen::Matrix<DataType, Eigen::Dynamic, Eigen::Dynamic> &U,
-                              const Eigen::Vector<DataType, Eigen::Dynamic> &x0,
-                              const DataType tolerance = 1e-04)
-{
-     if(y.size() != U.rows())
-     {
-          throw std::invalid_argument("[ERROR] solve_upper_triangular_system(): "
-                                      "Dimensions of arguments do not match. "
-                                      "The vector had " + std::to_string(y.size()) + " elements, and "
-                                      "the matrix had " + std::to_string(U.rows()) + " rows.");
-     }
-     else if(U.rows() != U.cols())
-     {
-          throw std::invalid_argument("[ERROR] solve_upper_triangular_system(): "
-                                      "Expected a square matrix, but it was "
-                                      + std::to_string(U.rows()) + "x" + std::to_string(U.cols()) + ".");
-     }
-     else if(U.cols() != x0.size())
-     {
-          throw std::invalid_argument("[ERROR] solve_upper_triangular_system(): "
-                                      "Dimensions of arguments do not match. "
-                                      "The matrix had " + std::to_string(U.cols()) + " columns, but "
-                                      "the default solution x0 had " + std::to_string(x0.size()) + " elements.");
-     }
-     
-     Eigen::Vector<DataType, Eigen::Dynamic> x = x0;                                                // Value to be returned
-     
-     for(int i = y.size()-1; i <= 0; i--)
-     {
-          DataType sum = 0.0;
-          
-          for(int j = i+1; j < y.size(); j++) sum += U(i,j)*x(j);
-          
-          if(U(i,i) > tolerance) x(i) = (y(i) - sum)/U(i,i);
-     }
-     
-     return x;
 }
 
 #endif                                    
