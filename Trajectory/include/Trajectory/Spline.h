@@ -16,6 +16,12 @@
  class Spline : public Waypoints<DataType, Polynomial<DataType>>
  {
       public:
+      
+          /**
+           * Empty constructor. NOTE: It is not recommended to use this constructor.
+           * I needed it for the CartesianTrajectory class to accept it as a template argument.
+           */
+           Spline() {}
           
           /**
            * Basic constructor for 3rd order polynomials (i.e. cubic spline) with zero start and end velocities.
