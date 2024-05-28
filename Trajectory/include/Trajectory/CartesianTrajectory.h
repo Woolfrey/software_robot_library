@@ -22,9 +22,8 @@ struct CartesianState
      Eigen::Vector<DataType,6> acceleration;                                                        ///<  Linear and angular acceleration
 };                                                                                                  // Semicolon needed after declaration
 
-
 template <class DataType, class TrajectoryType>
-class CartesianTrajectory : public Waypoints<DataType,TrajectoryType>
+class CartesianTrajectory : public Waypoints<DataType, TrajectoryType>
 {
      public:
           /**
@@ -72,13 +71,8 @@ class CartesianTrajectory : public Waypoints<DataType,TrajectoryType>
           
 };                                                                                                  // Semicolon needed after class declaration
 
-using CartesianPolynomial_f = CartesianTrajectory<float,Spline<float>>;
-//using CartesianPolynomial_d = CartesianTrajectory<double,Spline>;
-//using CartesianSpline_f = CartesianTrajectory<float,Spline>;
-//using CartesianSpline_d = CartesianTrajectory<double,Spline>;
-
   ////////////////////////////////////////////////////////////////////////////////////////////////////
- //                                        Constructor                                             //
+ //                            Constructor for Spline type trajectories                            //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 template <class DataType, class TrajectoryType>
 CartesianTrajectory<DataType,TrajectoryType>::CartesianTrajectory(const std::vector<Pose<DataType>> &poses,
@@ -104,7 +98,8 @@ CartesianTrajectory<DataType,TrajectoryType>::CartesianTrajectory(const std::vec
                                       "Double check the template argument is correct.");
      }
 
-     std::vector<Eigen::Vector<DataType,6>> points;                                                 // Convert SE(3) to 6x1 vectors
+     // NOTE TO FUTURE SELF: The Spline constructor expects a Dynamic size array
+     std::vector<Eigen::Vector<DataType,Eigen::Dynamic>> points;                                    // Convert SE(3) to 6x1 vectors
      
      for(auto pose : poses)
      {
@@ -133,27 +128,26 @@ CartesianTrajectory<DataType,TrajectoryType>::CartesianTrajectory(const std::vec
 template <class DataType, class TrajectoryType> inline
 CartesianState<DataType> CartesianTrajectory<DataType, TrajectoryType>::query_state(const DataType &time)
 {
-     auto &[position, velocity, acceleration] = this->_trajectory.query_state(time);                // Get the state for the given time
+     State state = this->_trajectory.query_state(time);                                             // Get the state for the given time
      
-     // Convert the position vector to a pose object
+     DataType angle = state.position.tail(3).norm();                                                // Norm of the angle*axis component
      
-     DataType angle = position.tail(3).norm();                                                      // Norm of the angle*axis component
+     Pose<DataType> pose;                                                                           // We need to compute this
      
-     Pose pose;                                                                                     // We need to compute this
-     
-     if(abs(angle) < 1e-04) pose = Pose(position.head(3), Eigen::Quaternion<DataType>(1,0,0,0));    // Assume zero rotation
+     if(abs(angle) < 1e-04) pose = Pose<DataType>(state.position.head(3),
+                                                  Eigen::Quaternion<DataType>(1,0,0,0));            // Assume zero rotation
      else
      {
-          Eigen::Vector<DataType,3> axis = position.tail(3).normalized();                           // Ensure magnitude of 1 
+          Eigen::Vector<DataType,3> axis = state.position.tail(3).normalized();                     // Ensure magnitude of 1 
           
-          pose = Pose<DataType>(position.head(3), 
+          pose = Pose<DataType>(state.position.head(3), 
                                 Eigen::Quaternion<DataType>(cos(0.5*angle),
                                                             sin(0.5*angle)*axis(0),
                                                             sin(0.5*angle)*axis(1),
                                                             sin(0.5*angle)*axis(2)));
      }
      
-     CartesianState<DataType> returnValue = {pose, velocity, acceleration};                         // Put them together in data structure
+     CartesianState<DataType> returnValue = {pose, state.velocity, state.acceleration};             // Put them together in data structure
      
      return returnValue;
 }
