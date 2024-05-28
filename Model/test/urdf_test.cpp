@@ -30,8 +30,8 @@ int main(int argc, char **argv)
 
 		srand((unsigned int) time(0));					                                   // Random seed generator
 
-		VectorXf q    = VectorXf::Random(numJoints);
-		VectorXf qdot = VectorXf::Random(numJoints);
+		Eigen::VectorXf q    = Eigen::VectorXf::Random(numJoints);
+		Eigen::VectorXf qdot = Eigen::VectorXf::Random(numJoints);
 
 		if(not model.update_state(q, qdot))
 		{
