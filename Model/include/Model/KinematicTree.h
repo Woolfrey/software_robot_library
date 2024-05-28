@@ -196,7 +196,7 @@ class KinematicTree
                {
                     return jacobian(frame->link,
                                    (frame->link->pose()*frame->relativePose).translation(),
-                                    this->_numberOfJoints+1);
+                                    this->_numberOfJoints);
                }
           }
           
@@ -712,6 +712,12 @@ KinematicTree<DataType>::jacobian(Link<DataType> *link,                         
                                  "Cannot compute a Jacobian with " + std::to_string(numberOfColumns) +
                                  "columns using " + std::to_string(link->number()+1) + " joints.");
      }
+     else if(numberOfColumns > this->_numberOfJoints)
+     {
+          throw std::logic_error("[ERROR] [KINEMATIC TREE] jacobian(): "
+                                 "A Jacobian matrix with " + std::to_string(numberOfColumns) + " columns was requested, "
+                                 "but this model has only " + std::to_string(this->_numberOfJoints) + " joints.");
+     }
      else
      {
           while(link != nullptr)
@@ -834,11 +840,11 @@ KinematicTree<DataType>::partial_derivative(const Eigen::Matrix<DataType,6,Eigen
      
      int j = jointNumber;                                                                           // Makes things a little easier
      
-     for(int i = 0; i < numberOfColumns; i++)
+     for(int i = 0; i < numberOfColumns-1; i++)
      {
-          if(this->_link[i]->joint().is_revolute())                                                  // J_i = [a_i x r_i ; a_i]
+          if(this->_link[i]->joint().is_revolute())                                                 // J_i = [a_i x r_i ; a_i]
           {
-               if(this->_link[j]->joint().is_revolute())                                              // J_i = [a_j x r_j; a_j]
+               if(this->_link[j]->joint().is_revolute())                                            // J_i = [a_j x r_j; a_j]
                {
                     if (j < i)
                     {
@@ -860,7 +866,7 @@ KinematicTree<DataType>::partial_derivative(const Eigen::Matrix<DataType,6,Eigen
                          dJ(2,i) = jacobianMatrix(3,i)*jacobianMatrix(1,j) - jacobianMatrix(4,i)*jacobianMatrix(0,j);
                     }
                }
-               else if(this->_link[j]->joint().is_prismatic() and j > i)                              // J_j = [a_j ; 0]
+               else if(this->_link[j]->joint().is_prismatic() and j > i)                            // J_j = [a_j ; 0]
                {
                     // a_j x a_i
                     dJ(0,i) = jacobianMatrix(1,j)*jacobianMatrix(2,i) - jacobianMatrix(2,j)*jacobianMatrix(1,i);
@@ -868,7 +874,7 @@ KinematicTree<DataType>::partial_derivative(const Eigen::Matrix<DataType,6,Eigen
                     dJ(2,i) = jacobianMatrix(0,j)*jacobianMatrix(1,i) - jacobianMatrix(1,j)*jacobianMatrix(0,i);
                }
           }
-          else if(this->_link[i]->joint().is_prismatic()                                             // J_i = [a_i ; 0]
+          else if(this->_link[i]->joint().is_prismatic()                                            // J_i = [a_i ; 0]
               and this->_link[j]->joint().is_revolute()                                             // J_j = [a_j x r_j; a_j]
               and j < i)
           {
