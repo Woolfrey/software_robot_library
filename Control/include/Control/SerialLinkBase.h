@@ -307,7 +307,7 @@ Eigen::Vector<DataType,Eigen::Dynamic> SerialLinkBase<DataType>::manipulability_
 	
 	gradient.setZero();                                                                            // Any branching chains off of this one must be zero
 	
-	Eigen::LDLT<Matrix<DataType,6,6>> JJT(this->_forceEllipsoid);                                  // Pre-compute the decomposition
+	Eigen::LDLT<Eigen::Matrix<DataType,6,6>> JJT(this->_forceEllipsoid);                           // Pre-compute the decomposition
 
 	Link<DataType> *currentLink = this->_endpointFrame->link;                                      // Starting link for computation
 	
