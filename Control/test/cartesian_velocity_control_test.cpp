@@ -79,15 +79,19 @@ int main(int argc, char** argv)
                model.update_state(jointPosition, jointVelocity);                                    // Update kinematics & dynamics
                controller.update();                                                                 // Update the controller
                
-               /*
-               const auto &[desiredPosition,
-                            desiredVelocity,
-                            desiredAcceleration] = trajectory.query_state(simulationTime);
-                            
-               jointVelocity = controller.track_joint_trajectory(desiredPosition,
-                                                                 desiredVelocity,
-                                                                 desiredAcceleration);
-                                                                 
+               CartesianState state = trajectory.query_state(simulationTime);
+               
+               // NOTE: This is also feasible, but the const casting means we cannot print
+               //       data to the console:
+               // const auto &[desiredPose,
+               //              desiredTwist,
+               //              desiredAcceleration] = trajectory.query_state(simulationTime);
+                
+               // std::cout << state.pose.as_matrix() << "\n\n";
+               
+               // jointVelocity = controller.track_endpoint_trajectory(state.pose, state.twist, state.acceleration);
+                          
+               /*                                                
                // Record data
                positionArray.row(rowCounter)      = jointPosition.transpose();
                velocityArray.row(rowCounter)      = jointVelocity.transpose();
