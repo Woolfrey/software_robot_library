@@ -63,7 +63,7 @@ int main(int argc, char** argv)
      
      Eigen::MatrixXd positionArray(m,n);
      Eigen::MatrixXd velocityArray(m,n);
-     Eigen::MatrixXd positionErrorArray(m,n);
+     Eigen::MatrixXd poseErrorArray(m,3);
      
      unsigned int rowCounter = 0;                                                                   // For indexing across arrays
      
@@ -79,30 +79,32 @@ int main(int argc, char** argv)
                model.update_state(jointPosition, jointVelocity);                                    // Update kinematics & dynamics
                controller.update();                                                                 // Update the controller
                
-               CartesianState state = trajectory.query_state(simulationTime);
+               CartesianState desiredState = trajectory.query_state(simulationTime);
                
                // NOTE: This is also feasible, but the const casting means we cannot print
                //       data to the console:
                // const auto &[desiredPose,
                //              desiredTwist,
                //              desiredAcceleration] = trajectory.query_state(simulationTime);
-                
-               // std::cout << state.pose.as_matrix() << "\n\n";
                
-               // jointVelocity = controller.track_endpoint_trajectory(state.pose, state.twist, state.acceleration);
-                          
-               /*                                                
+               jointVelocity = controller.track_endpoint_trajectory(desiredState.pose,
+                                                                    desiredState.twist,
+                                                                    desiredState.acceleration);
+                                                                      
                // Record data
-               positionArray.row(rowCounter)      = jointPosition.transpose();
-               velocityArray.row(rowCounter)      = jointVelocity.transpose();
-               positionErrorArray.row(rowCounter) = (desiredPosition - jointPosition).transpose();
+               positionArray.row(rowCounter) = jointPosition.transpose();
+               velocityArray.row(rowCounter) = jointVelocity.transpose();
+               
+               Eigen::Vector<double,6> poseError = controller.endpoint_pose().error(desiredState.pose);
+               
+               poseErrorArray(rowCounter,0) = poseError.head(3).norm();                             // Position error
+               poseErrorArray(rowCounter,1) = poseError.tail(3).norm();                             // Orientation error
+               poseErrorArray(rowCounter,2) = controller.manipulability();                          // Proximity to a singularity
                
                rowCounter++;
-               */
           }
      }
      
-     /*
      std::ofstream file;
 
      // Save the position data
@@ -124,6 +126,18 @@ int main(int argc, char** argv)
           file << "\n";
      }
      file.close();
+     
+     // Save pose error tracking data
+     file.open("pose_error_data.csv");
+     for(int i = 0; i < m; i++)
+     {
+          file << (double)(i/controlFrequency);
+          for(int j = 0; j < 3; j++) file << "," << poseErrorArray(i,j);
+          file << "\n";
+     }
+     file.close();
+     
+     /*
      
      // Save position error tracking data
      file.open("joint_position_error_data.csv");
@@ -147,10 +161,10 @@ int main(int argc, char** argv)
           }
      }
      file.close();
-     
-     std::cout << "[INFO] [KINEMATIC JOINT CONTROL TEST]: "
-               << "Numerical simulation complete. Data saved to .csv file for analyis.\n";
      */
+     
+     std::cout << "[INFO] [CARTESIAN VELOCITY CONTROL TEST]: "
+               << "Numerical simulation complete. Data saved to .csv file for analyis.\n";
      
      return 0;                                                                                      // No problems with main()
 }
