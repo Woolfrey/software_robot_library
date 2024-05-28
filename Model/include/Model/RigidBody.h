@@ -97,7 +97,7 @@ class RigidBody
           
           Eigen::Vector<DataType,3>   _localCenterOfMass = {0,0,0};                                 ///< Location for center of mass in LOCAL frame
           
-          Eigen::Vector<DataType,6>   _twist = Vector<DataType,6>::Zero();                          ///< Linear and angular velocity of the object.
+          Eigen::Vector<DataType,6>   _twist = Eigen::Vector<DataType,6>::Zero();                   ///< Linear and angular velocity of the object.
 
           Pose<DataType> _pose;                                                                     ///< Pose of the object in GLOBAL reference frame
           
