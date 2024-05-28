@@ -71,6 +71,23 @@ class SerialKinematicControl : public SerialLinkBase<DataType>
 using SerialKinematicControl_f = SerialKinematicControl<float>;
 using SerialKinematicControl_d = SerialKinematicControl<double>;
 
+  ///////////////////////////////////////////////////////////////////////////////////////////////////
+ //               Compute the endpoint velocity needed to track a given trajectory                //
+///////////////////////////////////////////////////////////////////////////////////////////////////
+template <class DataType> inline
+Eigen::Vector<DataType,Eigen::Dynamic>
+SerialKinematicControl<DataType>::track_endpoint_trajectory(const Pose<DataType>            &desiredPose,
+                                                            const Eigen::Vector<DataType,6> &desiredVelocity,
+                                                            const Eigen::Vector<DataType,6> &desiredAcceleration)
+{
+     (void)desiredAcceleration;                                                                     // Not needed in velocity control
+     
+     // Compute feedforward + feedback control
+	return resolve_endpoint_motion(desiredVelocity
+	                             + this->_cartesianStiffness
+	                             * this->_endpointPose.error(desiredPose));
+}
+
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //              Solve the endpoint motion required to achieve a given endpoint motion             //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -103,7 +120,8 @@ SerialKinematicControl<DataType>::resolve_endpoint_motion(const Eigen::Vector<Da
 	
 	if(this->_manipulability > this->_minManipulability)                                           // Not singular
 	{
-	     if(this->_model->number_of_joints() <= 6)                                                 // Non redundant
+	     // FULLY-ACTUATED / NON-REDUNDANT ROBOTS
+	     if(this->_model->number_of_joints() <= 6)
 	     {
 	          // Solve problem of the form:
 	          // min 0.5*(y - A*x)'*W*(y - A*x)
@@ -119,7 +137,8 @@ SerialKinematicControl<DataType>::resolve_endpoint_motion(const Eigen::Vector<Da
                                                                upperBound,                          // x_max
                                                                startPoint);                         // Initial guess for solution x
 	     }
-	     else                                                                                      // Redundant robot
+	     // REDUNDANT ROBOTS
+	     else
 	     {
 	          // Solve a problem of the form:
 	          // min (x_d - x)'*W*(x_d - x)
@@ -134,21 +153,24 @@ SerialKinematicControl<DataType>::resolve_endpoint_motion(const Eigen::Vector<Da
 	               this->_redundantTask = (this->_controlFrequency/50)                             // NOTE: NEED TO EXPERIMENT TO DETERMINE SCALAR
 	                                      *this->manipulability_gradient();                        // Autonomously reconfigure the robot away from singularities
                }
-            
+               
 	          controlVelocity
 	          = QPSolver<DataType>::constrained_least_squares(this->_redundantTask,                // x_d
 	                                                          this->_model->joint_inertia_matrix(),// W
-	                                                          endpointMotion,                      // y
 	                                                          this->_jacobianMatrix,               // A
+	                                                          endpointMotion,                      // y
 	                                                          lowerBound,                          // x_min
 	                                                          upperBound,                          // x_max
 	                                                          startPoint);                         // Initial guess for x
-	     
+	          	          
 	          this->_redundantTaskSet = false;                                                     // Reset for next control loop
 	     }
 	}
+	// SINGULAR CONFIGURATION
 	else
 	{
+	     std::cout << "SINGULAR!\n";
+	     
 		// Solve a problem of the form:
 		// min 0.5*x'*H*x + x'*f
 		// subject to: B*x <= z
@@ -186,23 +208,6 @@ SerialKinematicControl<DataType>::resolve_endpoint_motion(const Eigen::Vector<Da
 	return controlVelocity;
 }
 
-  ///////////////////////////////////////////////////////////////////////////////////////////////////
- //               Compute the endpoint velocity needed to track a given trajectory                //
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template <class DataType> inline
-Eigen::Vector<DataType,Eigen::Dynamic>
-SerialKinematicControl<DataType>::track_endpoint_trajectory(const Pose<DataType>            &desiredPose,
-                                                            const Eigen::Vector<DataType,6> &desiredVelocity,
-                                                            const Eigen::Vector<DataType,6> &desiredAcceleration)
-{
-     (void)desiredAcceleration;                                                                     // Not needed in velocity control
-     
-     // Compute feedforward + feedback control
-	return resolve_endpoint_motion(desiredVelocity
-	                             + this->_cartesianStiffness
-	                             * this->_endpointPose.error(desiredPose));
-}
- 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //                  Compute the joint velocities needed to track a given trajectory              //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
