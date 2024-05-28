@@ -146,14 +146,14 @@ class KinematicTree
            * Get the joint torques needed to oppose gravitational acceleration.
            * @return Returns an nx1 Eigen::Vector object.
            */     
-          Eigen::Vector<DataType,Eigen::Dynamic>
+          Eigen::Vector<DataType, Eigen::Dynamic>
           joint_gravity_vector() const { return this->_jointGravityVector; }
           
           /** 
            * Get the current joint velocities of all the joints in the model.
            * @return Returns an nx1 Eigen::Vector object.
            */
-          Eigen::Vector<DataType,Dynamic>
+          Eigen::Vector<DataType, Eigen::Dynamic>
           joint_velocities() const { return this->_jointVelocity; }
           
           /**
