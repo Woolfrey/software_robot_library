@@ -111,7 +111,7 @@ CartesianTrajectory<DataType,TrajectoryType>::CartesianTrajectory(const std::vec
           
           DataType norm = vec.norm();                                                               // As it says on the label
           
-          DataType angle = 2*asin(norm);                                                            // vec = (angle/2)*axis; asin = [-pi, pi]
+          DataType angle = 2*acos(pose.quaternion().w());
           
           if(abs(angle) < 1e-04) point.tail(3) = Eigen::Vector<DataType,3>::Zero();                 // Trivially small; zero rotation
           else                   point.tail(3) = angle*(vec/norm);                                  // angle*axis
