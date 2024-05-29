@@ -43,8 +43,8 @@ int main(int argc, char** argv)
      
      unsigned int n = model.number_of_joints();
      
-     Eigen::VectorXd jointPosition = Eigen::VectorXd::Random(n);                                    // Set a random start configuration
-     Eigen::VectorXd jointVelocity = Eigen::VectorXd::Zero(n);                                      // Start at rest
+     Eigen::VectorXd jointPosition = 2*Eigen::VectorXd::Random(n);                                  // Set a random start configuration
+     Eigen::VectorXd jointVelocity =   Eigen::VectorXd::Zero(n);                                    // Start at rest
      
      model.update_state(jointPosition, jointVelocity);                                              // Updates the forward kinematics
      controller.update();                                                                           // Updates properties specific to this controller
@@ -52,7 +52,7 @@ int main(int argc, char** argv)
      // Set up the Cartesian trajectory
      Pose_d startPose = controller.endpoint_pose();                                                 // Get the current endpoint pose
      
-     Eigen::Vector3d offset = {0.0, 0.1, 0.0};                                                      // Translation in y-direction
+     Eigen::Vector3d offset = Eigen::VectorXd::Random(3);                                           // Set a random offset
      
      Pose_d endPose(startPose.translation() + offset, startPose.quaternion());                      // Offset the start pose
      
@@ -75,7 +75,12 @@ int main(int argc, char** argv)
           
           // Run the control at 1/10th of the simulation
           if(i%ratio == 0)
-          { 
+          {                                                       
+               // Record data
+               positionArray.row(rowCounter) = jointPosition.transpose();
+               velocityArray.row(rowCounter) = jointVelocity.transpose();
+               
+               // Solve control
                model.update_state(jointPosition, jointVelocity);                                    // Update kinematics & dynamics
                controller.update();                                                                 // Update the controller
                
@@ -90,11 +95,9 @@ int main(int argc, char** argv)
                jointVelocity = controller.track_endpoint_trajectory(desiredState.pose,
                                                                     desiredState.twist,
                                                                     desiredState.acceleration);
-                                                                      
-               // Record data
-               positionArray.row(rowCounter) = jointPosition.transpose();
-               velocityArray.row(rowCounter) = jointVelocity.transpose();
+
                
+               // Save pose error
                Eigen::Vector<double,6> poseError = controller.endpoint_pose().error(desiredState.pose);
                
                poseErrorArray(rowCounter,0) = poseError.head(3).norm();                             // Position error
@@ -137,18 +140,6 @@ int main(int argc, char** argv)
      }
      file.close();
      
-     /*
-     
-     // Save position error tracking data
-     file.open("joint_position_error_data.csv");
-     for(int i = 0; i < m; i++)
-     {
-          file << (double)(i/controlFrequency);
-          for(int j = 0; j < n; j++) file << "," << positionErrorArray(i,j);
-          file << "\n";
-     }
-     file.close();
-     
      // Save position limits
      file.open("joint_limits.csv");
      {
@@ -161,7 +152,6 @@ int main(int argc, char** argv)
           }
      }
      file.close();
-     */
      
      std::cout << "[INFO] [CARTESIAN VELOCITY CONTROL TEST]: "
                << "Numerical simulation complete. Data saved to .csv file for analyis.\n";
