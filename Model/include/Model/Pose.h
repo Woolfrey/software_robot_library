@@ -99,15 +99,16 @@ Eigen::Vector<DataType,6> Pose<DataType>::error(const Pose<DataType> &desired)
      Eigen::Vector<DataType,6> error;                                                               // Value to be returned
 
      error.head(3) = desired.translation() - this->_translation;                                    // translation error
-     
-     DataType angle = this->_quaternion.angularDistance(desired.quaternion());                      // Distance between vectors (i.e. dot product)
-     
-     Eigen::Vector<DataType,3> temp = this->_quaternion.w()    * desired.quaternion().vec()
+
+     // Compute the vector component of the quaternion error
+     Eigen::Vector<DataType,3> vec = this->_quaternion.w() * desired.quaternion().vec()
                                     - desired.quaternion().w() * this->_quaternion.vec()
-                                    - desired.quaternion().vec().cross(this->_quaternion.vec()); 
+                                    - desired.quaternion().vec().cross(this->_quaternion.vec());
      
-     if(angle <= M_PI) error.tail(3) =  temp;
-     else              error.tail(3) = -temp;                                                       // Spin the other way
+     DataType angle = this->_quaternion.angularDistance(desired.quaternion());                      // Angle between the 2 vectors
+     
+     if(angle <= M_PI) error.tail(3) =  vec;
+     else              error.tail(3) = -vec;                                                        // Angle > 180 degrees, spin opposite (shortest) direction
      
      return error;
 }
