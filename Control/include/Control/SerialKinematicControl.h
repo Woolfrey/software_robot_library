@@ -114,8 +114,8 @@ SerialKinematicControl<DataType>::resolve_endpoint_motion(const Eigen::Vector<Da
 		upperBound(i) = upper;
 	
 	     // Make sure the start point is feasible or the QP solver might fail
-		     if(startPoint(i) <= lowerBound(i)) startPoint(i) = lowerBound(i) + 1e-03;            // Just above the lower limit
-		else if(startPoint(i) >= upperBound(i)) startPoint(i) = upperBound(i) - 1e-03;            // Just below the upper limit
+		     if(startPoint(i) <= lowerBound(i)) startPoint(i) = lowerBound(i) + 1e-03;
+		else if(startPoint(i) >= upperBound(i)) startPoint(i) = upperBound(i) - 1e-03;
 	}
 	
 	if(this->_manipulability > this->_minManipulability)                                           // Not singular
@@ -150,7 +150,7 @@ SerialKinematicControl<DataType>::resolve_endpoint_motion(const Eigen::Vector<Da
 	          
 	          if(not this->_redundantTaskSet)
 	          {
-	               this->_redundantTask = (this->_controlFrequency/50)                             // NOTE: NEED TO EXPERIMENT TO DETERMINE SCALAR
+	               this->_redundantTask = (this->_controlFrequency/100)                            // NOTE: NEED TO EXPERIMENT TO DETERMINE SCALAR
 	                                      *this->manipulability_gradient();                        // Autonomously reconfigure the robot away from singularities
                }
                
@@ -169,15 +169,13 @@ SerialKinematicControl<DataType>::resolve_endpoint_motion(const Eigen::Vector<Da
 	// SINGULAR CONFIGURATION
 	else
 	{
-	     std::cout << "SINGULAR!\n";
-	     
 		// Solve a problem of the form:
 		// min 0.5*x'*H*x + x'*f
 		// subject to: B*x <= z
 		
 		// Pre-compute to speed up a little
 		Eigen::Matrix<DataType, Eigen::Dynamic, Eigen::Dynamic> JtKd
-		= this->_jacobianMatrix*this->_cartesianDamping;
+		= this->_jacobianMatrix.transpose()*this->_cartesianDamping;
 		
 		// H = J'*Kd*J + M
 		Eigen::Matrix<DataType, Eigen::Dynamic, Eigen::Dynamic> H
