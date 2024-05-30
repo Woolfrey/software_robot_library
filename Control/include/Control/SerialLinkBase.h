@@ -132,7 +132,7 @@ class SerialLinkBase : public QPSolver<DataType>
 		
 		DataType _minManipulability = 1e-02;                                                      ///< Used in singularity avoidance
 		
-		DataType _maxJointAcceleration = 2.0;                                                     ///< As it says.
+		DataType _maxJointAcceleration = 0.2;                                                     ///< As it says.
 		
 		Eigen::Matrix<DataType,6,6> _cartesianStiffness
 		= (Eigen::Matrix<DataType,6,6>(6,6) << 10.0,  0.0,  0.0, 0.0, 0.0, 0.0,
