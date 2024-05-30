@@ -220,19 +220,19 @@ Limits<DataType> SerialDynamicControl<DataType>::compute_control_limits(const un
     Limits<DataType> limits;                                                                        // Value to be returned
 
     DataType delta = this->_model->joint_positions()[jointNumber]
-                     + this->_model->joint_velocities()[jointNumber]*(1/this->_controlFrequency)
+                     + this->_model->joint_velocities()[jointNumber]*(1.0/this->_controlFrequency)
                      - this->_model->link(jointNumber)->joint().position_limits().lower;             // Distance from lower limit
 
-    limits.lower = std::max(-2*delta*(1/pow(this->_controlFrequency,2)),
-                            (std::max((-this->_model->link(jointNumber)->joint().speed_limit() + this->_model->joint_velocities()[jointNumber])*(1/this->_controlFrequency),
+    limits.lower = std::max(-2*delta*(1.0/pow(this->_controlFrequency,2)),
+                            (std::max((-this->_model->link(jointNumber)->joint().speed_limit() + this->_model->joint_velocities()[jointNumber])*(1.0/this->_controlFrequency),
                                      -this->_maxJointAcceleration)));
 
     delta = this->_model->link(jointNumber)->joint().position_limits().upper
             - this->_model->joint_velocities()[jointNumber]*(1/this->_controlFrequency)
             - this->_model->joint_positions()[jointNumber];                                          // Distance to upper limit
 
-    limits.upper = std::min(2*delta*(1/pow(this->_controlFrequency,2)),
-                            (std::min((this->_model->link(jointNumber)->joint().speed_limit() - this->_model->joint_velocities()[jointNumber])*(1/this->_controlFrequency),
+    limits.upper = std::min(2*delta*(1.0/pow(this->_controlFrequency,2)),
+                            (std::min((this->_model->link(jointNumber)->joint().speed_limit() - this->_model->joint_velocities()[jointNumber])*(1.0/this->_controlFrequency),
                                      this->_maxJointAcceleration)));
 
     return limits;
