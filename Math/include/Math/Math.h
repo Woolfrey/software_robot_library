@@ -75,16 +75,16 @@ bool is_positive_definite(const Eigen::Matrix<DataType,Eigen::Dynamic,Eigen::Dyn
      DataType det = A.determinant();
      if(det <= 0)
      {
-          std::cout << "[INFO] is_positive_definite(): Determinant = " << std::to_string(det) << " <= 0.\n";
+          std::cout << "[INFO] is_positive_definite(): Determinant = " << std::to_string(det) << " < 0.\n";
           
           return false;
      }
      
      DataType symmetryErrorNorm = (A - A.transpose()).norm();
-     if(symmetryErrorNorm < 1e-04)
+     if(symmetryErrorNorm > 1e-04)
      {
           std::cout << "[INFO] is_positive_defintie(): Not symmetric; ||A - A'|| = "
-                    << std::to_string(symmetryErrorNorm) << " < 0.0001.\n";
+                    << std::to_string(symmetryErrorNorm) << " > 0.0001.\n";
           
           return false;
      }
@@ -94,14 +94,12 @@ bool is_positive_definite(const Eigen::Matrix<DataType,Eigen::Dynamic,Eigen::Dyn
 
 /**
  * A data structure for holding the results of the QR decomposition.
- * @param Q An orthogonal matrix such that Q*Q' = I.
- * @param R An upper-triangular matrix.
  **/
 template <typename DataType>
 struct QRdecomposition
 {
-     Eigen::Matrix<DataType,Eigen::Dynamic,Eigen::Dynamic> Q;
-     Eigen::Matrix<DataType,Eigen::Dynamic,Eigen::Dynamic> R;
+     Eigen::Matrix<DataType,Eigen::Dynamic,Eigen::Dynamic> Q;                                       ///< An orthogonal matrix such that Q'*Q = I
+     Eigen::Matrix<DataType,Eigen::Dynamic,Eigen::Dynamic> R;                                       ///< An upper-triangular matrix                                                             
 };                                                                                                  // Semicolon needed after struct declaration
        
 /**
@@ -110,20 +108,22 @@ struct QRdecomposition
  * @param tolerance The rounding error on a singularity
  * @return A QRDecomposition data structure
  */
-template <typename DataType>
-QRdecomposition<DataType> schwarz_rutishauser(const Eigen::Matrix<DataType, Eigen::Dynamic, Eigen::Dynamic> &A,
-                                              const DataType tolerance = 1e-04)
+template <typename Derived>
+QRdecomposition<typename Derived::Scalar>
+schwarz_rutishauser(const Eigen::MatrixBase<Derived> &A,
+                    const double tolerance = 1e-04)
 {
+     typedef typename Derived::Scalar DataType;
+    
      unsigned int m = A.rows();
      unsigned int n = A.cols();
      
      if(m < n)
      {
-          std::cerr << "[ERROR] qr_decomposition() "
-                    << "Matrix A has " << A.rows() << " rows which is less than its "
-                    << A.cols() << " columns. Cannot solve the QR decomposition." << std::endl;
-          
-          return false;
+          throw std::invalid_argument("[ERROR] qr_decomposition() "
+                                      "Matrix A has " + std::to_string(A.rows()) +  " rows which is "
+                                      "less than its " + std::to_string( A.cols()) +  " columns. "
+                                      "Cannot solve the QR decomposition.");
      }
      else
      {
@@ -139,7 +139,9 @@ QRdecomposition<DataType> schwarz_rutishauser(const Eigen::Matrix<DataType, Eige
           // The null space of A is obtained with N = Qn*Qn'.
           // This algorithm returns only Qr and R for efficiency.
           
-          QRdecomposition decomp = {A, Eigen::Matrix<DataType,Eigen::Dynamic,Eigen::Dynamic>::Zero(n,n)};
+          QRdecomposition<DataType> decomp;
+          decomp.Q = A;
+          decomp.R.resize(n,n); decomp.R.setZero();
           
           for(int j = 0; j < n; j++)
           {
@@ -157,6 +159,108 @@ QRdecomposition<DataType> schwarz_rutishauser(const Eigen::Matrix<DataType, Eige
           
           return decomp;
      }
+}
+
+/**
+ * Solve a system of equations y = L*x, where L is a lower-triangular matrix.
+ * @param y A vector of known values.
+ * @param L A lower-triangular matrix.
+ * @param tolerance For singularities.
+ * @return A solution for x.
+ */
+template <typename Derived, typename OtherDerived> inline
+Eigen::Matrix<typename Derived::Scalar, Eigen::Dynamic, Eigen::Dynamic>
+forward_substitution(const Eigen::MatrixBase<Derived>      &Y,
+                     const Eigen::MatrixBase<OtherDerived> &L,
+                     const double tolerance = 1e-04)
+{
+     unsigned int m = Y.rows();
+     unsigned int n = L.cols();
+     unsigned int o = Y.cols();
+     
+     if(L.rows() != m)
+     {
+          throw std::invalid_argument("[ERROR] forward_subsitution(): "
+                                      "Dimensions of arguments do not match. "
+                                      "The vector input had " + std::to_string(m) + " elements, "
+                                      "but the matrix input had " + std::to_string(L.rows()) + " rows.");
+     }
+     else if(L.rows() != L.cols())
+     {
+          throw std::invalid_argument("[ERROR] forward_substiution(): "
+                                      "Expected a square matrix but it was " + std::to_string(L.rows()) +
+                                      "x" + std::to_string(L.cols()) + ".");
+     }
+     
+     typedef typename Derived::Scalar DataType;
+     
+     Eigen::Matrix<DataType,Eigen::Dynamic,Eigen::Dynamic> X(m,o);                                  // Value to be returned
+     
+     for(int i = 0; i < o; i++)
+     {
+          for(int j = 0; j < m; j++)
+          {
+               DataType sum = 0.0;
+               
+               for(int k = 0; k < j; k++) sum += L(j,k)*X(k,i);
+               
+               if(L(j,j) >= tolerance) X(j,i) = (Y(j,i) - sum)/L(j,j);
+               else                    X(j,i) = 0;
+          }
+     }
+     
+     return X;
+}
+
+/**
+ * Solve a system of equations Y = U*X, where U is an upper-triangular matrix.
+ * @param Y A tensor (vector or matrix) of known values.
+ * @param U An upper-triangular matrix.
+ * @param tolerance For handling singularities.
+ * @return A solution for X.
+ */
+template <typename Derived, typename OtherDerived> inline
+Eigen::Matrix<typename Derived::Scalar, Eigen::Dynamic, Eigen::Dynamic>
+backward_substitution(const Eigen::MatrixBase<Derived> &Y,
+                      const Eigen::MatrixBase<OtherDerived> &U,
+                      const double tolerance = 1e-04)
+{
+     unsigned int m = Y.rows();
+     unsigned int n = U.cols();
+     unsigned int o = Y.cols();
+     
+     typedef typename Derived::Scalar DataType;
+     
+     if(U.rows() != m)
+     {
+          throw std::invalid_argument("[ERROR] forward_subsitution(): "
+                                      "Dimensions of arguments do not match. "
+                                      "The vector input had " + std::to_string(m) + " rows, "
+                                      "but the matrix input had " + std::to_string(U.rows()) + " rows.");
+     }
+     else if(U.rows() != U.cols())
+     {
+          throw std::invalid_argument("[ERROR] forward_substiution(): "
+                                      "Expected a square matrix but it was " + std::to_string(U.rows()) +
+                                      "x" + std::to_string(U.cols()) + ".");
+     }
+     
+     Eigen::Matrix<DataType,Eigen::Dynamic,Eigen::Dynamic> X(n,o);                                  // Value to be turned
+     
+     for(int i = 0; i < o; i++)                                                                     // For every column of Y
+     {
+          for(int j = m-1; j >= 0; j--)
+          {
+               DataType sum = 0.0;
+               
+               for(int k = j; k < m; k++) sum += U(j,k)*X(k,i);
+               
+               if(U(j,j) >= tolerance) X(j,i) = (Y(j,i)-sum)/U(j,j);
+               else                    X(j,i) = 0.0;
+          }
+     }
+     
+     return X;
 }
 
 #endif                                    
