@@ -213,13 +213,27 @@ SerialDynamicControl<DataType>::track_joint_trajectory(const Eigen::Vector<DataT
 template <class DataType> inline
 Limits<DataType> SerialDynamicControl<DataType>::compute_control_limits(const unsigned int &jointNumber)
 {
-    // Flacco, F., De Luca, A., & Khatib, O. (2015).
-    // "Control of redundant robots under hard joint constraints: Saturation in the null space."
-    // IEEE Transactions on Robotics, 31(3), 637-654.
+    // Flacco, F., De Luca, A., & Khatib, O. (2012).
+    // "Motion control of redundant robots under joint constraints: Saturation in the null space."
+    // IEEE International Conference on Robotics and Automation, 285-292.
 
-    // NOTE TO SHEILA: Based on the reference above, this should be a limit on the joint acceleration
-    
     Limits<DataType> limits;                                                                        // Value to be returned
+
+    DataType delta = this->_model->joint_positions()[jointNumber]
+                     + this->_model->joint_velocities()[jointNumber]*(1/this->_controlFrequency)
+                     - this->_model->link(jointNumber)->joint().position_limits().lower;             // Distance from lower limit
+
+    limits.lower = std::max(-2*delta*(1/pow(this->_controlFrequency,2)),
+                            (std::max(-this->_model->link(jointNumber)->joint().speed_limit() + this->_model->joint_velocities()[jointNumber])*(1/this->_controlFrequency),
+                                     -this->_maxJointAcceleration));
+
+    delta = this->_model->link(jointNumber)->joint().position_limits().upper
+            - this->_model->joint_velocities()[jointNumber]*(1/this->_controlFrequency)
+            - this->_model->joint_positions()[jointNumber];                                          // Distance to upper limit
+
+    limits.upper = std::min(2*delta*(1/pow(this->_controlFrequency,2)),
+                            (std::min(this->_model->link(jointNumber)->joint().speed_limit() - this->_model->joint_velocities()[jointNumber])*(1/this->_controlFrequency),
+                                     this->_maxJointAcceleration));
 
     return limits;
 }
