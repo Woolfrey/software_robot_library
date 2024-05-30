@@ -118,7 +118,7 @@ SerialKinematicControl<DataType>::resolve_endpoint_motion(const Eigen::Vector<Da
 		else if(startPoint(i) >= upperBound(i)) startPoint(i) = upperBound(i) - 1e-03;
 	}
 	
-	if(this->_manipulability > this->_minManipulability)                                           // Not singular
+	if(this->_manipulability >= this->_minManipulability)                                           // Not singular
 	{
 	     // FULLY-ACTUATED / NON-REDUNDANT ROBOTS
 	     if(this->_model->number_of_joints() <= 6)
@@ -173,18 +173,15 @@ SerialKinematicControl<DataType>::resolve_endpoint_motion(const Eigen::Vector<Da
 		// min 0.5*x'*H*x + x'*f
 		// subject to: B*x <= z
 		
-		// Pre-compute to speed up a little
-		Eigen::Matrix<DataType, Eigen::Dynamic, Eigen::Dynamic> JtKd
-		= this->_jacobianMatrix.transpose()*this->_cartesianDamping;
-		
-		// H = J'*Kd*J + M
-		Eigen::Matrix<DataType, Eigen::Dynamic, Eigen::Dynamic> H
-		= JtKd*this->_jacobianMatrix + this->_model->joint_inertia_matrix();
-		
-		// f = -(J'*Kd*x + M*qdot)
-		Eigen::Vector<DataType, Eigen::Dynamic> f
-		= -JtKd*endpointMotion - this->_model->joint_inertia_matrix()*this->_model->joint_velocities();
-		
+          Eigen::Matrix<DataType,Eigen::Dynamic,Eigen::Dynamic> H
+          = this->_jacobianMatrix.transpose()*this->_jacobianMatrix;
+          
+          DataType dampingFactor = pow((1 - this->_manipulability/this->_minManipulability),2)*0.5;
+          
+          for(int i = 0; i < H.rows(); i++) H(i,i) += dampingFactor;
+          
+          Eigen::Vector<DataType,Eigen::Dynamic> f = -this->_jacobianMatrix.transpose()*endpointMotion;
+          
 		// Set up constraints:
 		// B*qdot < z
 
