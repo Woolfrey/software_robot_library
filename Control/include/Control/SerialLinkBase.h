@@ -130,7 +130,7 @@ class SerialLinkBase : public QPSolver<DataType>
 		
 		DataType _manipulability;                                                                 ///< Proximity to a singularity
 		
-		DataType _minManipulability = 1e-02;                                                      ///< Used in singularity avoidance
+		DataType _minManipulability = 5e-03;                                                      ///< Used in singularity avoidance
 		
 		DataType _maxJointAcceleration = 0.2;                                                     ///< As it says.
 		
@@ -147,6 +147,10 @@ class SerialLinkBase : public QPSolver<DataType>
 		Eigen::Matrix<DataType,6,Eigen::Dynamic> _jacobianMatrix;                                 ///< Of the endpoint frame
 		
 		Eigen::Matrix<DataType,6,6> _forceEllipsoid;                                              ///< Jacobian multiplied with its tranpose: J*J.transpose()
+		
+		Eigen::Matrix<DataType,Eigen::Dynamic,Eigen::Dynamic> _constraintMatrix;                  ///< Used in optimisation during Cartesian control
+		
+		Eigen::Vector<DataType,Eigen::Dynamic> _constraintVector;                                 ///< Used in optimisation during Cartesian control
 		
 		Eigen::Vector<DataType,Eigen::Dynamic> _redundantTask;                                    ///< Used to control null space of redundant robots
 		
@@ -176,12 +180,29 @@ using SerialLinkBase_d = SerialLinkBase<double>;
 template <class DataType>
 SerialLinkBase<DataType>::SerialLinkBase(KinematicTree<DataType> *model, const std::string &endpointName)
 					               : _model(model)
-{
+{     
      // Record pointer to the endpoint frame to be controlled so we don't need to search for it later.
      
      // NOTE: This will throw a runtime error if it doesn't exist.
      
      this->_endpointFrame = this->_model->find_frame(endpointName);
+
+     // Resize dimensions of inequality constraints for the QP solver: B*qdot < z, where:
+     // B = [      I    ]   z = [    qdot_max  ]
+     //     [     -I    ]       [   -qdot_min  ]
+     //     [  (dm/dq)' ]       [  (m - m_min) ]
+     
+     unsigned int n = this->_model->number_of_joints();
+     
+     this->_constraintMatrix.resize(2*n+1,n);
+     this->_constraintMatrix.block(0,0,n,n).setIdentity();
+     this->_constraintMatrix.block(n,0,n,n) = -this->_constraintMatrix.block(0,0,n,n);
+//   this->_constraintMatrix.row(2*n) = this->manipulability_gradient();
+
+     this->_constraintVector.resize(2*n+1);
+//   this->_constraintVector.block(0,0,n,1) =  upperBound;
+//   this->_constraintVector.block(n,0,n,1) = -lowerBound;
+//   this->_constraintVector(2*n) = this->_manipulability - this->_minManipulability;
      
      std::cout << "[INFO] [SERIAL LINK CONTROL] Controlling the '" << endpointName << "' frame on the '" 
                << this->_model->name() << "' robot.\n";
@@ -328,6 +349,8 @@ Eigen::Vector<DataType,Eigen::Dynamic> SerialLinkBase<DataType>::manipulability_
 		
 		currentLink = currentLink->parent_link();                                                 // Get pointer to next link in chain
 	}
+	
+	gradient(0) = 0.0;
 	
 	return gradient;
 }
