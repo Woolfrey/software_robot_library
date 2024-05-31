@@ -81,7 +81,19 @@ int main(int argc, char** argv)
                velocityArray.row(rowCounter) = jointVelocity.transpose();
                
                // Solve control
-               model.update_state(jointPosition, jointVelocity);                                    // Update kinematics & dynamics
+               try
+               {
+                    model.update_state(jointPosition, jointVelocity);                               // Update kinematics & dynamics
+               }
+               catch(const std::exception &exception)
+               {
+                    std::cerr << exception.what() << "\n";  
+                    std::cerr << "[ERROR] [CARTESIAN VELOCITY CONTROL TEST] "
+                              << "Model update failed. Terminating.\n";
+                    
+                    return -1;                                                                      // Stop
+               }
+               
                controller.update();                                                                 // Update the controller
                
                CartesianState desiredState = trajectory.query_state(simulationTime);
@@ -92,9 +104,18 @@ int main(int argc, char** argv)
                //              desiredTwist,
                //              desiredAcceleration] = trajectory.query_state(simulationTime);
                
-               jointVelocity = controller.track_endpoint_trajectory(desiredState.pose,
-                                                                    desiredState.twist,
-                                                                    desiredState.acceleration);
+               try
+               {
+                    jointVelocity = controller.track_endpoint_trajectory(desiredState.pose,
+                                                                         desiredState.twist,
+                                                                         desiredState.acceleration);
+               }
+               catch(const std::exception &exception)
+               {
+                    std::cerr << exception.what() << "\n";
+                    
+                    jointVelocity = 0.5*jointVelocity;                                              // Slow down
+               }
 
                
                // Save pose error
