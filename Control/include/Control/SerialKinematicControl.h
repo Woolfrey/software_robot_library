@@ -105,6 +105,9 @@ SerialKinematicControl<DataType>::resolve_endpoint_motion(const Eigen::Vector<Da
 	
 	Vector<DataType,Dynamic> lowerBound(numJoints), upperBound(numJoints);                         // On the joint control
 	
+	Vector<DataType,Dynamic> manipulabilityGradient = this->manipulability_gradient();             // Used in multiple places, so compute it once here
+	
+	// Update constraints on the joint motion
 	for(int i = 0; i < numJoints; i++)
 	{
 		// NOTE: Can't use structured binding on Eigen::Vector because its size is not
@@ -118,86 +121,80 @@ SerialKinematicControl<DataType>::resolve_endpoint_motion(const Eigen::Vector<Da
 		else if(startPoint(i) >= upperBound(i)) startPoint(i) = upperBound(i) - 1e-03;
 	}
 	
-	if(this->_manipulability >= this->_minManipulability)                                           // Not singular
+     this->_constraintMatrix.row(2*numJoints) = -manipulabilityGradient.transpose();                // For singularity avoidance
+     
+	this->_constraintVector.block(       0 , 0, numJoints, 1) =  upperBound;
+	this->_constraintVector.block(numJoints, 0, numJoints, 1) = -lowerBound;
+//   this->_constraintVector(2*numJoints) <--- NEEDS TO BE SET ON CASE-BY-CASE BASIS	
+	
+	if(this->_manipulability > this->_minManipulability)                                           // Not singular
 	{
-	     // FULLY-ACTUATED / NON-REDUNDANT ROBOTS
-	     if(this->_model->number_of_joints() <= 6)
+	     this->_constraintVector(2*numJoints) = (this->_controlFrequency)/10
+	                                          * (this->_manipulability - this->_minManipulability); // Limit motion toward singularity
+	     
+	     if(this->_model->number_of_joints() <= 6) // FULLY-ACTUATED / NON-REDUNDANT ROBOTS
 	     {
-	          // Solve problem of the form:
-	          // min 0.5*(y - A*x)'*W*(y - A*x)
-	          // subject to: x_min <= x <= x_max
+		     // Solve a problem of the form:
+		     // min 0.5*x'*H*x + x'*f
+		     // subject to: B*x <= z
 	          
 	          // See: github.com/Woolfrey/software_simple_qp
 	          
-               controlVelocity
-               = QPSolver<DataType>::constrained_least_squares(endpointMotion,                      // y
-                                                               this->_jacobianMatrix,               // A
-                                                               this->_cartesianStiffness,           // W
-                                                               lowerBound,                          // x_min
-                                                               upperBound,                          // x_max
-                                                               startPoint);                         // Initial guess for solution x
+	          // Weight the solution by the Cartesian inertia matrix:
+	          Matrix<DataType,6,6> A = this->_jacobianMatrix
+	                                 * this->_model->joint_inertia_matrix().ldlt().solve(
+	                                   this->_jacobianMatrix.transpose());
+	          
+	          Matrix<DataType,Dynamic,Dynamic> H = this->_jacobianMatrix.transpose()*A*this->_jacobianMatrix;
+	          
+	          Vector<DataType,Dynamic> f = -this->_jacobianMatrix.transpose()*A*endpointMotion;
+	          
+	          controlVelocity = QPSolver<DataType>::solve(H, f,
+	                                                      this->_constraintMatrix,                 // B
+	                                                      this->_constraintVector,                 // z
+	                                                      startPoint);                             
 	     }
-	     // REDUNDANT ROBOTS
-	     else
+	     else // REDUNDANT ROBOTS
 	     {
 	          // Solve a problem of the form:
 	          // min (x_d - x)'*W*(x_d - x)
 	          // subject to: A*x = y
-	          //          x_min <= x <= x_max
+	          //             B*x < z
 	          
 	          // See: github.com/Woolfrey/software_simple_qp
 	          
-	          
-	          if(not this->_redundantTaskSet)
-	          {
-	               this->_redundantTask = (this->_controlFrequency/100)                            // NOTE: NEED TO EXPERIMENT TO DETERMINE SCALAR
-	                                      *this->manipulability_gradient();                        // Autonomously reconfigure the robot away from singularities
-               }
+	          if(not this->_redundantTaskSet) this->_redundantTask = (this->_controlFrequency/50)*manipulabilityGradient; // Autonomously reconfigure the robot away from singularities
                
-	          controlVelocity
-	          = QPSolver<DataType>::constrained_least_squares(this->_redundantTask,                // x_d
-	                                                          this->_model->joint_inertia_matrix(),// W
-	                                                          this->_jacobianMatrix,               // A
-	                                                          endpointMotion,                      // y
-	                                                          lowerBound,                          // x_min
-	                                                          upperBound,                          // x_max
-	                                                          startPoint);                         // Initial guess for x
+	          controlVelocity =
+	          QPSolver<DataType>::constrained_least_squares(this->_redundantTask,                  // x_d
+	                                                        this->_model->joint_inertia_matrix(),  // W
+	                                                        this->_jacobianMatrix,                 // A
+	                                                        endpointMotion,                        // y
+	                                                        this->_constraintMatrix,               // B
+	                                                        this->_constraintVector,               // z
+	                                                        startPoint);                           // Initial guess for x
 	          	          
 	          this->_redundantTaskSet = false;                                                     // Reset for next control loop
 	     }
 	}
-	// SINGULAR CONFIGURATION
-	else
+	else // SINGULAR CONFIGURATION
 	{
 		// Solve a problem of the form:
 		// min 0.5*x'*H*x + x'*f
 		// subject to: B*x <= z
 		
-          Eigen::Matrix<DataType,Eigen::Dynamic,Eigen::Dynamic> H
-          = this->_jacobianMatrix.transpose()*this->_jacobianMatrix;
+          Matrix<DataType,Dynamic,Dynamic> H = this->_jacobianMatrix.transpose()*this->_jacobianMatrix;
+        
+          Vector<DataType,Dynamic> f = -this->_jacobianMatrix.transpose()*endpointMotion;
           
-          DataType dampingFactor = pow((1 - this->_manipulability/this->_minManipulability),2)*0.5;
-          
-          for(int i = 0; i < H.rows(); i++) H(i,i) += dampingFactor;
-          
-          Eigen::Vector<DataType,Eigen::Dynamic> f = -this->_jacobianMatrix.transpose()*endpointMotion;
-          
-		// Set up constraints:
-		// B*qdot < z
-
-          // B = [  I ]
-          //     [ -I ]
-		Eigen::Matrix<DataType,Eigen::Dynamic,Eigen::Dynamic> B(2*numJoints,numJoints);
-		B.block(0,0,numJoints,numJoints).setIdentity();
-		B.block(numJoints,0,numJoints,numJoints) = -B.block(0,0,numJoints,numJoints);
+          this->_constraintMatrix.row(2*numJoints) *= (this->_controlFrequency/10);                 // I don't know if this makes a difference? (ー_ーゞ
+         
+          this->_constraintVector(2*numJoints) = 0.0;
 		
-		// z = [  upperBound ]
-		//     [ -lowerBound ]
-		Eigen::Vector<DataType, Eigen::Dynamic> z(2*numJoints);
-		z.head(numJoints) =  upperBound;
-		z.tail(numJoints) = -lowerBound;
-		
-		controlVelocity = QPSolver<DataType>::solve(H,f,B,z,startPoint);
+		controlVelocity = QPSolver<DataType>::solve(H,f,
+		                                            this->_constraintMatrix,                      // B
+		                                            this->_constraintVector,                      // z
+		                                            startPoint);
 	}
 	
 	return controlVelocity;
