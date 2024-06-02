@@ -170,8 +170,8 @@ Joint<DataType>::Joint(const std::string               &name,
                        const Eigen::Vector<DataType,3> &axis,
                        const Pose<DataType>            &origin,
                        const Limits<DataType>          &positionLimit,
-                        const DataType                  &speedLimit,
-                        const DataType                  &effortLimit,
+                       const DataType                  &speedLimit,
+                       const DataType                  &effortLimit,
                        const DataType                  &damping,
                        const DataType                  &friction)
                        :
