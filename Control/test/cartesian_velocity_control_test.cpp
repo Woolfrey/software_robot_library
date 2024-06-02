@@ -166,10 +166,11 @@ int main(int argc, char** argv)
      {
           for(int j = 0; j < n; j++)
           {
+               std::string name = model.joint(j).name();
                const auto &[lower, upper] = model.joint(j).position_limits();
                double velocity = model.joint(j).speed_limit();
                
-               file << lower << "," << upper << "," << velocity << "\n";
+               file << name << "," << lower << "," << upper << "," << velocity << "\n";
           }
      }
      file.close();
