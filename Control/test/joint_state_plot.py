@@ -10,34 +10,32 @@ import os                                                                      #
 import pandas                                                                  # For reading csv files
 import matplotlib.pyplot                                                       # For plotting data
 
-
 ######################### Load the joint limits ###############################
 path = os.path.abspath(os.path.join(os.path.dirname(__file__),
                                     "../../build/joint_limits.csv"))
 
 jointLimits = pandas.read_csv(path, header=None)
 
-jointLimits.columns = ["Lower", "Upper", "Velocity"]
+jointLimits.columns = ["Name", "Lower", "Upper", "Velocity"]
 
+# Generate global variables
+numberOfJoints = len(jointLimits)
 
+columnHeaders = ["Time"]
+
+for i in range(0,numberOfJoints):
+    columnHeaders.append("Joint " + str(i+1))
+    
 ######################### Load the position data ##############################
 path = os.path.abspath(os.path.join(os.path.dirname(__file__),
                                     "../../build/joint_position_data.csv"))
 
 positionData = pandas.read_csv(path, header=None)
 
-positionData.columns = ["Time",
-                        "Joint 1",
-                        "Joint 2",
-                        "Joint 3",
-                        "Joint 4",
-                        "Joint 5",
-                        "Joint 6",
-                        "Joint 7",
-                        "Joint 8"]
+positionData.columns = columnHeaders
 
 # Normalise the position values between -1 and 1
-for i in range(0,len(positionData.columns)-1):
+for i in range(0,numberOfJoints):
     minimum = jointLimits["Lower"][i]
     maximum = jointLimits["Upper"][i]
     raange = maximum - minimum
@@ -46,7 +44,6 @@ for i in range(0,len(positionData.columns)-1):
             pos = positionData["Joint " + str(i+1)][j]
             positionData["Joint " + str(i+1)][j] = 2*(pos-minimum)/raange - 1
     
-
 # Plot the data
 fig, ax = matplotlib.pyplot.subplots()                                         # Create figure object
 
@@ -55,7 +52,7 @@ ax.axhline(y =  1.0, color = [0.8, 0.8, 0.8], linestyle = '-')
 ax.axhline(y = -1.0, color = [0.8, 0.8, 0.8], linestyle = '-') 
 
 # Plot each joint position vs. time
-for i in range(0,len(positionData.columns)-1):
+for i in range(0,numberOfJoints):
       ax.plot(positionData["Time"],                                            # x-axis data
               positionData["Joint " + str(i+1)],                               # y-axis data
               color = [0,0,0])
