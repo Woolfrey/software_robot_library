@@ -40,7 +40,7 @@ class SerialLinkBase : public QPSolver<DataType>
 		 * @return The required joint velocity, or joint torques.
 		 */
 		virtual Eigen::Vector<DataType,Eigen::Dynamic>
-		track_endpoint_trajectory(const Pose<DataType>   &desiredPose,
+		track_endpoint_trajectory(const Pose<DataType>            &desiredPose,
                                     const Eigen::Vector<DataType,6> &desiredVelocity,
                                     const Eigen::Vector<DataType,6> &desiredAcceleration) = 0;
 		
@@ -160,8 +160,8 @@ class SerialLinkBase : public QPSolver<DataType>
 		
 		ReferenceFrame<DataType> *_endpointFrame;                                                 ///< Pointer to frame controlled in underlying model
 		
-		unsigned int _controlFrequency = 100;                                                     ///< Used in certain control calculations.
-		
+		DataType _controlFrequency = 100;                                                         ///< Used in certain control calculations.
+	
 		/**
 		 * Computes the instantaneous limits on the joint control.
 		 * @param jointNumber Which joint to compute the limits for.
