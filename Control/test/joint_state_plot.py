@@ -74,15 +74,7 @@ path = os.path.abspath(os.path.join(os.path.dirname(__file__),
 
 velocityData = pandas.read_csv(path, header=None)
 
-velocityData.columns = ["Time",
-                        "Joint 1",
-                        "Joint 2",
-                        "Joint 3",
-                        "Joint 4",
-                        "Joint 5",
-                        "Joint 6",
-                        "Joint 7",
-                        "Joint 8"]
+velocityData.columns = columnHeaders;
 
 # Normalise the position values between -1 and 1
 for i in range(0,len(velocityData.columns)-1):
