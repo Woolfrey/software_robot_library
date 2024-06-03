@@ -16,7 +16,7 @@ path = os.path.abspath(os.path.join(os.path.dirname(__file__),
 data = pandas.read_csv(path, header=None)                                      # Read the file
 
 # Variables
-numJoints = len(data.columns)
+numJoints = len(data.columns)-1
 cols = 2;
 rows = round(numJoints/cols)
 
@@ -26,7 +26,7 @@ path = os.path.abspath(os.path.join(os.path.dirname(__file__),
 jointData = pandas.read_csv(path,header=None)
 
 columnNames = ["Time"]
-for i in range(0,numJoints-1):
+for i in range(0,numJoints):
     columnNames.append(jointData[0][i])
     
 data.columns = columnNames
@@ -51,7 +51,7 @@ for i in range(0,rows):
         ax[i][j].spines['right'].set_visible(False)
         
         # Set time label only on last row
-        if(jointNum >= numJoints - 3):
+        if(jointNum >= numJoints - 2):
             ax[i][j].set_xlabel("Time (s)")                                    # Put label on last row
         else:
             ax[i][j].set_xticks([])

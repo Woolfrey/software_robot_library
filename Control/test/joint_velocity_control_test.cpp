@@ -27,26 +27,28 @@ int polynomialOrder = 5;
 
 int main(int argc, char** argv)
 {
-     // Default for argc is 1 but I don't know why ┐(ﾟ ～ﾟ )┌
-	if(argc != 2)
+   // Default for argc is 1 but I don't know why ┐(ﾟ ～ﾟ )┌
+	if(argc != 3)
 	{
 		std::cerr << "[ERROR] [URDF TEST] No path to file was given. "
-		          << "Usage: ./kinematic_control_test /path/to/file.urdf\n";
-		         
-		return 1;
+		          << "Usage: ./kinematic_control_test /path/to/file.urdf endpoint_name\n";
+	         
+		return -1;                                                                                // Exit main() with error
 	}
 	
-	// Set up the robot model
-	KinematicTree_d model(argv[1]);                                                                // Create model from urdf
+	srand(time(NULL));                                                                             // Seed the random number generator	
 	
-	SerialKinematicControl_d controller(&model,"right_hand");                                      // Create controller for the "right hand" frame
+     // Set up the controller
+     KinematicTree_d model(argv[1]);                                                                // Create the model from urdf
+     
+     SerialKinematicControl_d controller(&model, argv[2]);                                          // Create controller for given endpoint
 
      Eigen::VectorXd jointPosition(model.number_of_joints()); jointPosition.setZero();              // Set the initial joint positions
      
      Eigen::VectorXd jointVelocity(model.number_of_joints()); jointVelocity.setZero();              // Set the initial joint velocities
      
      // Set up the trajectory
-     srand(time(NULL));                                                                             // Seed the random number generator
+
     
      Polynomial_d trajectory(jointPosition,
                              3*Eigen::VectorXd::Random(model.number_of_joints()),

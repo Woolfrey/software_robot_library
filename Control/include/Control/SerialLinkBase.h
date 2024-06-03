@@ -184,8 +184,6 @@ SerialLinkBase<DataType>::SerialLinkBase(KinematicTree<DataType> *model, const s
      // Record pointer to the endpoint frame to be controlled so we don't need to search for it later.
      
      // NOTE: This will throw a runtime error if it doesn't exist.
-     
-     this->_endpointFrame = this->_model->find_frame(endpointName);
 
      // Resize dimensions of inequality constraints for the QP solver: B*qdot < z, where:
      // B = [      I    ]   z = [    qdot_max  ]
