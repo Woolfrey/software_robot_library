@@ -125,14 +125,14 @@ SerialKinematicControl<DataType>::resolve_endpoint_motion(const Eigen::Vector<Da
      
 	this->_constraintVector.block(       0 , 0, numJoints, 1) =  upperBound;
 	this->_constraintVector.block(numJoints, 0, numJoints, 1) = -lowerBound;
-//   this->_constraintVector(2*numJoints) <--- NEEDS TO BE SET ON CASE-BY-CASE BASIS	
+//   this->_constraintVector(2*numJoints)                                                           // Needs to be set on a case-by-case basis
 	
 	if(this->_manipulability > this->_minManipulability)                                           // Not singular
 	{
 	     this->_constraintVector(2*numJoints) = (this->_controlFrequency)/10
 	                                          * (this->_manipulability - this->_minManipulability); // Limit motion toward singularity
 	     
-	     if(this->_model->number_of_joints() <= 6) // FULLY-ACTUATED / NON-REDUNDANT ROBOTS
+	     if(this->_model->number_of_joints() <= 6)                                                 // Fully actuated or underactuated robots
 	     {
 		     // Solve a problem of the form:
 		     // min 0.5*x'*H*x + x'*f
@@ -154,7 +154,7 @@ SerialKinematicControl<DataType>::resolve_endpoint_motion(const Eigen::Vector<Da
 	                                                      this->_constraintVector,                 // z
 	                                                      startPoint);                             
 	     }
-	     else // REDUNDANT ROBOTS
+	     else                                                                                      // Redundant robots
 	     {
 	          // Solve a problem of the form:
 	          // min (x_d - x)'*W*(x_d - x)
@@ -177,7 +177,7 @@ SerialKinematicControl<DataType>::resolve_endpoint_motion(const Eigen::Vector<Da
 	          this->_redundantTaskSet = false;                                                     // Reset for next control loop
 	     }
 	}
-	else // SINGULAR CONFIGURATION
+	else                                                                                           // Singular configurations
 	{
 		// Solve a problem of the form:
 		// min 0.5*x'*H*x + x'*f
