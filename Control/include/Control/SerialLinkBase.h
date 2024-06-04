@@ -181,11 +181,13 @@ template <class DataType>
 SerialLinkBase<DataType>::SerialLinkBase(KinematicTree<DataType> *model, const std::string &endpointName)
 					               : _model(model)
 {     
-     // Record pointer to the endpoint frame to be controlled so we don't need to search for it later.
-     
+     // Record pointer to the endpoint frame to be controlled so we don't need to search for it later.   
      // NOTE: This will throw a runtime error if it doesn't exist.
+     
+     this->_endpointFrame = this->_model->find_frame(endpointName);
 
      // Resize dimensions of inequality constraints for the QP solver: B*qdot < z, where:
+     //
      // B = [      I    ]   z = [    qdot_max  ]
      //     [     -I    ]       [   -qdot_min  ]
      //     [  (dm/dq)' ]       [  (m - m_min) ]
@@ -195,12 +197,12 @@ SerialLinkBase<DataType>::SerialLinkBase(KinematicTree<DataType> *model, const s
      this->_constraintMatrix.resize(2*n+1,n);
      this->_constraintMatrix.block(0,0,n,n).setIdentity();
      this->_constraintMatrix.block(n,0,n,n) = -this->_constraintMatrix.block(0,0,n,n);
-//   this->_constraintMatrix.row(2*n) = this->manipulability_gradient();
+//   this->_constraintMatrix.row(2*n) = this->manipulability_gradient(); <-- Needs to be set in the control loop
 
      this->_constraintVector.resize(2*n+1);
-//   this->_constraintVector.block(0,0,n,1) =  upperBound;
-//   this->_constraintVector.block(n,0,n,1) = -lowerBound;
-//   this->_constraintVector(2*n) = this->_manipulability - this->_minManipulability;
+//   this->_constraintVector.block(0,0,n,1) =  upperBound; <-- Needs to be set in the control loop
+//   this->_constraintVector.block(n,0,n,1) = -lowerBound; <-- Needs to be set in the control loop
+//   this->_constraintVector(2*n) = this->_manipulability - this->_minManipulability; <-- Needs to be set in the control loop
      
      std::cout << "[INFO] [SERIAL LINK CONTROL] Controlling the '" << endpointName << "' frame on the '" 
                << this->_model->name() << "' robot.\n";
