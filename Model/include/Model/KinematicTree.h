@@ -171,11 +171,19 @@ class KinematicTree
           {
                auto container = this->_frameList.find(frameName);                                   // Find the frame in the list
                
-               if(container != this->_frameList.end()) return &container->second;                    // Return the ReferenceFrame struct
+               if(container != this->_frameList.end()) return &container->second;                   // Return the ReferenceFrame struct
                else
                {    
-                    throw std::runtime_error("[ERROR] [KINEMATIC TREE] find_frame(): "
-                                             "Unable to find the frame '" + frameName + "' in the model.");
+                    std::string message = "[ERROR] [KINEMATIC TREE] find_frame(): "
+                                          "Unable to find '" + frameName + "' in the model. "
+                                          "Here is a list of known reference frames:";
+                    
+                    for(auto frame = this->_frameList.begin(); frame != this->_frameList.end(); frame++)
+                    {
+                         message += "\n- " + frame->first;
+                    }
+                    
+                    throw std::runtime_error(message);
                }
           }
           
@@ -642,7 +650,8 @@ bool KinematicTree<DataType>::update_state(const Eigen::Vector<DataType, Eigen::
           
           // Compute the inverse dynamics
 
-          Eigen::Matrix<DataType,6,Eigen::Dynamic> J = jacobian(currentLink, currentLink->center_of_mass(), k+1); // Jacobian to centre of mass
+          Eigen::Matrix<DataType,6,Eigen::Dynamic> J = jacobian(currentLink, 
+                                                                currentLink->center_of_mass(), k+1); // Jacobian to centre of mass
           
           Eigen::Matrix<DataType,3,Eigen::Dynamic> Jv = J.block(0,0,3,k+1);                         // Linear component
           
@@ -894,15 +903,7 @@ KinematicTree<DataType>::partial_derivative(const Eigen::Matrix<DataType,6,Eigen
 template <class DataType> inline
 Eigen::Matrix<DataType,6,Eigen::Dynamic> KinematicTree<DataType>::jacobian(const std::string &frameName)
 {
-     auto container = this->_frameList.find(frameName);                                             // Find the given frame in the dictionary
-     
-     if(container == this->_frameList.end())
-     {
-          throw std::runtime_error("[ERROR] [KINEMATIC TREE] jacobian(): "
-                                   "Could not find a frame called '" + frameName + "' in the model.");
-     }
-     
-     return jacobian(&container->second);                                                           // Get pointer to frame, pass onward
+     return jacobian(find_frame(frameName));                                                        // Too easy lol ᕙ(▀̿̿ĺ̯̿̿▀̿ ̿) ᕗ
 }
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -911,15 +912,9 @@ Eigen::Matrix<DataType,6,Eigen::Dynamic> KinematicTree<DataType>::jacobian(const
 template <class DataType> inline
 Pose<DataType> KinematicTree<DataType>::frame_pose(const std::string &frameName)
 {
-     auto container = this->_frameList.find(frameName);                                             // Search for the given frame in the list
+     ReferenceFrame<DataType> *frame = find_frame(frameName);                                       // Search the model
      
-     if(container == this->_frameList.end())
-     {
-          throw std::runtime_error("[ERROR] [KINEMATIC TREE] frame_pose(): "
-                                   "Unable to find a frame called '" + frameName + "' in the model.");
-     }
-    
-     return (container->second).link->pose()*(container->second).relativePose;                      // NOTE: container->second is a ReferenceFrame data structure.
+     return frame->link->pose()*frame->relativePose;                                                // Return pose relative to base/global frame
 }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
