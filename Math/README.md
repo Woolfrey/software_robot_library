@@ -6,6 +6,7 @@ This section of the library contains useful mathematical functions.
 ### Contents:
 - [Backward Substitution](#backward-substitution)
 - [Forward Substitution](#forward-substitution)
+- [Positive Definite Matrices](#positive-definite-matrices)
 - [QR Decomposition](#qr-decomposition)
 - [Simple QP Solver](#simple-qp-solver)
 - [Skew Symmetric Class](#skew-symmetric-class)
@@ -67,6 +68,25 @@ Eigen can [also solve triangular systems](http://eigen.tuxfamily.org/dox/group__
 
 [:arrow_backward: Go back.](#math)
 
+## Positive Definite Matrices
+
+Many control and optimisation problems are predicated on the fact that a matrix is positive definite. This means that:
+- It is symmetric: $\mathbf{A = A^\mathrm{T}}$, and
+- Its determinant is positive: $det(\mathbf{A}) > 0$ (i.e. not singular).
+For example, the inertia matrix of a robot arm $\mathbf{M(q)}$ must be positive definite which follows from the fact that kinetic energy is always positive:
+```math
+\frac{1}{2}\mathbf{\dot{q}}^\mathrm{T}\mathbf{M(q)}\mathbf{\dot{q}} > 0~\forall \mathbf{\dot{q}\ne 0}.
+```
+A simple function is defined in `Math.h` that can be used to check a matrix during runtime. For example:
+```
+Eigen::MatrixXd A; \\ Declare a matrix.
+...
+if(is_positive_definite(A))
+{
+    \\ Do something
+}
+```
+[:arrow_backward: Go back.](#math)
 
 ## QR Decomposition
 A matrix $\mathbf{A}\in\mathbb{R}^{m\times n}$ for $m >= n$ can be decomposed in to:
