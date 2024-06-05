@@ -13,7 +13,7 @@ The model classes are used for computing the kinematics and dynamics of robotic 
 - [Joint](#joint)
 - [Link](#link)
 - [KinematicTree](#kinematictree)
-     - [Kinemaitcs](#kinematics)
+     - [Kinematics](#kinematics)
      - [Dynamics](#dynamics)
         - [Fixed-base Mechanisms](#fixed-base-mechanisms)
         - [Floating-base Mechanisms](#floating-base-mechanisms)
