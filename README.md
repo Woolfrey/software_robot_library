@@ -5,7 +5,7 @@
 RobotLibrary is a C++ library for modeling and control of robots. It is an ongoing project with more features to come soon.
 
 ### Contents:
-- [Installation Instructions](#installation-instructions)
+- Installation Instructions
      - [Installing Eigen](#installing-eigen)
      - [Installing RobotLibrary](#installing-robotlibrary)
      - [Using RobotLibrary in Another Project](#using-robotlibrary-in-another-project)
