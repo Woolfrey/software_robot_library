@@ -69,9 +69,7 @@ When using `RobotLibrary` classes in another project, it is necessary to link bo
 In the `example.cpp` file we can `#include` the `KinematicTree` header file from the `Model` sublibrary:
 ```
 #include <Model/KinematicTree.h>
-.
-.
-.
+...
 int main(int argc, char **argv)
 {
      KinematicTree model("path/to/robot.urdf");
@@ -83,14 +81,10 @@ Then, in the `CMakeLists.txt` file, we must:
 ```
 cmake_minimum_required(VERSION 3.8)
 project(example)
-.
-.
-.
+...
 find_package(Eigen3 REQUIRED)
 find_package(RobotLibrary REQUIRED)
-.
-.
-.
+...
 add_executable(example src/example.cpp)
 target_link_libraries(example RobotLibrary::RobotLibrary Eigen3::Eigen)
 ```
