@@ -8,8 +8,15 @@
 #ifndef MATH_H_
 #define MATH_H_
 
-#include <Eigen/Core>
+#include <Eigen/Core>                                                                               // Eigen::Vector, Eigen::Matrix etc
 
+  ////////////////////////////////////////////////////////////////////////////////////////////////////
+ //                                    SKEW-SYMMETRIC MATRIX                                       //
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * This class represents the skew-symmetric matrix expansion of a 3D vector.
+ */
 template <class DataType>
 class SkewSymmetric
 {
@@ -56,6 +63,10 @@ class SkewSymmetric
           Eigen::Vector<DataType,3> _vec;
 };                                                                                                  // Semicolon needed after class declaration
 
+  ////////////////////////////////////////////////////////////////////////////////////////////////////
+ //                                      POSITIVE DEFINITE?                                        //
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
 /**
  * It's obvious what this function does.
  * @param A a square matrix
@@ -92,9 +103,13 @@ bool is_positive_definite(const Eigen::Matrix<DataType,Eigen::Dynamic,Eigen::Dyn
      return true;
 }
 
+  ////////////////////////////////////////////////////////////////////////////////////////////////////
+ //                                     QR DECOMPOSITION                                           //
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
 /**
  * A data structure for holding the results of the QR decomposition.
- **/
+ */
 template <typename DataType>
 struct QRdecomposition
 {
@@ -161,6 +176,10 @@ schwarz_rutishauser(const Eigen::MatrixBase<Derived> &A,
      }
 }
 
+  ////////////////////////////////////////////////////////////////////////////////////////////////////
+ //                                    FORWARD SUBSTITUTION                                        //
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
 /**
  * Solve a system of equations y = L*x, where L is a lower-triangular matrix.
  * @param y A vector of known values.
@@ -211,6 +230,10 @@ forward_substitution(const Eigen::MatrixBase<Derived>      &Y,
      
      return X;
 }
+
+  ////////////////////////////////////////////////////////////////////////////////////////////////////
+ //                                    BACKWARD SUBSTITUTION                                       //
+////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
  * Solve a system of equations Y = U*X, where U is an upper-triangular matrix.
