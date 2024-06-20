@@ -17,6 +17,13 @@ data = pandas.read_csv(path,header=None)
 
 data.columns = ["Time", "Position", "Velocity", "Acceleration"] # Give a name to each column
 
+path = os.path.abspath(os.path.join(os.path.dirname(__file__),
+                                    "../../build/waypoint_test_data.csv"))
+
+waypoints = pandas.read_csv(path,header=None)
+
+waypoints.columns = ["Time", "Position"]
+
 ################### Plot the data ###############
 fig,ax = matplotlib.pyplot.subplots(3,1, dpi = 300)         # Create figure with 3 subplots
 
@@ -24,6 +31,8 @@ ax[0].plot(data["Time"],data["Position"],     color=[0,0,0])
 ax[1].plot(data["Time"],data["Velocity"],     color=[0,0,0])
 ax[2].plot(data["Time"],data["Acceleration"], color=[0,0,0])
 ax[2].set_xlabel("Time")
+
+ax[0].scatter(waypoints["Time"], waypoints["Position"], color = [0, 0, 0])     # Add markers for the waypoints
 
 ##### Clean up the figure and remove spines #####
 labels = ["Position", "Velocity", "Acceleration"]

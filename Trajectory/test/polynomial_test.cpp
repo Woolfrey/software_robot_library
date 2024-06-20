@@ -7,7 +7,7 @@
  
 #include <fstream>                                                                                  // For opening/creating/saving text files
 #include <iostream>                                                                                 // std::cerr, std::cout
-#include <Trajectory/Polynomial.h>                                                                  // We want to test this
+#include <Trajectory/PolynomialTrajectory.h>                                                        // We want to test this
 #include <string>
  
   ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -21,56 +21,66 @@ int main(int argc, char* argv[])
 		          << "Usage: './polynomial_test n' where 'n' is an odd integer." << std::endl;
 		          
 	
-		return -1;                                                                                // Failure
+		return -1;                                                                                  // Failure
 	}
 	
-	Eigen::Vector<float,1> startPosition; startPosition(0) = 0;
-	Eigen::Vector<float,1> endPosition;   endPosition(0)   = 1;
-	Eigen::Vector<float,1> startVelocity; startVelocity(0) = 0;
-	Eigen::Vector<float,1> endVelocity;   endVelocity(0)   = 0;
+	using namespace Eigen;
+	
+	State<float> startPoint = { Eigen::VectorXf::Zero(1),                                         // Position
+	                            Eigen::VectorXf::Zero(1),                                           // Velocity
+	                            Eigen::VectorXf::Zero(1) };                                         // Acceleration
+    
+    State<float> endPoint = { Eigen::VectorXf::Ones(1),                                           // Position
+                              Eigen::VectorXf::Zero(1),                                             // Velocity
+                              Eigen::VectorXf::Zero(1) };                                           // Acceleration
 	
 	try
 	{
-		unsigned int order = std::stoi(argv[1]);                                                  // Convert to int
+		unsigned int order = std::stoi(argv[1]);                                                    // Convert to int
 		
-		Polynomial<float> trajectory(startPosition, endPosition, startVelocity, endVelocity, 0, 1, order);
-	 
+        PolynomialTrajectory<float> trajectory(startPoint, endPoint, 0, 1, order);
+	    
 		float hertz = 50.0;
 		
-		unsigned int steps = 52;
+		unsigned int steps = 51;
 		
-		Eigen::MatrixXf state(steps,3);
+		Eigen::MatrixXf stateData(steps,4);
 		
+		// Run a numerical simulation
 		for(int i = 0; i < steps; i++)
 		{
-			float t = (i-1)/hertz;
+			float t = i/hertz;
 			
 			const auto &[pos, vel, acc] = trajectory.query_state(t);
 			
-			state(i,0) = pos(0);
-			state(i,1) = vel(0);
-			state(i,2) = acc(0);
+			stateData.row(i) << t, pos, vel, acc;                                                   // Save data to array
 		}
 		
-		// Save the data to .csv file
-	     std::ofstream file;
-	     file.open("polynomial_test_data.csv");
-          
-          for(int i = 0; i < steps; i++)
-          {
-               file << i/hertz;                                                                     // Time
-               for(int j = 0; j < 3; j++) file << "," << state(i,j);                                // Position, velocity, acceleration
-               file << "\n";                                                                        // New line
-          }
-          
-          file.close();                                                                             // As it says on the label
-	}
+		// Output the data to .csv for analysis
+		std::ofstream file; file.open("trajectory_test_data.csv");
+		
+		for(int i = 0; i < stateData.rows(); i++)
+		{
+		    for(int j = 0; j < stateData.cols(); j++)
+		    {
+		        file << stateData(i,j);
+		        
+		        if(j < stateData.cols()-1) file << ",";
+		        else                       file << "\n";
+	        }
+        }
+        
+        file.close();
+    }
 	catch(const std::exception &exception)
 	{
 		std::cerr << exception.what() << std::endl;
 		
 		return -1;
 	}
+	
+	std::cout << "[INFO] [POLYNOMIAL TRAJECTORY TEST] Complete. "
+	          << "Data output to 'trajectory_test_data.csv' for analysis.\n";
 	
 	return 0;
 }

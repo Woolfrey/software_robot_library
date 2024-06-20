@@ -1,5 +1,5 @@
 /**
- * @file   Math.h
+ * @file   MathFunctions.h
  * @author Jon Woolfrey
  * @date   September 2023
  * @brief  Useful math functions.
@@ -289,17 +289,36 @@ backward_substitution(const Eigen::MatrixBase<Derived> &Y,
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                        Fit the derivatives for cubic spline interpolation                      //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-std::vector<FunctionPoint<DataType>> fit_cubic_spline(const std::vector<DataType> &y,
-                                                      const std::vector<DataType> &x,
-                                                      const DataType &firstDerivative,
-                                                      const DataType &finalDerivative)
+
+/**
+ * This function solves for the derivatives at each point of a cubic spline such that there is continuity.
+ * @param y The dependent variable for the spline.
+ * @param x The independent variable for the spline.
+ * @param firstDerivative The value for dy/dx at the very first point.
+ * @param finalDerivative The value for dy/dx at the final point.
+ * @return An array containing the derivatives dy/dx for each point x.
+ */
+template <typename DataType>
+inline
+std::vector<DataType>
+solve_cubic_spline_derivatives(const std::vector<DataType> &y,
+                               const std::vector<DataType> &x,
+                               const DataType &firstDerivative,
+                               const DataType &finalDerivative)
 {
-    unsigned int n = points.size();
+    unsigned int n = y.size();
     
     if(n < 3)
     {
-        throw std::invalid_argument("[ERROR] fit_cubic_spline(): "
+        throw std::invalid_argument("[ERROR] fit_cubic_spline derivatives(): "
                                     "A minimum number of 3 points is required to define a spline.");
+    }
+    else if(y.size() != x.size())
+    {
+        throw std::invalid_argument("[ERROR] fit_cubic_spline_derivatives(): "
+                                    "Dimensions of arguments do not match. The y vector had " +
+                                    std::to_string(y.size()) + " elements, and the x vector had " +
+                                    std::to_string(x.size()) + " elements.");
     }
     
     using namespace Eigen;
@@ -314,40 +333,49 @@ std::vector<FunctionPoint<DataType>> fit_cubic_spline(const std::vector<DataType
     A(0,0) = 1;                                                                                     // First value
     
     // Assign intermediate values
-    for(int i = 1; i < this->_numberOfWaypoints-1; i++)
+    for(int i = 1; i < n-1; i++)
     {
-        DataType dx1 = times[i]   - times[i-1];
-        DataType dx2 = times[i+1] - times[i];
+        DataType dx1 = x[i]   - x[i-1];
+        DataType dx2 = x[i+1] - x[i];
 
         if(dx1 == 0)
         {
-            throw std::logic_error("[ERROR] [SPLINE] Constructor: "
-                                   "Time for waypoint " + std::to_string(i-1) + " "
-                                   "is the same as time for waypoint " + std::to_string(i) + 
-                                   "(" + std::to_string(times[i-1]) + " == " + std::to_string(times[i]) + ").");
+            throw std::logic_error("[ERROR] fit_cubic_spline_derivatives(): "
+                                   "Independent variable " + std::to_string(i) + " is the same as "
+                                   "independent variable " + std::to_string(i+1) + " ("
+                                   + std::to_string(x[i]) + " == " + std::to_string(x[i+1]) + ").");
         }
 
-        A(i,i-1) = 1/dt1;
-        A(i,i)   = 2*(1/dt1 + 1/dt2);
-        A(i,i+1) = 1/dt2;
+        A(i,i-1) = 1/dx1;
+        A(i,i)   = 2*(1/dx1 + 1/dx2);
+        A(i,i+1) = 1/dx2;
 
-        B(i,i-1) = -3/(dt1*dt1);
-        B(i,i)   =  3*(1/(dt1*dt1) - 1/(dt2*dt2));
-        B(i,i+1) =  3/(dt2*dt2);
+        B(i,i-1) = -3/(dx1*dx1);
+        B(i,i)   =  3*(1/(dx1*dx1) - 1/(dx2*dx2));
+        B(i,i+1) =  3/(dx2*dx2);
     }
 
     A(n-1,n-1) = 1;
     
-    Eigen::Vector<DataType,Dynamic> points(y.data());
+    Eigen::Vector<DataType,Dynamic> points(y.size());
+    for(int i = 0; i < y.size(); i++) points(i) = y[i];
     
     Eigen::Vector<DataType,Dynamic> derivatives = A.partialPivLu().solve(B*points);
     
-    std::vector<FunctionPoint<DataType>> waypoints;                                                 // Value to be returned
+    std::vector<DataType> temp(derivatives.size());
     
-    // NOTE: second derivative doesn't matter for a cubic spline
-    for(int i = 0; i < n; i++) waypoints.push_back( { points[i], derivatives[i], 0.0 } );  
+    for(int i = 0; i < derivatives.size(); i++) temp[i] = derivatives[i];
     
-    return waypoints;                                      
+    return temp;                                  
+}
+
+template <typename DataType>
+inline
+std::vector<DataType>
+solve_cubic_spline_derivatives(const std::vector<DataType> &y,
+                               const std::vector<DataType> &x)
+{
+    return solve_cubic_spline_derivatives(y,x,0.0,0.0);
 }
 
 #endif                                    

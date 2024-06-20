@@ -7,7 +7,9 @@
  
 #include <fstream>  
 #include <iostream>                                                                                 // std::cerr, std::cout
-#include <Trajectory/Spline.h>                                                                      // We want to test this
+#include <Math/MathFunctions.h>
+#include <time.h>
+#include <Trajectory/SplineTrajectory.h>                                                            // We want to test this
 #include <string>
  
   ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -15,74 +17,114 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 int main(int argc, char* argv[])
 {
-	if(argc != 3)
-	{
-		std::cerr << "[ERROR] [SPLINE TEST] Incorrect number of arguments. "
-		          << "Usage: './spline_test numberOfPoints polynomialOrder'." << std::endl;
-		          
-		return -1;
-	}
-	
-	unsigned int n = std::stoi(argv[1]);                                                           // Number of waypoints
-	unsigned int order = std::stoi(argv[2]);                                                       // Polynomial order
-	
-	// Set up the points for the spline
-	// We need a std::vector of Eigen::Vector objects for the spline.
-	// Each Eigen::Vector represents a position, the std::vector collates them as waypoints.
-	
-	std::vector<Eigen::Vector<double,Eigen::Dynamic>> points;
-	std::vector<double> times;
-	
-	for(int i = 0; i < n; i++)
-	{
-		Eigen::Vector<double,Eigen::Dynamic> temp(1);                                             // 1D vector
+    if(argc != 3)
+    {
+        std::cerr << "[ERROR] [SPLINE TEST] Incorrect number of arguments. "
+                  << "Usage: './spline_test numberOfPoints polynomialOrder'." << std::endl;
+
+        return -1;
+    }
+
+    unsigned int numberOfWaypoints = std::stoi(argv[1]);                                            // As it says
+    unsigned int order = std::stoi(argv[2]);                                                        // Polynomial order
+
+    std::vector<State<double>> trajectoryPoints(numberOfWaypoints);
+    
+    // Start at zero
+    trajectoryPoints.front() = { Eigen::VectorXd::Zero(1),
+                                 Eigen::VectorXd::Zero(1),
+                                 Eigen::VectorXd::Zero(1) };
+    
+    // End at 1, but with zero velocity
+    trajectoryPoints.back() = { Eigen::VectorXd::Ones(1),
+                                Eigen::VectorXd::Zero(1),
+                                Eigen::VectorXd::Zero(1) };
+                                
+    srand(time(NULL));                                                                              // Seed the random number generator
+    
+    // Set random values for the intermediate points
+    for(int i = 1; i < numberOfWaypoints-1; i++)
+    {
+        trajectoryPoints[i] = { Eigen::VectorXd::Random(1),
+                                Eigen::VectorXd::Random(1),
+                                Eigen::VectorXd::Random(1) };
+    }
+    
+    // Create the vector of times for each waypoint
+    std::vector<double> times;
+    for(int i = 0; i < numberOfWaypoints; i++) times.push_back(i);
+
+    // Override the values for the cubic case to test the custom function
+    if(order == 3)
+    {
+        std::vector<double> positions(numberOfWaypoints);
+        for(int i = 0; i < positions.size(); i++)
+        {
+            positions[i] = trajectoryPoints[i].position(0);
+        }
+        
+        std::vector<double> derivatives = solve_cubic_spline_derivatives(positions, times);
+        
+        for(int i = 0; i < numberOfWaypoints; i++)
+        {
+            trajectoryPoints[i].velocity(0) = derivatives[i];
+        }
+    } 
+    
+    // Sample equispaced points in time along the trajectory
+    try
+    {
+        SplineTrajectory<double> trajectory(trajectoryPoints, times, order);                        // Create the trajectory
+        
+        double hertz = 50;
+        
+        unsigned int steps = times.back()*hertz+1;
+        
+        Eigen::MatrixXd stateData(steps,4);
+        for(int i = 0; i < steps; i++)
+        {
+            double time = i/hertz;
+            
+            const auto &[pos, vel, acc] = trajectory.query_state(time);
+            
+            stateData.row(i) << time, pos(0), vel(0), acc(0);
+        }
+        
+        // Output the data to .csv for analysis
+		std::ofstream file; file.open("trajectory_test_data.csv");
 		
-          if(i%2 == 0) temp(0) = 1;
-          else         temp(0) =-1;
-		
-		points.push_back(temp);
-		times.push_back(i);
-	}
-		
-	try
-	{
-		Spline<double> trajectory(points, times, order);
-		
-		double hertz = 20.0;
-		unsigned int steps = 21*(n-1);
-		
-		Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> state(steps,3);
-		
-		for(int i = 0; i < steps; i++)
+		for(int i = 0; i < stateData.rows(); i++)
 		{
-			double t = (i-1)/hertz;
-			
-			const auto &[pos, vel, acc] = trajectory.query_state(t);
-			
-			state(i,0) = pos(0);
-			state(i,1) = vel(0);
-			state(i,2) = acc(0);
-		}
-		
-		// Save the data to .csv file
-	     std::ofstream file;
-	     file.open("spline_test_data.csv");
-          
-          for(int i = 0; i < steps; i++)
-          {
-               file << i/hertz;                                                                     // Time
-               for(int j = 0; j < 3; j++) file << "," << state(i,j);                                // Position, velocity, acceleration
-               file << "\n";                                                                        // New line
-          }
-          
-          file.close();                                                                             // As it says on the label
-	}
-	catch(const std::exception &exception)
-	{
-		std::cerr << exception.what() << std::endl;
-		
-		return -1;
-	}
-	
-	return 0;
+		    for(int j = 0; j < stateData.cols(); j++)
+		    {
+		        file << stateData(i,j);
+		        
+		        if(j < stateData.cols()-1) file << ",";
+		        else                       file << "\n";
+	        }
+        }
+        file.close();
+        
+        // Save the waypoints
+        file.open("waypoint_test_data.csv");
+        for(int i = 0; i < numberOfWaypoints; i++)
+        {
+            file << times[i] << "," << trajectoryPoints[i].position(0);
+            
+            if(i < numberOfWaypoints-1) file << "\n";
+        }
+        file.close();
+            
+    }
+    catch(const std::exception &exception)
+    {
+        std::cerr << exception.what() << std::endl;
+
+        return -1;
+    }
+    
+	std::cout << "[INFO] [SPLINE TRAJECTORY TEST] Complete. "
+	          << "Data output to 'trajectory_test_data.csv' for analysis.\n";
+	          
+    return 0;
 }

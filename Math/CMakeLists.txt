@@ -4,7 +4,7 @@
 
 project(Math)                                                                                       # Refered to by ${PROJECT_NAME} below
 
-add_library(${PROJECT_NAME} include/Math/Math.h
+add_library(${PROJECT_NAME} include/Math/MathFunctions.h
                             include/Math/QPSolver.h)                                                # Generate targets and list associated header files
 
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_VISIBILITY_PRESET "hidden"                     # Helps reduce size of library?
