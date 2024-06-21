@@ -11,59 +11,6 @@
 #include <Eigen/Core>                                                                               // Eigen::Vector, Eigen::Matrix etc
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
- //                                    SKEW-SYMMETRIC MATRIX                                       //
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
-/**
- * This class represents the skew-symmetric matrix expansion of a 3D vector.
- */
-template <class DataType>
-class SkewSymmetric
-{
-     public:
-          /**
-           * Constructor.
-           * @param vec A 3D Eigen::Vector to be made as a skew-symmetric matrix.
-           */
-          SkewSymmetric(const Eigen::Vector<DataType,3> vec) : _vec(vec) {}
-          
-          Eigen::Matrix<DataType,3,3> as_matrix()
-          {
-               Eigen::Matrix<DataType,3,3> S;
-               S <<             0 , -this->_vec(2),  this->_vec(1),
-                     this->_vec(2),             0 , -this->_vec(0),
-                    -this->_vec(1),  this->_vec(0),             0 ;
-                    
-               return S;
-          }
-
-          /**
-           * Multiply this skew-symmetric matrix with another tensor.
-           * This speeds up calcs by skipping the 0's along the diagonal.
-           * @param other The other tensor to multiply with (3xn)
-           * @return A 3xn matrix resulting from the product.
-           */
-          Eigen::Matrix<DataType,3,Eigen::Dynamic> operator*(const Eigen::Matrix<DataType,3,Eigen::Dynamic> &other)
-          {
-               Eigen::Matrix<DataType,3,Eigen::Dynamic> result;
-               result.resize(Eigen::NoChange,other.cols());
-               
-               for(int j = 0; j < other.cols(); j++)
-               {
-                    result(0,j) = this->_vec(1)*other(2,j) - this->_vec(2)*other(1,j);
-                    result(1,j) = this->_vec(2)*other(0,j) - this->_vec(0)*other(2,j);
-                    result(2,j) = this->_vec(0)*other(1,j) - this->_vec(1)*other(0,j);
-               }
-               
-               return result;
-          }
-          
-     private:
-     
-          Eigen::Vector<DataType,3> _vec;
-};                                                                                                  // Semicolon needed after class declaration
-
-  ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                                      POSITIVE DEFINITE?                                        //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -369,6 +316,12 @@ solve_cubic_spline_derivatives(const std::vector<DataType> &y,
     return temp;                                  
 }
 
+/**
+ * Fits the derivatives for points on a cubic spline. Assumes the initial and final derivatives are zero.
+ * @param y The independent variable on the spline.
+ * @param x The dependent variable on the spline.
+ * @return An array containing the derivatives dy/dx associated with every point y.
+ */
 template <typename DataType>
 inline
 std::vector<DataType>

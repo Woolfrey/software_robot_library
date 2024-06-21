@@ -19,8 +19,8 @@ set_target_properties(${PROJECT_NAME} PROPERTIES CXX_VISIBILITY_PRESET "hidden" 
 
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_17)                                          # Define the C++ standard needed to compile this library
 
-target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src                  # Set source files as private
-        	                                         ${CMAKE_CURRENT_SOURCE_DIR}/test                 # Set test files as private
+target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src                       # Set source files as private
+        	                                         ${CMAKE_CURRENT_SOURCE_DIR}/test                    # Set test files as private
                                            PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> # Reference the local include directory when building this project
                                                   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>       # Reference install/include directory after the fact
 )

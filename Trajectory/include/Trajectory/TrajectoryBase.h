@@ -70,7 +70,14 @@ class TrajectoryBase
         query_state(const DataType &time) = 0;
 
         /**
-         * @return The computed end time of this trajectory.
+         * @return The time at which this trajectory commences.
+         */
+        inline
+        DataType
+        start_time() const { return this->_startTime; }
+        
+        /**
+         * @return The time at which this trajectory finishes.
          */
         inline
         DataType

@@ -10,6 +10,19 @@
 
 #include <Eigen/Dense>                                                                              // Eigen::Matrix, Eigen::Vector, and decompositions
 
+
+/**
+ * A data structure for representing the output of a function f(x), and its derivatives df/dx, d^2f/dx^2.
+ */
+template <class DataType>
+struct FunctionPoint
+{
+    DataType value            = 0.0;                                                                ///< The value y = f(x)
+    DataType firstDerivative  = 0.0;                                                                ///< dy/dx
+    DataType secondDerivative = 0.0;                                                                ///< d^2y/dx^2
+};                                                                                                  // Semicolon required after a class declaration
+
+
 /**
  * A class representing polynomial functions f(x) = c_0 + c_1*x + c_2*x^2 + ... + c_n*x^n.
  */
@@ -29,8 +42,8 @@ class Polynomial
          * @param endPoint The value, first derivative, and second derivative for a given point.
          * @param order The number of terms in the polynomial.
          */
-        Polynomial(const std::array<DataType,3> &startValue,
-                   const std::array<DataType,3> &endValue,
+        Polynomial(const FunctionPoint<DataType> &startValue,
+                   const FunctionPoint<DataType> &endValue,
                    const DataType &startPoint,
                    const DataType &endPoint,
                    const unsigned int &order);
@@ -41,7 +54,7 @@ class Polynomial
          * @param An array containing the function value f(x) and its derivatives f'(x), f''(x).
          */
         inline
-        std::array<DataType,3>
+        FunctionPoint<DataType>
         evaluate_point(const DataType &input);
 
     private:
@@ -56,8 +69,8 @@ class Polynomial
  //                                      Constructor                                               //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 template <class DataType>
-Polynomial<DataType>::Polynomial(const std::array<DataType,3> &startValues,
-                                 const std::array<DataType,3> &endValues,
+Polynomial<DataType>::Polynomial(const FunctionPoint<DataType> &startValues,
+                                 const FunctionPoint<DataType> &endValues,
                                  const DataType &startPoint,
                                  const DataType &endPoint,
                                  const unsigned int &order)
@@ -65,8 +78,9 @@ Polynomial<DataType>::Polynomial(const std::array<DataType,3> &startValues,
 {
     if(order%2 == 0)
     {
-        throw std::invalid_argument("[ERROR] [POLYNOMIAL] Order of the polynomial was "
-                                  + std::to_string(order) + " but it must be an odd number.");
+        throw std::invalid_argument("[ERROR] [POLYNOMIAL] Constructor: "
+                                    "Order of the polynomial was " + std::to_string(order) +
+                                    " but it must be an odd number.");
     }
     
     this->_coefficients.resize(order+1);                                                            // A polynomial of degree n has n+1 coefficients
@@ -96,21 +110,21 @@ Polynomial<DataType>::Polynomial(const std::array<DataType,3> &startValues,
     
     Eigen::Vector<DataType,Eigen::Dynamic> supportPoints(order+1); supportPoints.setZero();
     
-    supportPoints(0) = startValues[0];
-    supportPoints(n) = endValues[0];
+    supportPoints(0) = startValues.value;
+    supportPoints(n) = endValues.value;
     
     // Add endpoint derivative values
     if(order >= 3)
     {
-       supportPoints(1)   = startValues[1];
-       supportPoints(n+1) = endValues[1];
+       supportPoints(1)   = startValues.firstDerivative;
+       supportPoints(n+1) = endValues.firstDerivative;
     }
     
     // Add second derivative values
     if(order >= 5)
     {
-        supportPoints(2)   = startValues[2];
-        supportPoints(2+n) = startValues[2];
+        supportPoints(2)   = startValues.secondDerivative;
+        supportPoints(2+n) = startValues.secondDerivative;
     }
     
     // NOTE: Higher derivatives are assumed to be 0
@@ -123,19 +137,19 @@ Polynomial<DataType>::Polynomial(const std::array<DataType,3> &startValues,
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 template <class DataType>
 inline
-std::array<DataType,3>
+FunctionPoint<DataType>
 Polynomial<DataType>::evaluate_point(const DataType &input)
 {
-    std::array<DataType,3> point = {0.0, 0.0, 0.0};                                                 // Value to be returned
-    
+    FunctionPoint<DataType> output = {0.0, 0.0, 0.0};                                               // Value to be returned
+
     for(int i = 0; i <= this->_order; i++)
     {
-                  point[0] +=         this->_coefficients(i)*pow(input,i-0);
-        if(i > 0) point[1] +=       i*this->_coefficients(i)*pow(input,i-1);
-        if(i > 1) point[2] += (i-1)*i*this->_coefficients(i)*pow(input,i-2);
+                  output.value            +=         this->_coefficients(i)*pow(input,i-0);
+        if(i > 0) output.firstDerivative  +=       i*this->_coefficients(i)*pow(input,i-1);
+        if(i > 1) output.secondDerivative += (i-1)*i*this->_coefficients(i)*pow(input,i-2);
     }
     
-    return point;
+    return output;
 }
 
 #endif

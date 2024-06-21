@@ -20,7 +20,7 @@ class Spline
          * @param values The polynomial value, and its first and second derivatives at the given points.
          * @param points The corresponding independent variable for the spline values.
          */
-        Spline(const std::vector<std::array<DataType,3>> &values,
+        Spline(const std::vector<FunctionPoint<DataType>> &values,
                const std::vector<DataType> &points,
                const unsigned int &order);
                
@@ -30,7 +30,7 @@ class Spline
          * @return A FunctionPoint data structure containing the value and derivatives.
          */
         inline
-        std::array<DataType,3>
+        FunctionPoint<DataType>
         evaluate_point(const DataType &input);
     
     private:
@@ -47,7 +47,7 @@ class Spline
  //                                        Constructor                                             //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 template <class DataType>
-Spline<DataType>::Spline(const std::vector<std::array<DataType,3>> &values,
+Spline<DataType>::Spline(const std::vector<FunctionPoint<DataType>> &values,
                          const std::vector<DataType> &points,
                          const unsigned int &order)
                          : _numberOfSplines(values.size()-1),
@@ -88,7 +88,7 @@ Spline<DataType>::Spline(const std::vector<std::array<DataType,3>> &values,
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 template <class DataType>
 inline
-std::array<DataType,3>
+FunctionPoint<DataType>
 Spline<DataType>::evaluate_point(const DataType &input)
 {
     // NOTE: A spline is not defined outside of its support points

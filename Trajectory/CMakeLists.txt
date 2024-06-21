@@ -6,12 +6,10 @@ project(Trajectory)                                                             
 # Generate target reference,
 # list associated headers containing class definitions
 add_library(${PROJECT_NAME} SHARED
-            include/Trajectory/PolynomialTrajectory.h
-        #    include/Trajectory/MultiTrapezoid.h
+            include/Trajectory/CartesianSpline.h
             include/Trajectory/SplineTrajectory.h
-         #   include/Trajectory/TrajectoryBase.h
-         #   include/Trajectory/TrapezoidalVelocity.h
-         #   include/Trajectory/Waypoints.h
+            include/Trajectory/TrajectoryBase.h
+            include/Trajectory/TrapezoidalVelocity.h
 )
 
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_VISIBILITY_PRESET "hidden"                     # Helps reduce size of library?
@@ -22,25 +20,17 @@ set_target_properties(${PROJECT_NAME} PROPERTIES CXX_VISIBILITY_PRESET "hidden" 
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_17)                                          # Define the C++ standard needed to compile this library
 
 target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src                  # Set source files as private
-        	                                         ${CMAKE_CURRENT_SOURCE_DIR}/test                 # Set test files as private
+        	                                       ${CMAKE_CURRENT_SOURCE_DIR}/test                 # Set test files as private
                                            PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> # Reference the local include directory when building this project
                                                   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>       # Reference install/include directory after the fact
 )
 
 ####################################################################################################
 
-add_executable(polynomial_test test/polynomial_test.cpp)                                            # Create name of exe from source file
-add_dependencies(polynomial_test RobotLibrary)                                                      # Depends on RobotLibrary (obviously)
-target_link_libraries(polynomial_test RobotLibrary)                                                 # Link RobotLibrary
-
-#add_executable(trapezoidal_test test/trapezoidal_test.cpp)                                          # Create name of exe from source file
-#add_dependencies(trapezoidal_test RobotLibrary)                                                     # Depends on RobotLibrary (obviously)
-#target_link_libraries(trapezoidal_test RobotLibrary)                                                # Link RobotLibrary
+add_executable(trapezoidal_test test/trapezoidal_test.cpp)                                          # Create name of exe from source file
+add_dependencies(trapezoidal_test RobotLibrary)                                                     # Depends on RobotLibrary (obviously)
+target_link_libraries(trapezoidal_test RobotLibrary)                                                # Link RobotLibrary
 
 add_executable(spline_test test/spline_test.cpp)                                                    # Create name of exe from source file
 add_dependencies(spline_test RobotLibrary)                                                          # Depends on RobotLibrary (obviously)
 target_link_libraries(spline_test RobotLibrary)                                                     # Link RobotLibrary
-
-#add_executable(multi_trapezoid_test test/multi_trapezoid_test.cpp)                                  # Create name of exe from source file
-#add_dependencies(multi_trapezoid_test RobotLibrary)                                                 # Depends on RobotLibrary (obviously)
-#target_link_libraries(multi_trapezoid_test RobotLibrary)                                            # Link RobotLibrary

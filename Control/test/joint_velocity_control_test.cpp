@@ -9,7 +9,7 @@
 #include <fstream>                                                                                  // Reading and writing to files
 #include <iostream>                                                                                 // std::cout, std::cerr
 #include <Control/SerialKinematicControl.h>                                                         // Custom control class
-#include <Trajectory/Polynomial.h>                                                                  // Custom trajectory generator
+#include <Trajectory/SplineTrajectory.h>                                                            // Custom trajectory generator
 #include <time.h>
 
 // Parameters for the numerical simulation
@@ -24,7 +24,6 @@ double startTime = 0.0;
 double endTime = simulationDuration - 0.5;
 int polynomialOrder = 5;
 
-
 int main(int argc, char** argv)
 {
    // Default for argc is 1 but I don't know why ┐(ﾟ ～ﾟ )┌
@@ -33,35 +32,44 @@ int main(int argc, char** argv)
 		std::cerr << "[ERROR] [URDF TEST] No path to file was given. "
 		          << "Usage: ./kinematic_control_test /path/to/file.urdf endpoint_name\n";
 	         
-		return -1;                                                                                // Exit main() with error
+		return -1;                                                                                  // Exit main() with error
 	}
 	
-	srand(time(NULL));                                                                             // Seed the random number generator	
-	
-     // Set up the controller
-     KinematicTree_d model(argv[1]);                                                                // Create the model from urdf
-     
-     SerialKinematicControl_d controller(&model, argv[2]);                                          // Create controller for given endpoint
+    srand(time(NULL));                                                                              // Seed the random number generator	
 
-     Eigen::VectorXd jointPosition(model.number_of_joints()); jointPosition.setZero();              // Set the initial joint positions
-     
-     Eigen::VectorXd jointVelocity(model.number_of_joints()); jointVelocity.setZero();              // Set the initial joint velocities
-     
-     // Set up the trajectory
+    // Set up the controller
+    KinematicTree_d model(argv[1]);                                                                 // Create the model from urdf
 
-    
-     Polynomial_d trajectory(jointPosition,
-                             3*Eigen::VectorXd::Random(model.number_of_joints()),
-                             startTime, endTime, polynomialOrder);
+    SerialKinematicControl_d controller(&model, argv[2]);                                           // Create controller for given endpoint
+
+    unsigned int n = model.number_of_joints();
+
+    // Set up the trajectory
+
+    std::vector<State<double>> waypoints;
+
+    waypoints.push_back({ Eigen::VectorXd::Random(n),                                               // Position
+                       Eigen::VectorXd::Zero(n),                                                    // Velocity
+                       Eigen::VectorXd::Zero(n) });                                                 // Acceleration
+
+    waypoints.push_back({ 3*Eigen::VectorXd::Random(n),                                             // Position
+                              Eigen::VectorXd::Zero(n),                                             // Velocity
+                              Eigen::VectorXd::Zero(n) });                                          // Acceleration
                              
-     unsigned int m = simulationSteps/ratio;
-     unsigned int n = model.number_of_joints();
-     
-     Eigen::MatrixXd positionArray(m,n);
-     Eigen::MatrixXd velocityArray(m,n);
-     Eigen::MatrixXd positionErrorArray(m,n);
-     
-     unsigned int rowCounter = 0;
+    std::vector<double> times = {startTime, endTime};                               
+
+    SplineTrajectory<double> trajectory(waypoints,times,polynomialOrder);
+
+    unsigned int m = simulationSteps/ratio;
+
+    Eigen::MatrixXd positionArray(m,n);
+    Eigen::MatrixXd velocityArray(m,n);
+    Eigen::MatrixXd positionErrorArray(m,n);
+
+    unsigned int rowCounter = 0;
+
+    Eigen::VectorXd jointPosition = waypoints.front().position;
+    Eigen::VectorXd jointVelocity = waypoints.front().velocity;
      
      for(int i = 0; i < simulationSteps; i++)
      {

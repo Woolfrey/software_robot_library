@@ -76,7 +76,7 @@ int main(int argc, char* argv[])
     {
         SplineTrajectory<double> trajectory(trajectoryPoints, times, order);                        // Create the trajectory
         
-        double hertz = 50;
+        double hertz = 100;
         
         unsigned int steps = times.back()*hertz+1;
         

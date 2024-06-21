@@ -122,7 +122,7 @@ class SerialLinkBase : public QPSolver<DataType>
 		                           
 	protected:
 		
-		bool _redundantTaskSet = false;                                                           ///< When false, a redundant robot will autonomously reconfigure away from a singularity
+        bool _redundantTaskSet = false;                                                           ///< When false, a redundant robot will autonomously reconfigure away from a singularity
 		
 		DataType _jointPositionGain = 10.0;                                                       ///< On position tracking error
 		
@@ -132,7 +132,7 @@ class SerialLinkBase : public QPSolver<DataType>
 		
 		DataType _minManipulability = 5e-03;                                                      ///< Used in singularity avoidance
 		
-		DataType _maxJointAcceleration = 0.2;                                                     ///< As it says.
+		DataType _maxJointAcceleration = 0.5;                                                     ///< As it says.
 		
 		Eigen::Matrix<DataType,6,6> _cartesianStiffness
 		= (Eigen::Matrix<DataType,6,6>(6,6) << 10.0,  0.0,  0.0, 0.0, 0.0, 0.0,
