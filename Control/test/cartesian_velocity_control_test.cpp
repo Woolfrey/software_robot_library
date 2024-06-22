@@ -58,7 +58,6 @@ int main(int argc, char** argv)
  
     CartesianSpline<double> trajectory(startPose, endPose,
                                        Eigen::Vector<double,6>::Zero(),
-                                       Eigen::Vector<double,6>::Zero(),
                                        startTime, endTime);                                         // Create the trajectory
 
     // Establish arrays for saving data

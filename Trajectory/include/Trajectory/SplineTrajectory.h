@@ -33,18 +33,17 @@ class SplineTrajectory : public TrajectoryBase<DataType>
                          const unsigned int &polynomialOrder);
         
         /**
-         * Constructor for a cubic spline where the start and end velocities are given.
+         * A basic constructor for a cubic spline where the waypoints and start velocity are given.
+         * The final velocity is assumed to be zero.
          * @param positions An array of positions to pass through.
          * @param times The time at which to pass through each position.
          * @param startVelocity The initial velocity of the trajectory.
-         * @param endVelocity The speed at the end of the trajectory.
          */
         SplineTrajectory(const std::vector<Eigen::Vector<DataType,Eigen::Dynamic>> &positions,
                          const std::vector<DataType> &times,
-                         const Eigen::Vector<DataType, Eigen::Dynamic> &startVelocity,
-                         const Eigen::Vector<DataType, Eigen::Dynamic> &endVelocity)
+                         const Eigen::Vector<DataType, Eigen::Dynamic> &startVelocity)
                          : TrajectoryBase<DataType>({positions.front(), startVelocity, Eigen::Vector<DataType,Eigen::Dynamic>::Zero(positions.front().size())},
-                                                    {positions.back(), endVelocity, Eigen::Vector<DataType,Eigen::Dynamic>::Zero(positions.front().size())},
+                                                    {positions.back(), Eigen::Vector<DataType,Eigen::Dynamic>::Zero(positions.front().size()), Eigen::Vector<DataType,Eigen::Dynamic>::Zero(positions.front().size())},
                                                     times.front(), times.back())
         {
             if(positions.size() < 2)
@@ -63,8 +62,7 @@ class SplineTrajectory : public TrajectoryBase<DataType>
             
             // Create an individual spline for every dimension
             for(int j = 0; j < this->_dimensions; j++)
-            {
-            
+            { 
                 std::vector<DataType> pos;                                                          // We will use this to fit derivatives of a cubic spline
                 
                 for(int i = 0; i < positions.size(); i++)
@@ -78,13 +76,11 @@ class SplineTrajectory : public TrajectoryBase<DataType>
                 {        
                     // This function fits velocities at intermediate points to ensure
                     // continuity down to acceleration level
-                    vel = solve_cubic_spline_derivatives(pos,times,
-                                                         startVelocity[j],
-                                                         endVelocity[j]);
+                    vel = solve_cubic_spline_derivatives(pos,times, startVelocity[j], 0.0);
                 }
                 else
                 {
-                    vel = {startVelocity[j], endVelocity[j]};                                       // No intermediate points, so just use the start & end
+                    vel = {startVelocity[j], 0.0};                                                  // No intermediate points, so just use the start & end
                 }
                 
                 std::vector<FunctionPoint<DataType>> points;                                        // Contains position, velocity, acceleration data

@@ -35,12 +35,10 @@ class CartesianSpline
          * @poses An array of poses (position & orientation) to pass through.
          * @times The time at which to pass through each pose.
          * @startTwist The initial linear & angular velocity.
-         * @endTwist The final linear & angular velocity.
          */
         CartesianSpline(const std::vector<Pose<DataType>> &poses,
                         const std::vector<DataType> &times,
-                        const Eigen::Vector<DataType,6> &startTwist,
-                        const Eigen::Vector<DataType,6> &endTwist);
+                        const Eigen::Vector<DataType,6> &startTwist);
                         
         /**
          * Constructor for cubic splines, but only 2 poses are specified.
@@ -52,13 +50,12 @@ class CartesianSpline
         CartesianSpline(const Pose<DataType> &startPose,
                         const Pose<DataType> &endPose,
                         const Eigen::Vector<DataType,6> &startTwist,
-                        const Eigen::Vector<DataType,6> &endTwist,
                         const DataType &startTime,
                         const DataType &endTime)
         :
         CartesianSpline(std::vector<Pose<DataType>>{startPose, endPose},
                         std::vector<DataType>{startTime, endTime},
-                        startTwist, endTwist) {}
+                        startTwist) {}
         /**
          * Get the state for the given time.
          */               
@@ -78,8 +75,7 @@ class CartesianSpline
 template <class DataType>
 CartesianSpline<DataType>::CartesianSpline(const std::vector<Pose<DataType>> &poses,
                                            const std::vector<DataType> &times,
-                                           const Eigen::Vector<DataType,6> &startTwist,
-                                           const Eigen::Vector<DataType,6> &endTwist)
+                                           const Eigen::Vector<DataType,6> &startTwist)
 {
     if(poses.size() < 2)
     {
@@ -110,7 +106,7 @@ CartesianSpline<DataType>::CartesianSpline(const std::vector<Pose<DataType>> &po
         positions[i].tail(3) = angle*poses[i].quaternion().vec().normalized();
     }
     
-    this->_spline = SplineTrajectory<DataType>(positions,times,startTwist,endTwist);                // Generates a cubic spline. Velocities automatically calculated.  
+    this->_spline = SplineTrajectory<DataType>(positions,times,startTwist);                         // Generates a cubic spline. Velocities automatically calculated.  
 }
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////

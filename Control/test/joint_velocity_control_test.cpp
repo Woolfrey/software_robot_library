@@ -49,12 +49,12 @@ int main(int argc, char** argv)
     std::vector<State<double>> waypoints;
 
     waypoints.push_back({ Eigen::VectorXd::Random(n),                                               // Position
-                       Eigen::VectorXd::Zero(n),                                                    // Velocity
-                       Eigen::VectorXd::Zero(n) });                                                 // Acceleration
+                          Eigen::VectorXd::Zero(n),                                                 // Velocity
+                          Eigen::VectorXd::Zero(n) });                                              // Acceleration
 
     waypoints.push_back({ 3*Eigen::VectorXd::Random(n),                                             // Position
-                              Eigen::VectorXd::Zero(n),                                             // Velocity
-                              Eigen::VectorXd::Zero(n) });                                          // Acceleration
+                            Eigen::VectorXd::Zero(n),                                               // Velocity
+                            Eigen::VectorXd::Zero(n) });                                            // Acceleration
                              
     std::vector<double> times = {startTime, endTime};                               
 
