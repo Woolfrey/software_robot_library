@@ -10,7 +10,7 @@
 
 #include <Eigen/Dense>                                                                              // Matrix decomposition
 #include <Model/KinematicTree.h>                                                                    // Computes the kinematics and dynamics
-#include <Math/QPSolver.h>                                                                               // Control optimisation
+#include <Math/QPSolver.h>                                                                          // Control optimisation
 
 template <class DataType>
 class SerialLinkBase : public QPSolver<DataType>
@@ -119,20 +119,26 @@ class SerialLinkBase : public QPSolver<DataType>
 		 * @return True if successful, false otherwise.
 		 */
 		bool set_redundant_task(const Eigen::Vector<DataType,Eigen::Dynamic> &task);
+		
+		/**
+		 * Check whether the robot is in a singular configuration or not.
+		 * @return True if singular, false if not.
+		 */
+		bool is_singular() { return (this->_manipulability < this->_minManipulability) ? true : false; }
 		                           
 	protected:
 		
-        bool _redundantTaskSet = false;                                                           ///< When false, a redundant robot will autonomously reconfigure away from a singularity
+        bool _redundantTaskSet = false;                                                             ///< When false, a redundant robot will autonomously reconfigure away from a singularity
 		
-		DataType _jointPositionGain = 10.0;                                                       ///< On position tracking error
+		DataType _jointPositionGain = 10.0;                                                         ///< On position tracking error
 		
-		DataType _jointDerivativeGain = 1.0;                                                      ///< On velocity tracking error
+		DataType _jointDerivativeGain = 1.0;                                                        ///< On velocity tracking error
 		
-		DataType _manipulability;                                                                 ///< Proximity to a singularity
+		DataType _manipulability;                                                                   ///< Proximity to a singularity
 		
-		DataType _minManipulability = 5e-03;                                                      ///< Used in singularity avoidance
+		DataType _minManipulability = 5e-03;                                                        ///< Used in singularity avoidance
 		
-		DataType _maxJointAcceleration = 0.5;                                                     ///< As it says.
+		DataType _maxJointAcceleration = 0.5;                                                       ///< As it says.
 		
 		Eigen::Matrix<DataType,6,6> _cartesianStiffness
 		= (Eigen::Matrix<DataType,6,6>(6,6) << 10.0,  0.0,  0.0, 0.0, 0.0, 0.0,
@@ -140,27 +146,27 @@ class SerialLinkBase : public QPSolver<DataType>
 		                                        0.0,  0.0, 10.0, 0.0, 0.0, 0.0,
 		                                        0.0,  0.0,  0.0, 2.0, 0.0, 0.0,
 		                                        0.0,  0.0,  0.0, 0.0, 2.0, 0.0,
-		                                        0.0,  0.0,  0.0, 0.0, 0.0, 2.0).finished();       ///< Gain on the endpoint pose error
+		                                        0.0,  0.0,  0.0, 0.0, 0.0, 2.0).finished();         ///< Gain on the endpoint pose error
 		
-		Eigen::Matrix<DataType,6,6> _cartesianDamping = 0.1*_cartesianStiffness;                  ///< Gain the endpoint velocity error
+		Eigen::Matrix<DataType,6,6> _cartesianDamping = 0.1*_cartesianStiffness;                    ///< Gain the endpoint velocity error
 		
-		Eigen::Matrix<DataType,6,Eigen::Dynamic> _jacobianMatrix;                                 ///< Of the endpoint frame
+		Eigen::Matrix<DataType,6,Eigen::Dynamic> _jacobianMatrix;                                   ///< Of the endpoint frame
 		
-		Eigen::Matrix<DataType,6,6> _forceEllipsoid;                                              ///< Jacobian multiplied with its tranpose: J*J.transpose()
+		Eigen::Matrix<DataType,6,6> _forceEllipsoid;                                                ///< Jacobian multiplied with its tranpose: J*J.transpose()
 		
-		Eigen::Matrix<DataType,Eigen::Dynamic,Eigen::Dynamic> _constraintMatrix;                  ///< Used in optimisation during Cartesian control
+		Eigen::Matrix<DataType,Eigen::Dynamic,Eigen::Dynamic> _constraintMatrix;                    ///< Used in optimisation during Cartesian control
 		
-		Eigen::Vector<DataType,Eigen::Dynamic> _constraintVector;                                 ///< Used in optimisation during Cartesian control
+		Eigen::Vector<DataType,Eigen::Dynamic> _constraintVector;                                   ///< Used in optimisation during Cartesian control
 		
-		Eigen::Vector<DataType,Eigen::Dynamic> _redundantTask;                                    ///< Used to control null space of redundant robots
+		Eigen::Vector<DataType,Eigen::Dynamic> _redundantTask;                                      ///< Used to control null space of redundant robots
 		
-		KinematicTree<DataType>* _model;                                                          ///< Pointer to the underlying robot model
+		KinematicTree<DataType>* _model;                                                            ///< Pointer to the underlying robot model
 		
-		Pose<DataType> _endpointPose;                                                             ///< Class denoting position and orientation of endpoint frame
+		Pose<DataType> _endpointPose;                                                               ///< Class denoting position and orientation of endpoint frame
 		
-		ReferenceFrame<DataType> *_endpointFrame;                                                 ///< Pointer to frame controlled in underlying model
+		ReferenceFrame<DataType> *_endpointFrame;                                                   ///< Pointer to frame controlled in underlying model
 		
-		DataType _controlFrequency = 100;                                                         ///< Used in certain control calculations.
+		DataType _controlFrequency = 100;                                                           ///< Used in certain control calculations.
 	
 		/**
 		 * Computes the instantaneous limits on the joint control.
@@ -214,14 +220,15 @@ SerialLinkBase<DataType>::SerialLinkBase(KinematicTree<DataType> *model, const s
 template <class DataType> inline
 void SerialLinkBase<DataType>::update()
 {
-	this->_endpointPose = this->_endpointFrame->link->pose()
-	                    * this->_endpointFrame->relativePose;                                      // Compute new endpoint pose
+	this->_endpointPose = this->_endpointFrame->link->pose() * this->_endpointFrame->relativePose;  // Compute new endpoint pose
 	                      
-     this->_jacobianMatrix = this->_model->jacobian(this->_endpointFrame);                          // Jacobian for the endpoint
+    this->_jacobianMatrix = this->_model->jacobian(this->_endpointFrame);                           // Jacobian for the endpoint
 	                      
-	this->_forceEllipsoid = this->_jacobianMatrix*this->_jacobianMatrix.transpose();               // Used for certain calculations
+	this->_forceEllipsoid = this->_jacobianMatrix*this->_jacobianMatrix.transpose();                // Used for certain calculations
 	
-	this->_manipulability = sqrt(this->_forceEllipsoid.determinant());                             // Proximity to a singularity
+	DataType temp = sqrt(this->_forceEllipsoid.determinant());                                      // Proximity to a singularity
+	
+	this->_manipulability = ( temp < 0 or std::isnan(temp)) ? 0.0 : temp;                           // Rounding error can mean manipulability is negative or nan
 }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -327,32 +334,32 @@ bool SerialLinkBase<DataType>::set_redundant_task(const Eigen::Vector<DataType, 
 template <class DataType> inline
 Eigen::Vector<DataType,Eigen::Dynamic> SerialLinkBase<DataType>::manipulability_gradient()
 {
-	// NOTE TO FUTURE SELF: Gradient with respect to first joint in a chain is always zero.
-	//                      It is possible to reduce calcs if this condition can be efficiently
-	//                      integrated in the loop below.
-	
-	Eigen::Vector<DataType,Eigen::Dynamic> gradient(this->_model->number_of_joints());             // Value to be returned
-	
-	gradient.setZero();                                                                            // Any branching chains off of this one must be zero
-	
-	Eigen::LDLT<Eigen::Matrix<DataType,6,6>> JJT(this->_forceEllipsoid);                           // Pre-compute the decomposition
+    // NOTE TO FUTURE SELF: Gradient with respect to first joint in a chain is always zero.
+    //                      It is possible to reduce calcs if this condition can be efficiently
+    //                      integrated in the loop below.
 
-	Link<DataType> *currentLink = this->_endpointFrame->link;                                      // Starting link for computation
-	
-	while(currentLink != nullptr)
-	{
-		Eigen::Matrix<DataType,Eigen::Dynamic,Eigen::Dynamic> dJ
-		= this->_model->partial_derivative(this->_jacobianMatrix,currentLink->number());
-		
-		gradient(currentLink->number())
-		= this->_manipulability*(JJT.solve(dJ*this->_jacobianMatrix.transpose())).trace();
-		
-		currentLink = currentLink->parent_link();                                                 // Get pointer to next link in chain
-	}
-	
-	gradient(0) = 0.0;
-	
-	return gradient;
+    Eigen::Vector<DataType,Eigen::Dynamic> gradient(this->_model->number_of_joints());              // Value to be returned
+ 
+    gradient.setZero();                                                                             // Any branching chains off of this one must be zero
+
+    Eigen::LDLT<Eigen::Matrix<DataType,6,6>> JJT(this->_forceEllipsoid);                            // Pre-compute the decomposition
+
+    Link<DataType> *currentLink = this->_endpointFrame->link;                                       // Starting link for computation
+
+    while(currentLink != nullptr)
+    {
+	    Eigen::Matrix<DataType,Eigen::Dynamic,Eigen::Dynamic> dJ
+	    = this->_model->partial_derivative(this->_jacobianMatrix,currentLink->number());
+	    
+	    gradient(currentLink->number())
+	    = this->_manipulability*(JJT.solve(dJ*this->_jacobianMatrix.transpose())).trace();
+	    
+	    currentLink = currentLink->parent_link();                                                   // Get pointer to next link in chain
+    }
+
+    gradient(0) = 0.0;
+
+    return gradient;
 }
 
 #endif
