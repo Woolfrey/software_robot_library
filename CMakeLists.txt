@@ -33,6 +33,7 @@ endif()
 add_subdirectory(Math)
 add_subdirectory(Model)
 add_subdirectory(Trajectory)
+add_subdirectory(Control)
 
 # Installation settings
 include(GNUInstallDirs)
