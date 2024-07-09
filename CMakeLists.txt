@@ -6,12 +6,33 @@ project(RobotLibrary
         LANGUAGES CXX)
         
 find_package(Eigen3 REQUIRED)
-
 include_directories(${EIGEN3_INCLUDE_DIR})
+
+#################################### Download QPSolver #############################################
+
+if(EXISTS "${CMAKE_SOURCE_DIR}/Math/include/Math/QPSolver.h")
+	message([STATUS] " Found the QPSolver class in ${CMAKE_SOURCE_DIR}/Math/include/Math")
+else()
+	message([WARNING] " QPSolver class not found in ${CMAKE_SOURCE_DIR}/Math/include/Math")
+	
+	message([STATUS] " Downloading from https://github.com/Woolfrey/software_simple_qp ...")
+	
+	file(DOWNLOAD
+	    https://raw.githubusercontent.com/Woolfrey/software_simple_qp/master/include/QPSolver.h
+	    ${CMAKE_SOURCE_DIR}/Math/include/Math/QPSolver.h)
+	    
+	if(EXISTS "${CMAKE_SOURCE_DIR}/Math/include/MathQPSolver.h")
+		message([STATUS] " ... Done!")
+	else()
+		message([FATAL ERROR] " Could not download QPSolver.")
+	endif()
+endif()
+####################################################################################################
 
 # Add subdirectories
 add_subdirectory(Math)
 add_subdirectory(Model)
+add_subdirectory(Trajectory)
 
 # Installation settings
 include(GNUInstallDirs)
