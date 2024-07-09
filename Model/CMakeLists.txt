@@ -1,4 +1,5 @@
 add_library(Model src/Joint.cpp
+                  src/KinematicTree.cpp
                   src/Link.cpp
                   src/Pose.cpp
                   src/RigidBody.cpp
@@ -10,7 +11,9 @@ target_include_directories(Model PUBLIC
                            $<INSTALL_INTERFACE:include/Model>
 )
 
-# Installation settings for Math
+include_directories(${CMAKE_SOURCE_DIR}/Math/include)                                               # This is so the Model library can find the Math library
+
+# Installation settings for Model
 install(TARGETS  Model
         EXPORT   RobotLibraryTargets
         LIBRARY  DESTINATION ${CMAKE_INSTALL_LIBDIR}
@@ -20,6 +23,7 @@ install(TARGETS  Model
 )
 
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/include/Model/Joint.h
+              ${CMAKE_CURRENT_SOURCE_DIR}/include/Model/KinematicTree.h
               ${CMAKE_CURRENT_SOURCE_DIR}/include/Model/Link.h
               ${CMAKE_CURRENT_SOURCE_DIR}/include/Model/Pose.h
               ${CMAKE_CURRENT_SOURCE_DIR}/include/Model/RigidBody.h
