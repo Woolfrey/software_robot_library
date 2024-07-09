@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.12)
 
 # Define the project
 project(RobotLibrary                                                                                        # ${PROJECT_NAME} refers to this
-        DESCRIPTION "A simple project that demonstrates how to build & export a C++ package."
+        DESCRIPTION "Modeling and control of robots."
         VERSION 1.0
         LANGUAGES CXX)
 
