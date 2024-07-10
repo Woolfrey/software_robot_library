@@ -9,7 +9,7 @@
 #ifndef CARTESIANSPLINE_H_
 #define CARTESIANSPLINE_H_
 
-#include "Model/Pose.h"
+#include "../Model/Pose.h"
 #include "SplineTrajectory.h"
 
 
