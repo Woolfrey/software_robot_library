@@ -70,13 +70,15 @@ Eigen can [also solve triangular systems](http://eigen.tuxfamily.org/dox/group__
 
 ## Positive Definite Matrices
 
-Many control and optimisation problems are predicated on the fact that a matrix is positive definite. This means that:
+Many control and optimisation problems are predicated on the fact that a matrix $\mathbf{A}\in\mathbb{R}^{m\times m}$ is positive definite. This means that:
 - It is symmetric: $\mathbf{A = A^\mathrm{T}}$, and
 - Its determinant is positive: $det(\mathbf{A}) > 0$ (i.e. not singular).
-For example, the inertia matrix of a robot arm $\mathbf{M(q)}$ must be positive definite which follows from the fact that kinetic energy is always positive:
+For example, the inertia matrix of a robot arm $\mathbf{M(q)}\in\mathbb{R}^{n\times n}$ must be positive definite which follows from the fact that kinetic energy is always positive:
 ```math
 \frac{1}{2}\mathbf{\dot{q}}^\mathrm{T}\mathbf{M(q)}\mathbf{\dot{q}} > 0~\forall \mathbf{\dot{q}\ne 0}.
 ```
+where $\mathbf{q},~\mathbf{\dot{q}} \in\mathbb{R}^n$ are the joint positions and velocities, respectively.
+
 A simple function is defined in `Math.h` that can be used to check a matrix during runtime. For example:
 ```
 Eigen::MatrixXd A; \\ Declare a matrix.
