@@ -56,7 +56,7 @@ You should now be able to include different parts of the library in your C++ fil
 ### Using RobotLibrary in Another Project:
 When using `RobotLibrary` classes in another project, it is necessary to link both `Eigen` and `RobotLibrary` when compiling executables. For example, we may want to use the `KinematicTree` class in the `example.cpp` of the following example project:
 ```
-/example_project
+example_project/
 ├── CMakeLists.txt
 ├── build/
 └── src/
@@ -91,4 +91,6 @@ Inside the `/example_project/build` folder it should  be possible to compile the
 cmake ..
 make
 ```
+[This repository] has some simple test code that demonstrates the use of different classes.
+
 [:arrow_backward: Go Back.](#contents)
