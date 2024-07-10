@@ -86,11 +86,11 @@ include_directories(${EIGEN3_INCLUDE_DIR})
 add_executable(example src/example.cpp)
 target_link_libraries(example RobotLibrary::RobotLibrary Eigen3::Eigen)
 ```
-Inside the `/example_project/build` folder it should  be possible to compile the project:
+Inside the `example_project/build` folder it should  be possible to compile the project:
 ```
 cmake ..
 make
 ```
-[This repository] has some simple test code that demonstrates the use of different classes.
+[This repository](https://github.com/Woolfrey/testing_robot_library) has some simple test code that demonstrates the use of different classes.
 
 [:arrow_backward: Go Back.](#contents)
