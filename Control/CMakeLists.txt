@@ -14,4 +14,3 @@ install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/include/Control/SerialLinkBase.h
               ${CMAKE_CURRENT_SOURCE_DIR}/include/Control/SerialKinematicControl.h
         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/RobotLibrary/Control
 )
-
