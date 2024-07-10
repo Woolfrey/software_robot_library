@@ -1,19 +1,18 @@
 # Trajectory/CMakeLists.txt
-
-# Create a library target for Trajectory
 add_library(Trajectory INTERFACE)
 
-# Specify the include directories
-target_include_directories(Trajectory INTERFACE
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<INSTALL_INTERFACE:include>
+target_include_directories(Trajectory
+    INTERFACE
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:include>
 )
 
-# Optionally, install headers
-install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/include/Trajectory/CartesianSpline.h
-              ${CMAKE_CURRENT_SOURCE_DIR}/include/Trajectory/SplineTrajectory.h
-              ${CMAKE_CURRENT_SOURCE_DIR}/include/Trajectory/TrajectoryBase.h
-              ${CMAKE_CURRENT_SOURCE_DIR}/include/Trajectory/TrapezoidalVelocity.h
-        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/RobotLibrary/Trajectory
+# Optionally, if Trajectory requires specific C++ features or flags:
+# target_compile_features(Trajectory INTERFACE cxx_std_11)
+# target_compile_options(Trajectory INTERFACE -Wall -Wextra)
+
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/
+    DESTINATION include/RobotLibrary
+    FILES_MATCHING PATTERN "*.h"
 )
 

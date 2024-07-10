@@ -1,20 +1,28 @@
 # Model/CMakeLists.txt
-
-# Create a library target for Model
-add_library(Model INTERFACE)
-
-# Specify the include directories
-target_include_directories(Model INTERFACE
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<INSTALL_INTERFACE:include>
+add_library(Model
+    src/tinyxml2.cpp
 )
 
-# Optionally, install headers
-install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/include/Model/Joint.h
-              ${CMAKE_CURRENT_SOURCE_DIR}/include/Model/KinematicTree.h
-              ${CMAKE_CURRENT_SOURCE_DIR}/include/Model/Link.h
-              ${CMAKE_CURRENT_SOURCE_DIR}/include/Model/Pose.h
-              ${CMAKE_CURRENT_SOURCE_DIR}/include/Model/RigidBody.h
-        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/RobotLibrary/Model
+target_include_directories(Model
+    PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:include>
+)
+
+# Optionally, if Model requires specific C++ features or flags:
+# target_compile_features(Model PUBLIC cxx_std_11)
+# target_compile_options(Model PRIVATE -Wall -Wextra)
+
+install(TARGETS Model
+    EXPORT ModelTargets
+    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION lib
+    RUNTIME DESTINATION bin
+    INCLUDES DESTINATION include
+)
+
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/
+    DESTINATION include/RobotLibrary
+    FILES_MATCHING PATTERN "*.h"
 )
 
