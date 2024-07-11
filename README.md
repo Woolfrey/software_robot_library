@@ -44,8 +44,6 @@ Otherwise you can go to the [Eigen main page](https://eigen.tuxfamily.org/index.
 4. Run the following commands in the `build` directory:
 
    `cmake ..`
-
-   `make`
    
    `sudo make install`
 
@@ -62,9 +60,9 @@ example_project/
 └── src/
     └── example.cpp
 ```
-In the `example.cpp` file we can include the `KinematicTree` header file from the `Model` sublibrary:
+In the `example.cpp` file we can include the `KinematicTree` header file under `RobotLibrary`:
 ```
-#include <RobotLibrary/Model/KinematicTree.h>
+#include <RobotLibrary/KinematicTree.h>
 ...
 int main(int argc, char **argv)
 {
