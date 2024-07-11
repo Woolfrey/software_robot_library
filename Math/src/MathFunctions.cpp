@@ -1,26 +1,16 @@
 /**
- * @file   MathFunctions.h
+ * @file   MathFunctions.cpp
  * @author Jon Woolfrey
- * @date   September 2023
- * @brief  Useful math functions.
+ * @date   July 2024
+ * @brief  Source code for useful math functions.
  */
+ 
+#include <MathFunctions.h>
 
-#ifndef MATHFUNCTIONS_H_
-#define MATHFUNCTIONS_H_
-
-#include <Eigen/Core>                                                                               // Eigen::Vector, Eigen::Matrix etc
-#include <iostream>
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                                      POSITIVE DEFINITE?                                        //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-
-/**
- * It's obvious what this function does.
- * @param A a square matrix
- * @return True if positive-definite, false otherwise
- */
-template <typename DataType>
-bool is_positive_definite(const Eigen::Matrix<DataType,Eigen::Dynamic,Eigen::Dynamic> &A)
+bool is_positive_definite(const Eigen::MatrixXd &A)
 {
      if(A.rows() != A.cols())
      {
@@ -30,7 +20,7 @@ bool is_positive_definite(const Eigen::Matrix<DataType,Eigen::Dynamic,Eigen::Dyn
           return false;
      }
      
-     DataType det = A.determinant();
+     double det = A.determinant();
      if(det <= 0)
      {
           std::cout << "[INFO] is_positive_definite(): Determinant = " << std::to_string(det) << " < 0.\n";
@@ -38,7 +28,7 @@ bool is_positive_definite(const Eigen::Matrix<DataType,Eigen::Dynamic,Eigen::Dyn
           return false;
      }
      
-     DataType symmetryErrorNorm = (A - A.transpose()).norm();
+     double symmetryErrorNorm = (A - A.transpose()).norm();
      if(symmetryErrorNorm > 1e-04)
      {
           std::cout << "[INFO] is_positive_defintie(): Not symmetric; ||A - A'|| = "
@@ -53,30 +43,10 @@ bool is_positive_definite(const Eigen::Matrix<DataType,Eigen::Dynamic,Eigen::Dyn
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                                     QR DECOMPOSITION                                           //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-
-/**
- * A data structure for holding the results of the QR decomposition.
- */
-template <typename DataType>
-struct QRdecomposition
+QRdecomposition
+schwarz_rutishauser(const Eigen::MatrixXd &A,
+                    const double tolerance)
 {
-     Eigen::Matrix<DataType,Eigen::Dynamic,Eigen::Dynamic> Q;                                       ///< An orthogonal matrix such that Q'*Q = I
-     Eigen::Matrix<DataType,Eigen::Dynamic,Eigen::Dynamic> R;                                       ///< An upper-triangular matrix                                                             
-};                                                                                                  // Semicolon needed after struct declaration
-       
-/**
- * Decompose a matrix A = Q*R where Q is an orthogonal matrix, and R is upper-triangular.
- * @param A The matrix to be decomposed.
- * @param tolerance The rounding error on a singularity
- * @return A QRDecomposition data structure
- */
-template <typename Derived>
-QRdecomposition<typename Derived::Scalar>
-schwarz_rutishauser(const Eigen::MatrixBase<Derived> &A,
-                    const double tolerance = 1e-04)
-{
-     typedef typename Derived::Scalar DataType;
-    
      unsigned int m = A.rows();
      unsigned int n = A.cols();
      
@@ -101,7 +71,7 @@ schwarz_rutishauser(const Eigen::MatrixBase<Derived> &A,
           // The null space of A is obtained with N = Qn*Qn'.
           // This algorithm returns only Qr and R for efficiency.
           
-          QRdecomposition<DataType> decomp;
+          QRdecomposition decomp;
           decomp.Q = A;
           decomp.R.resize(n,n); decomp.R.setZero();
           
@@ -126,19 +96,10 @@ schwarz_rutishauser(const Eigen::MatrixBase<Derived> &A,
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                                    FORWARD SUBSTITUTION                                        //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-
-/**
- * Solve a system of equations y = L*x, where L is a lower-triangular matrix.
- * @param y A vector of known values.
- * @param L A lower-triangular matrix.
- * @param tolerance For singularities.
- * @return A solution for x.
- */
-template <typename Derived, typename OtherDerived> inline
-Eigen::Matrix<typename Derived::Scalar, Eigen::Dynamic, Eigen::Dynamic>
-forward_substitution(const Eigen::MatrixBase<Derived>      &Y,
-                     const Eigen::MatrixBase<OtherDerived> &L,
-                     const double tolerance = 1e-04)
+Eigen::MatrixXd
+forward_substitution(const Eigen::MatrixXd &Y,
+                     const Eigen::MatrixXd &L,
+                     const double tolerance)
 {
      unsigned int m = Y.rows();
      unsigned int n = L.cols();
@@ -158,15 +119,13 @@ forward_substitution(const Eigen::MatrixBase<Derived>      &Y,
                                       "x" + std::to_string(L.cols()) + ".");
      }
      
-     typedef typename Derived::Scalar DataType;
-     
-     Eigen::Matrix<DataType,Eigen::Dynamic,Eigen::Dynamic> X(m,o);                                  // Value to be returned
+     Eigen::MatrixXd X(m,o);                                                                        // Value to be returned
      
      for(int i = 0; i < o; i++)
      {
           for(int j = 0; j < m; j++)
           {
-               DataType sum = 0.0;
+               double sum = 0.0;
                
                for(int k = 0; k < j; k++) sum += L(j,k)*X(k,i);
                
@@ -181,26 +140,15 @@ forward_substitution(const Eigen::MatrixBase<Derived>      &Y,
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                                    BACKWARD SUBSTITUTION                                       //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-
-/**
- * Solve a system of equations Y = U*X, where U is an upper-triangular matrix.
- * @param Y A tensor (vector or matrix) of known values.
- * @param U An upper-triangular matrix.
- * @param tolerance For handling singularities.
- * @return A solution for X.
- */
-template <typename Derived, typename OtherDerived> inline
-Eigen::Matrix<typename Derived::Scalar, Eigen::Dynamic, Eigen::Dynamic>
-backward_substitution(const Eigen::MatrixBase<Derived> &Y,
-                      const Eigen::MatrixBase<OtherDerived> &U,
-                      const double tolerance = 1e-04)
+Eigen::MatrixXd
+backward_substitution(const Eigen::MatrixXd &U,
+                      const Eigen::MatrixXd &Y,
+                      const double tolerance)
 {
      unsigned int m = Y.rows();
      unsigned int n = U.cols();
      unsigned int o = Y.cols();
-     
-     typedef typename Derived::Scalar DataType;
-     
+       
      if(U.rows() != m)
      {
           throw std::invalid_argument("[ERROR] forward_subsitution(): "
@@ -215,13 +163,13 @@ backward_substitution(const Eigen::MatrixBase<Derived> &Y,
                                       "x" + std::to_string(U.cols()) + ".");
      }
      
-     Eigen::Matrix<DataType,Eigen::Dynamic,Eigen::Dynamic> X(n,o);                                  // Value to be turned
+     Eigen::MatrixXd X(n,o);                                                                        // Value to be turned
      
      for(int i = 0; i < o; i++)                                                                     // For every column of Y
      {
           for(int j = m-1; j >= 0; j--)
           {
-               DataType sum = 0.0;
+               double sum = 0.0;
                
                for(int k = j; k < m; k++) sum += U(j,k)*X(k,i);
                
@@ -236,22 +184,11 @@ backward_substitution(const Eigen::MatrixBase<Derived> &Y,
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                        Fit the derivatives for cubic spline interpolation                      //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-
-/**
- * This function solves for the derivatives at each point of a cubic spline such that there is continuity.
- * @param y The dependent variable for the spline.
- * @param x The independent variable for the spline.
- * @param firstDerivative The value for dy/dx at the very first point.
- * @param finalDerivative The value for dy/dx at the final point.
- * @return An array containing the derivatives dy/dx for each point x.
- */
-template <typename DataType>
-inline
-std::vector<DataType>
-solve_cubic_spline_derivatives(const std::vector<DataType> &y,
-                               const std::vector<DataType> &x,
-                               const DataType &firstDerivative,
-                               const DataType &finalDerivative)
+std::vector<double>
+solve_cubic_spline_derivatives(const std::vector<double> &y,
+                               const std::vector<double> &x,
+                               const double &firstDerivative,
+                               const double &finalDerivative)
 {
     unsigned int n = y.size();
     
@@ -273,17 +210,17 @@ solve_cubic_spline_derivatives(const std::vector<DataType> &y,
     // Derivatives at waypoints are related to positions via the relationship:
     // A*dy = B*y --> dy = A^-1*B*y
     
-    Matrix<DataType,Dynamic,Dynamic> A(n,n); A.setZero();
+    Eigen::MatrixXd A(n,n); A.setZero();
     
-    Matrix<DataType,Dynamic,Dynamic> B = A;
+    Eigen::MatrixXd B = A;
     
     A(0,0) = 1;                                                                                     // First value
     
     // Assign intermediate values
     for(int i = 1; i < n-1; i++)
     {
-        DataType dx1 = x[i]   - x[i-1];
-        DataType dx2 = x[i+1] - x[i];
+        double dx1 = x[i]   - x[i-1];
+        double dx2 = x[i+1] - x[i];
 
         if(dx1 == 0)
         {
@@ -304,31 +241,14 @@ solve_cubic_spline_derivatives(const std::vector<DataType> &y,
 
     A(n-1,n-1) = 1;
     
-    Eigen::Vector<DataType,Dynamic> points(y.size());
+    Eigen::VectorXd points(y.size());
     for(int i = 0; i < y.size(); i++) points(i) = y[i];
     
-    Eigen::Vector<DataType,Dynamic> derivatives = A.partialPivLu().solve(B*points);
+    Eigen::VectorXd derivatives = A.partialPivLu().solve(B*points);
     
-    std::vector<DataType> temp(derivatives.size());
+    std::vector<double> temp(derivatives.size());
     
     for(int i = 0; i < derivatives.size(); i++) temp[i] = derivatives[i];
     
     return temp;                                  
 }
-
-/**
- * Fits the derivatives for points on a cubic spline. Assumes the initial and final derivatives are zero.
- * @param y The independent variable on the spline.
- * @param x The dependent variable on the spline.
- * @return An array containing the derivatives dy/dx associated with every point y.
- */
-template <typename DataType>
-inline
-std::vector<DataType>
-solve_cubic_spline_derivatives(const std::vector<DataType> &y,
-                               const std::vector<DataType> &x)
-{
-    return solve_cubic_spline_derivatives(y,x,0.0,0.0);
-}
-
-#endif                                    

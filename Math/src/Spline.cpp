@@ -1,57 +1,20 @@
 /**
- * @file   Spline.h
+ * @file   Spline.cpp
  * @author Jon Woolfrey
- * @date   June 2024
- * @brief  A class defining splines.
+ * @date   July 2024
+ * @brief  Source files for the Spline class.
  */
-
-#ifndef SPLINE_H_
-#define SPLINE_H_
-
-#include "Polynomial.h"                                                                             // Using "" tells the compiler to look locally
-
-template <class DataType>
-class Spline
-{
-    public:
-        
-        /**
-         * Constructor.
-         * @param values The polynomial value, and its first and second derivatives at the given points.
-         * @param points The corresponding independent variable for the spline values.
-         */
-        Spline(const std::vector<FunctionPoint<DataType>> &values,
-               const std::vector<DataType> &points,
-               const unsigned int &order = 3);
-               
-        /**
-         * Query the spline values & derivatives for the given point.
-         * @param input The independent variable for evaluating the spline.
-         * @return A FunctionPoint data structure containing the value and derivatives.
-         */
-        inline
-        FunctionPoint<DataType>
-        evaluate_point(const DataType &input);
-    
-    private:
-    
-    unsigned int _numberOfSplines;
-    
-    std::vector<Polynomial<DataType>> _polynomial;
-    
-    std::vector<DataType> _points;
-     
-};                                                                                                  // Semicolon needed after a class declaration
+ 
+#include <Spline.h>
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                                        Constructor                                             //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-template <class DataType>
-Spline<DataType>::Spline(const std::vector<FunctionPoint<DataType>> &values,
-                         const std::vector<DataType> &points,
-                         const unsigned int &order)
-                         : _numberOfSplines(values.size()-1),
-                           _points(points)
+Spline::Spline(const std::vector<FunctionPoint> &values,
+               const std::vector<double>        &points,
+               const unsigned int               &order)
+               : _numberOfSplines(values.size()-1),
+                 _points(points)
 {
     // NOTE: There are n-1 splines for n supporting points
     
@@ -86,10 +49,8 @@ Spline<DataType>::Spline(const std::vector<FunctionPoint<DataType>> &values,
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                              Evaluate the spline for the given point.                          //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-template <class DataType>
-inline
-FunctionPoint<DataType>
-Spline<DataType>::evaluate_point(const DataType &input)
+FunctionPoint
+Spline::evaluate_point(const double &input)
 {
     // NOTE: A spline is not defined outside of its support points
     
@@ -110,5 +71,3 @@ Spline<DataType>::evaluate_point(const DataType &input)
     // else
     return this->_polynomial.back().evaluate_point(this->_points.back());
 }
-
-#endif

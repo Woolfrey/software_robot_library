@@ -1,18 +1,26 @@
 # Trajectory/CMakeLists.txt
-add_library(Trajectory INTERFACE)
-
-target_include_directories(Trajectory
-    INTERFACE
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-        $<INSTALL_INTERFACE:include>
+add_library(Trajectory src/CartesianSpline.cpp
+                       src/SplineTrajectory.cpp
+                       src/TrajectoryBase.cpp
+                       src/TrapezoidalVelocity.cpp
 )
 
-# Optionally, if Trajectory requires specific C++ features or flags:
-# target_compile_features(Trajectory INTERFACE cxx_std_11)
-# target_compile_options(Trajectory INTERFACE -Wall -Wextra)
+target_include_directories(Trajectory PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
+
+target_link_libraries(Trajectory PRIVATE Math Model Eigen3::Eigen)
+
+install(TARGETS  Trajectory
+        EXPORT   TrajectoryTargets
+        LIBRARY  DESTINATION lib
+        ARCHIVE  DESTINATION lib
+        RUNTIME  DESTINATION bin
+        INCLUDES DESTINATION include
+)
 
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/
-    DESTINATION include/RobotLibrary
-    FILES_MATCHING PATTERN "*.h"
+        DESTINATION include/RobotLibrary
+        FILES_MATCHING PATTERN "*.h"
 )
-

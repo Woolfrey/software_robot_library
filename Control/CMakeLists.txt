@@ -1,18 +1,28 @@
-# Control/CMakeLists.txt
-add_library(Control INTERFACE)
 
-target_include_directories(Control
-    INTERFACE
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-        $<INSTALL_INTERFACE:include>
+# List the source files for this library
+add_library(Control src/SerialDynamicControl.cpp
+                    src/SerialKinematicControl.cpp
+                    src/SerialLinkBase.cpp
 )
 
-# Optionally, if Control requires specific C++ features or flags:
-# target_compile_features(Control INTERFACE cxx_std_11)
-# target_compile_options(Control INTERFACE -Wall -Wextra)
-
-install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/
-    DESTINATION include/RobotLibrary
-    FILES_MATCHING PATTERN "*.h"
+# Specify targets to be built
+target_include_directories(Control PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
 )
 
+target_link_libraries(Control PRIVATE Math Model Eigen3::Eigen)                                     # Other libraries needed to compile this one
+
+# Installation instructions
+install(TARGETS  Control
+        EXPORT   ControlTargets
+        LIBRARY  DESTINATION lib
+        ARCHIVE  DESTINATION lib
+        RUNTIME  DESTINATION bin
+        INCLUDES DESTINATION include
+)
+
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/                                              # The directory we want to install
+        DESTINATION include/RobotLibrary/                                                           # Where to install it
+        FILES_MATCHING PATTERN "*.h"
+)

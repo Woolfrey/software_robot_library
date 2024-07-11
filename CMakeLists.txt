@@ -6,12 +6,21 @@ project(RobotLibrary
         VERSION 1.0
         LANGUAGES CXX)
 
+# Set default build type to Release if not specified
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build (Debug, Release, RelWithDebInfo, MinSizeRel)" FORCE)
+endif()
+
+message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
+
+find_package(Eigen3 3.3 REQUIRED NO_MODULE)                                                         # Find Eigen
+
 #################################### Download QPSolver #############################################
 
-if(EXISTS "${CMAKE_SOURCE_DIR}/Math/include/Math/QPSolver.h")
-    message(STATUS "Found the QPSolver class in ${CMAKE_SOURCE_DIR}/Math/include/Math")
+if(EXISTS "${CMAKE_SOURCE_DIR}/Math/include/QPSolver.h")
+    message(STATUS "Found the QPSolver class in ${CMAKE_SOURCE_DIR}/Math/include/")
 else()
-    message(WARNING "QPSolver class not found in ${CMAKE_SOURCE_DIR}/Math/include/Math")
+    message(WARNING "QPSolver class not found in ${CMAKE_SOURCE_DIR}/Math/include/")
     
     message(STATUS "Downloading from https://github.com/Woolfrey/software_simple_qp ...")
     
@@ -19,7 +28,7 @@ else()
         https://raw.githubusercontent.com/Woolfrey/software_simple_qp/master/include/QPSolver.h
         ${CMAKE_SOURCE_DIR}/Math/include/Math/QPSolver.h)
         
-    if(EXISTS "${CMAKE_SOURCE_DIR}/Math/include/Math/QPSolver.h")
+    if(EXISTS "${CMAKE_SOURCE_DIR}/Math/include/QPSolver.h")
         message(STATUS "... Done!")
     else()
         message(FATAL_ERROR "Could not download QPSolver.")
