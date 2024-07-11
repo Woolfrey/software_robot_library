@@ -1,8 +1,8 @@
 # :robot: RobotLibrary
->[!WARNING]
-> _RobotLibrary is still under construction_ :construction:
 
-RobotLibrary is a C++ library for modeling and control of robots. It is an ongoing project with more features to come soon.
+RobotLibrary is a C++ library for modeling and control of robots arms.
+
+It is an ongoing project and we hope to add more features as time goes on.
 
 ### Contents:
 - Installation Instructions
@@ -66,7 +66,7 @@ In the `example.cpp` file we can include the `KinematicTree` header file under `
 ...
 int main(int argc, char **argv)
 {
-     KinematicTree model("path/to/robot.urdf"); // KinematicTree<double>
+     KinematicTree model("path/to/robot.urdf");
 }
 ```
 Then, in the `CMakeLists.txt` file, we must:
