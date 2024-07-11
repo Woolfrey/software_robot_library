@@ -10,7 +10,7 @@ RobotLibrary is a C++ library for modeling and control of robots. It is an ongoi
      - [Installing RobotLibrary](#installing-robotlibrary)
      - [Using RobotLibrary in Another Project](#using-robotlibrary-in-another-project)
 - Sections of the Library
-     - Control :construction:
+     - [Control](Control/README.md)
      - [Math](Math/README.md)
      - [Model](Model/README.md)
      - [Trajectory](Trajectory/README.md)
@@ -43,7 +43,9 @@ Otherwise you can go to the [Eigen main page](https://eigen.tuxfamily.org/index.
 
 4. Run the following commands in the `build` directory:
 
-   `cmake ../`
+   `cmake ..`
+
+   `make`
    
    `sudo make install`
 
@@ -52,27 +54,21 @@ You should now be able to include different parts of the library in your C++ fil
 [:arrow_backward: Go Back.](#contents)
 
 ### Using RobotLibrary in Another Project:
-When using `RobotLibrary` classes in another project, it is necessary to link both `Eigen` and `RobotLibrary` when compiling executables. For example, we may want to use the `KinematicTree` class `source_file.cpp` of the following example project:
+When using `RobotLibrary` classes in another project, it is necessary to link both `Eigen` and `RobotLibrary` when compiling executables. For example, we may want to use the `KinematicTree` class in the `example.cpp` of the following example project:
 ```
-/example_project
-   |
-   -- CMakeLists.txt
-   |
-   -- /build
-   |
-   -- /include
-   |
-   -- /src
-      |
-      -- example.cpp
+example_project/
+├── CMakeLists.txt
+├── build/
+└── src/
+    └── example.cpp
 ```
-In the `example.cpp` file we can `#include` the `KinematicTree` header file from the `Model` sublibrary:
+In the `example.cpp` file we can include the `KinematicTree` header file from the `Model` sublibrary:
 ```
-#include <Model/KinematicTree.h>
+#include <RobotLibrary/Model/KinematicTree.h>
 ...
 int main(int argc, char **argv)
 {
-     KinematicTree model("path/to/robot.urdf");
+     KinematicTree_d model("path/to/robot.urdf"); // KinematicTree<double>
 }
 ```
 Then, in the `CMakeLists.txt` file, we must:
@@ -84,13 +80,17 @@ project(example)
 ...
 find_package(Eigen3 REQUIRED)
 find_package(RobotLibrary REQUIRED)
+
+include_directories(${EIGEN3_INCLUDE_DIR}) 
 ...
 add_executable(example src/example.cpp)
 target_link_libraries(example RobotLibrary::RobotLibrary Eigen3::Eigen)
 ```
-Inside the `/example_project/build` folder it should  be possible to compile the project:
+Inside the `example_project/build` folder it should  be possible to compile the project:
 ```
-cmake ../
+cmake ..
 make
 ```
+[This repository](https://github.com/Woolfrey/testing_robot_library) has some simple test code that demonstrates the use of different classes.
+
 [:arrow_backward: Go Back.](#contents)
