@@ -66,7 +66,7 @@ In the `example.cpp` file we can include the `KinematicTree` header file under `
 ...
 int main(int argc, char **argv)
 {
-     KinematicTree_d model("path/to/robot.urdf"); // KinematicTree<double>
+     KinematicTree model("path/to/robot.urdf"); // KinematicTree<double>
 }
 ```
 Then, in the `CMakeLists.txt` file, we must:
