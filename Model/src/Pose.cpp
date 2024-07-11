@@ -20,8 +20,6 @@ Pose::as_matrix()
     T.block(0,3,3,1) = this->_translation;
     T.row(3) << 0, 0, 0, 1;
     
-    std::cout << "Here?\n";
-
     return T;
 }
 
