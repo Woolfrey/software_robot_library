@@ -94,18 +94,21 @@ class SerialLinkBase : public QPSolver<double>
 		 * The robot is in a singular configuration when manipulability = 0.
 		 * @return A scalar quantity that measures proximity to a singularity.
 		 */
-	     double manipulability() const { return this->_manipulability; }
+	    double
+	    manipulability() const { return this->_manipulability; }
 		
 		/**
 		 * @return Returns a vector that points away from the closest singular joint configuration.
 		 */
-		Eigen::VectorXd manipulability_gradient();
+		Eigen::VectorXd
+		manipulability_gradient();
 		
 		/**
 		 * Get the position and orientation of the endpoint frame relative to the base of the robot.
 		 * @return A RobotLibrary::Pose object.
 		 */
-		Pose endpoint_pose() const { return this->_endpointPose; }
+		Pose
+		endpoint_pose() const { return this->_endpointPose; }
 		
 		/**
            * Get the Jacobian matrix (partial derivative of forward kinematics) for the endpoint being controlled.
@@ -118,7 +121,8 @@ class SerialLinkBase : public QPSolver<double>
 		 * NOTE: underlying KinematicTree model MUST be updated first.
 		 * This is because multiple serial link objects may exist on a single kinematic tree.
 		 */
-		void update();
+		void
+		update();
 		
 		/**
 		 * Assign the redundant task for use in the next control calculation.
@@ -126,13 +130,21 @@ class SerialLinkBase : public QPSolver<double>
 		 * @param task A vector for the joint motion to be executed using extra degrees of freedom in a redundant robot.
 		 * @return True if successful, false otherwise.
 		 */
-		bool set_redundant_task(const Eigen::VectorXd &task);
+		bool
+		set_redundant_task(const Eigen::VectorXd &task);
 		
 		/**
 		 * Check whether the robot is in a singular configuration or not.
 		 * @return True if singular, false if not.
 		 */
-		bool is_singular() { return (this->_manipulability < this->_minManipulability) ? true : false; }
+		bool
+		is_singular() { return (this->_manipulability < this->_minManipulability) ? true : false; }
+		
+		/**
+		 * Get a pointer to the model this controller uses.
+		 */
+		KinematicTree*
+		model() const { return this->_model; }
 		                           
 	protected:
 		
@@ -181,7 +193,9 @@ class SerialLinkBase : public QPSolver<double>
 		 * @param jointNumber Which joint to compute the limits for.
 		 * @return A Limit data structure.
 		 */
-		virtual Limits compute_control_limits(const unsigned int &jointNumber) = 0;
+		virtual
+		Limits
+		compute_control_limits(const unsigned int &jointNumber) = 0;
 	
 };                                                                                                  // Semicolon needed after a class declaration
 
