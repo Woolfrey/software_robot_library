@@ -10,6 +10,7 @@
 
 #include <Eigen/Dense>                                                                               // Eigen::Vector, Eigen::Matrix etc
 #include <iostream>
+#include <vector>
 
 /**
  * It's obvious what this function does.

@@ -79,9 +79,9 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
                     // NOTE: URDF specifies a pose for the center of mass,
                     //       which is a little superfluous, so we will reduce it
                     
-                    Pose pose(xyz, AngleAxis(rpy(0),Vector3d::UnitX())
-                                            *AngleAxis(rpy(1),Vector3d::UnitY())
-                                            *AngleAxis(rpy(2),Vector3d::UnitZ()));
+                    Pose pose(xyz, AngleAxis<double>(rpy(0),Vector3d::UnitX())
+                                            *AngleAxis<double>(rpy(1),Vector3d::UnitY())
+                                            *AngleAxis<double>(rpy(2),Vector3d::UnitZ()));
                                                            
 
                     centreOfMass = pose.translation();                                              // Location for the center of mass
@@ -125,9 +125,9 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
                     Vector3d xyz = char_to_vector(originElement->Attribute("xyz"));
                     Vector3d rpy = char_to_vector(originElement->Attribute("rpy"));
 
-                    origin = Pose(xyz, AngleAxis(rpy(2),Vector3d::UnitZ())
-                                      *AngleAxis(rpy(1),Vector3d::UnitY())
-                                      *AngleAxis(rpy(0),Vector3d::UnitX()));
+                    origin = Pose(xyz, AngleAxis<double>(rpy(2),Vector3d::UnitZ())
+                                      *AngleAxis<double>(rpy(1),Vector3d::UnitY())
+                                      *AngleAxis<double>(rpy(0),Vector3d::UnitX()));
                }
 
                // Get joint properties for non-fixed type
