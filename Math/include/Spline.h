@@ -8,7 +8,8 @@
 #ifndef SPLINE_H_
 #define SPLINE_H_
 
-#include "Polynomial.h"                                                                             // Using "" tells the compiler to look locally
+#include "Polynomial.h" 
+#include <vector>                                                                            // Using "" tells the compiler to look locally
 
 class Spline
 {

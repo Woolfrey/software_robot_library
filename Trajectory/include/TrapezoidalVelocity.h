@@ -10,7 +10,8 @@
 
 #include "TrajectoryBase.h"                                                                         // Tells the compiler to look locally
 
-#include <Eigen/Geometry>                                                                           // Eigen::Vector, Eigen::Matrix, Eigen::Quaternion
+#include <Eigen/Geometry> 
+#include <vector>                                                                          // Eigen::Vector, Eigen::Matrix, Eigen::Quaternion
 
 /**
  * This class defines a trapezoidal velocity profile between 2 points.
