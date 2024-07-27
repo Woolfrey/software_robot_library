@@ -145,6 +145,12 @@ class SerialLinkBase : public QPSolver<double>
 		 */
 		KinematicTree*
 		model() const { return this->_model; }
+		
+	    /**
+	     * Get the control frequency.
+	     */
+	    bool
+	    frequency() const { return this->_controlFrequency; }
 		                           
 	protected:
 		
