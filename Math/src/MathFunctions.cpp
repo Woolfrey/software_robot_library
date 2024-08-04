@@ -194,12 +194,12 @@ solve_cubic_spline_derivatives(const std::vector<double> &y,
     
     if(n < 3)
     {
-        throw std::invalid_argument("[ERROR] fit_cubic_spline derivatives(): "
+        throw std::invalid_argument("[ERROR] solve_cubic_spline derivatives(): "
                                     "A minimum number of 3 points is required to define a spline.");
     }
     else if(y.size() != x.size())
     {
-        throw std::invalid_argument("[ERROR] fit_cubic_spline_derivatives(): "
+        throw std::invalid_argument("[ERROR] solve_cubic_spline_derivatives(): "
                                     "Dimensions of arguments do not match. The y vector had " +
                                     std::to_string(y.size()) + " elements, and the x vector had " +
                                     std::to_string(x.size()) + " elements.");
