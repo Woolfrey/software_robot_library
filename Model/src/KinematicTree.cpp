@@ -6,6 +6,7 @@
  */
  
 #include <KinematicTree.h>
+#include <deque>
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //                                        Constructor                                            //
@@ -299,116 +300,92 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //                              Update the kinematics and dynamics                               //        
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-bool
-KinematicTree::update_state(const Eigen::VectorXd &jointPosition,
-                            const Eigen::VectorXd &jointVelocity,
-                            const Pose &basePose,
-                            const Eigen::Vector<double,6> &baseTwist)
+bool KinematicTree::update_state(const Eigen::VectorXd &jointPosition,
+                                 const Eigen::VectorXd &jointVelocity,
+                                 const Pose &basePose,
+                                 const Eigen::Vector<double,6> &baseTwist)
 {
-     if(jointPosition.size() != this->_numberOfJoints
-     or jointVelocity.size() != this->_numberOfJoints)
-     {
-          std::cerr << "[ERROR] [KINEMATIC TREE] update_state(): "
-                    << "This model has " << this->_numberOfJoints << " joints, but "
-                    << "the joint position argument had " << jointPosition.size() << " elements, "
-                    << "and the joint velocity argument had " << jointVelocity.size() << " element." << std::endl;
-          
-          return false;
-     }
-     
-     this->_jointPosition = jointPosition;                                                          // Transfer joint position values
-     
-     this->_jointVelocity = jointVelocity;                                                          // Transfer joint velocity values
-
-     this->base.update_state(basePose, baseTwist);                                                  // Update the state for the base
-               
-     // Need to clear for new loop
-     this->_jointInertiaMatrix.setZero();
-     this->_jointCoriolisMatrix.setZero();
-     this->_jointGravityVector.setZero();
-     this->_jointBaseInertiaMatrix.setZero();
-     this->_jointBaseCoriolisMatrix.setZero();
-
-     std::vector<Link*> candidateList = this->_baseLinks;                                           // Start with links attached to base
-     
-     while(candidateList.size() > 0)
-     {
-          Link *currentLink = candidateList.back();                                                 // Get last link in list...
-          
-          candidateList.pop_back();                                                                 // ... and remove it
-          
-          unsigned int k = currentLink->number();                                                   // The number of this link/joint
-          
-          Link *parentLink = currentLink->parent_link();                                            // Get the parent of this one
-     
-          // Propagate the forward kinematics
-          bool success = false;
-          if(parentLink == nullptr)                                                                 // No parent link; must be connected to base
-          {
-               success = currentLink->update_state(this->base.pose(), this->base.twist(),
-                                                   jointPosition(k),  jointVelocity(k));
-          }
-          else     success = currentLink->update_state(jointPosition(k), jointVelocity(k));
-
-          if(not success)
-          {
-               std::cerr << "[ERROR] [KINEMATIC TREE] update_state(): "
-                         << "Unable to to update the state for the '" << currentLink->name()
-                         << "' link (" << currentLink->joint().name() << " joint).\n";
-               
-               return false;
-          }
-          
-          // Compute the inverse dynamics
-
-          Eigen::Matrix<double,6,Eigen::Dynamic> J = jacobian(currentLink, 
-                                                                currentLink->center_of_mass(), k+1); // Jacobian to centre of mass
-          
-          Eigen::Matrix<double,3,Eigen::Dynamic> Jv = J.block(0,0,3,k+1);                           // Linear component
-          
-          Eigen::Matrix<double,3,Eigen::Dynamic> Jw = J.block(3,0,3,k+1);                           // Angular component
-          
-          double mass = currentLink->mass();                                                        // As it says
-          
-          // Compute the upper-right triangle of the inertia matrix
-          for(int i = 0; i < k+1; i++)
-          {
-               for(int j = i; j < k+1; j++)
-               {
-                    this->_jointInertiaMatrix(i,j) += mass * Jv.col(i).dot(Jv.col(j))
-                                                           + Jw.col(i).dot(currentLink->inertia()*Jw.col(j));
-               }
-          }
-          
-          Eigen::Matrix<double,6,Eigen::Dynamic> Jdot = time_derivative(J);                         // As it says
-          
-          this->_jointCoriolisMatrix.block(0,0,k+1,k+1) += mass * Jv.transpose()*Jdot.block(0,0,3,k+1)
-                                                                + Jw.transpose()*(currentLink->inertia_derivative()*Jw + currentLink->inertia()*Jdot.block(3,0,3,k+1));
-          
-          this->_jointGravityVector.head(k+1) -= mass*Jv.transpose()*this->_gravityVector;          // We need to NEGATE gravity          
-          
-          this->_jointDampingVector[k] = currentLink->joint().damping()* this->_jointVelocity[k];     
-          
-          // Compute inertial coupling between the base and links
-          this->_jointBaseInertiaMatrix.block(0,0,k+1,3) += mass * Jv.transpose();
-          this->_jointBaseInertiaMatrix.block(0,3,k+1,3) += Jw.transpose()*this->base.inertia()
-                                                          - mass * (SkewSymmetric(currentLink->center_of_mass() - this->base.pose().translation()) * Jv).transpose();
-          
-          this->_jointBaseCoriolisMatrix.block(0,3,k+1,3) += Jw.transpose()*this->base.inertia_derivative()
-                                                           - mass * (SkewSymmetric(currentLink->twist().head(3))*Jv).transpose();
-          
-          // Get the links attached to this one and add them to the list
-          std::vector<Link*> temp = currentLink->child_links();
-          if(temp.size() > 0) candidateList.insert(candidateList.begin(),temp.begin(),temp.end());
-     }
-     
-     // Complete the lower-left triangle of the inertia matrix
-     for(int i = 1; i < this->_numberOfJoints; i++)
-     {
-          for(int j = 0; j < i; j++) this->_jointInertiaMatrix(i,j) = this->_jointInertiaMatrix(j,i);
-     }
-     
-     return true;
+    if(jointPosition.size() != this->_numberOfJoints || jointVelocity.size() != this->_numberOfJoints)
+    {
+        std::cerr << "[ERROR] [KINEMATIC TREE] update_state(): "
+                  << "This model has " << this->_numberOfJoints << " joints, but "
+                  << "the joint position argument had " << jointPosition.size() << " elements, "
+                  << "and the joint velocity argument had " << jointVelocity.size() << " element." << std::endl;
+        return false;
+    }
+    
+    this->_jointPosition = jointPosition;    
+    this->_jointVelocity = jointVelocity;    
+    this->base.update_state(basePose, baseTwist);
+    
+    // Clear matrices
+    this->_jointInertiaMatrix.setZero();
+    this->_jointCoriolisMatrix.setZero();
+    this->_jointGravityVector.setZero();
+    this->_jointBaseInertiaMatrix.setZero();
+    this->_jointBaseCoriolisMatrix.setZero();
+    
+    std::deque<Link*> candidateList(this->_baseLinks.begin(), this->_baseLinks.end());
+    
+    while(!candidateList.empty())
+    {
+        Link *currentLink = candidateList.back();
+        candidateList.pop_back();
+        
+        unsigned int k = currentLink->number();
+        Link *parentLink = currentLink->parent_link();
+        
+        bool success = parentLink == nullptr 
+                       ? currentLink->update_state(this->base.pose(), this->base.twist(), jointPosition(k), jointVelocity(k))
+                       : currentLink->update_state(jointPosition(k), jointVelocity(k));
+        
+        if(!success)
+        {
+            std::cerr << "[ERROR] [KINEMATIC TREE] update_state(): "
+                      << "Unable to update the state for the '" << currentLink->name()
+                      << "' link (" << currentLink->joint().name() << " joint).\n";
+            return false;
+        }
+        
+        Eigen::Matrix<double,6,Eigen::Dynamic> J = jacobian(currentLink, currentLink->center_of_mass(), k+1);
+        Eigen::Matrix<double,3,Eigen::Dynamic> Jv = J.block(0,0,3,k+1);
+        Eigen::Matrix<double,3,Eigen::Dynamic> Jw = J.block(3,0,3,k+1);
+        
+        double mass = currentLink->mass();
+        
+        for(int i = 0; i < k+1; i++)
+        {
+            for(int j = i; j < k+1; j++)
+            {
+                this->_jointInertiaMatrix(i,j) += mass * Jv.col(i).dot(Jv.col(j))
+                                                + Jw.col(i).dot(currentLink->inertia() * Jw.col(j));
+            }
+        }
+        
+        Eigen::Matrix<double,6,Eigen::Dynamic> Jdot = time_derivative(J);
+        this->_jointCoriolisMatrix.block(0,0,k+1,k+1) += mass * Jv.transpose() * Jdot.block(0,0,3,k+1)
+                                                       + Jw.transpose() * (currentLink->inertia_derivative() * Jw + currentLink->inertia() * Jdot.block(3,0,3,k+1));
+        
+        this->_jointGravityVector.head(k+1) -= mass * Jv.transpose() * this->_gravityVector;
+        this->_jointDampingVector[k] = currentLink->joint().damping() * this->_jointVelocity[k];
+        
+        this->_jointBaseInertiaMatrix.block(0,0,k+1,3) += mass * Jv.transpose();
+        this->_jointBaseInertiaMatrix.block(0,3,k+1,3) += Jw.transpose() * this->base.inertia()
+                                                        - mass * (SkewSymmetric(currentLink->center_of_mass() - this->base.pose().translation()) * Jv).transpose();
+        
+        this->_jointBaseCoriolisMatrix.block(0,3,k+1,3) += Jw.transpose() * this->base.inertia_derivative()
+                                                         - mass * (SkewSymmetric(currentLink->twist().head(3)) * Jv).transpose();
+        
+        std::vector<Link*> temp = currentLink->child_links();
+        if(!temp.empty()) candidateList.insert(candidateList.begin(), temp.begin(), temp.end());
+    }
+    
+    for(int i = 1; i < this->_numberOfJoints; i++)
+    {
+        for(int j = 0; j < i; j++) this->_jointInertiaMatrix(i,j) = this->_jointInertiaMatrix(j,i);
+    }
+    
+    return true;
 }
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
