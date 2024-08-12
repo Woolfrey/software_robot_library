@@ -149,7 +149,7 @@ class SerialLinkBase : public QPSolver<double>
 	    /**
 	     * Get the control frequency.
 	     */
-	    bool
+	    double
 	    frequency() const { return this->_controlFrequency; }
 		                           
 	protected:
