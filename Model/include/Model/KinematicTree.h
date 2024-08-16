@@ -617,6 +617,7 @@ bool KinematicTree<DataType>::update_state(const Eigen::Vector<DataType, Eigen::
      this->_jointGravityVector.setZero();
      this->_jointBaseInertiaMatrix.setZero();
      this->_jointBaseCoriolisMatrix.setZero();
+     this->_jointDampingVector.setZero();
 
      std::vector<Link<DataType>*> candidateList = this->_baseLinks;                                 // Start with links attached to base
      

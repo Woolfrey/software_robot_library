@@ -38,3 +38,7 @@ target_link_libraries(cartesian_velocity_control_test RobotLibrary)
 #add_executable(dynamic_control_test test/dynamic_control_test.cpp)                                  # Create name of exe from source file
 #add_dependencies(dynamic_control_test RobotLibrary)                                                 # Depends on RobotLibrary (obviously)
 #target_link_libraries(dynamic_control_test RobotLibrary)                                            # Link RobotLibrary
+
+add_executable(joint_torque_control_test test/joint_torque_control_test.cpp)                        # Create name of exe from source file
+add_dependencies(joint_torque_control_test RobotLibrary)                                            # Depends on RobotLibrary (obviously)
+target_link_libraries(joint_torque_control_test RobotLibrary)                                       # Link RobotLibrary

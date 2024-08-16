@@ -126,7 +126,12 @@ class Joint
            * @return The speed limit for the specified joint.
            */
           DataType speed_limit() const { return this->_speedLimit; }
-          
+
+          /**
+           * @return The effort limit for the specified joint.
+           */
+          DataType effort_limit() const { return this->_effortLimit; }
+
           /**
            * @return The viscous friction (Ns/m^2) of this joint.
            */
