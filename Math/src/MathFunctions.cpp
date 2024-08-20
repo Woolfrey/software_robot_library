@@ -227,7 +227,7 @@ solve_cubic_spline_derivatives(const std::vector<double> &y,
             throw std::logic_error("[ERROR] fit_cubic_spline_derivatives(): "
                                    "Independent variable " + std::to_string(i) + " is the same as "
                                    "independent variable " + std::to_string(i+1) + " ("
-                                   + std::to_string(x[i]) + " == " + std::to_string(x[i+1]) + ").");
+                                   + std::to_string(x[i-1]) + " == " + std::to_string(x[i]) + ").");
         }
 
         A(i,i-1) = 1/dx1;
