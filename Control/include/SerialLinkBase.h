@@ -95,7 +95,7 @@ class SerialLinkBase : public QPSolver<double>
 		 * @return A scalar quantity that measures proximity to a singularity.
 		 */
 	    double
-	    manipulability() const { return this->_manipulability; }
+	    manipulability() const { return _manipulability; }
 		
 		/**
 		 * @return Returns a vector that points away from the closest singular joint configuration.
@@ -108,13 +108,20 @@ class SerialLinkBase : public QPSolver<double>
 		 * @return A RobotLibrary::Pose object.
 		 */
 		Pose
-		endpoint_pose() const { return this->_endpointPose; }
+		endpoint_pose() const { return _endpointPose; }
+		
+		/**
+		 * Get the linear & angular velocity of the endpoint.
+		 * @return A 6D Eigen::Vector object.
+		 */
+		Eigen::Vector<double,6>
+		endpoint_velocity() const { return _jacobianMatrix*_model->joint_velocities(); }
 		
 		/**
            * Get the Jacobian matrix (partial derivative of forward kinematics) for the endpoint being controlled.
 		 * @return Returns a 6xn matrix for the Jacobian to the endpoint of this serial link object.
 		 */
-		Eigen::Matrix<double,6,Eigen::Dynamic> jacobian() const { return this->_jacobianMatrix; }
+		Eigen::Matrix<double,6,Eigen::Dynamic> jacobian() const { return _jacobianMatrix; }
      
 		/**
 		 * Updates properties specific to this controller.
@@ -138,27 +145,27 @@ class SerialLinkBase : public QPSolver<double>
 		 * @return True if singular, false if not.
 		 */
 		bool
-		is_singular() { return (this->_manipulability < this->_minManipulability) ? true : false; }
+		is_singular() { return (_manipulability < _minManipulability) ? true : false; }
 		
 		/**
 		 * Get a pointer to the model this controller uses.
 		 */
 		KinematicTree*
-		model() const { return this->_model; }
+		model() const { return _model; }
 		
 	    /**
 	     * Get the control frequency.
 	     */
 	    double
-	    frequency() const { return this->_controlFrequency; }
+	    frequency() const { return _controlFrequency; }
 		                           
 	protected:
 		
         bool _redundantTaskSet = false;                                                             ///< When false, a redundant robot will autonomously reconfigure away from a singularity
 		
-		double _jointPositionGain = 10.0;                                                           ///< On position tracking error
+		double _jointPositionGain = 100.0;                                                          ///< On position tracking error
 		
-		double _jointVelocityGain = 1.0;                                                            ///< On velocity tracking error
+		double _jointVelocityGain = 10.0;                                                           ///< On velocity tracking error
 		
 		double _manipulability;                                                                     ///< Proximity to a singularity
 		
