@@ -29,6 +29,11 @@ class CartesianSpline
     public:
         
         /**
+         * Empty constructor.
+         */
+        CartesianSpline() {}
+        
+        /**
          * Constructor for cubic splines.
          * @poses An array of poses (position & orientation) to pass through.
          * @times The time at which to pass through each pose.
@@ -59,6 +64,12 @@ class CartesianSpline
          */               
         CartesianState
         query_state(const double &time);
+        
+        /**
+         * As it says.
+         */
+        double
+        end_time() const { return _spline.end_time(); }
         
     private:
         
