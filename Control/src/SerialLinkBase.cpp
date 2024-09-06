@@ -29,12 +29,14 @@ SerialLinkBase::SerialLinkBase(KinematicTree *model, const std::string &endpoint
      this->_constraintMatrix.resize(2*n+1,n);
      this->_constraintMatrix.block(0,0,n,n).setIdentity();
      this->_constraintMatrix.block(n,0,n,n) = -this->_constraintMatrix.block(0,0,n,n);
-//   this->_constraintMatrix.row(2*n) = this->manipulability_gradient();              <-- Needs to be set in the control loop
+//   this->_constraintMatrix.row(2*n) = this->manipulability_gradient();                            <-- Needs to be set in the control loop
 
      this->_constraintVector.resize(2*n+1);
-//   this->_constraintVector.block(0,0,n,1) =  upperBound;                            <-- Needs to be set in the control loop
-//   this->_constraintVector.block(n,0,n,1) = -lowerBound;                            <-- Needs to be set in the control loop
-//   this->_constraintVector(2*n) = this->_manipulability - this->_minManipulability; <-- Needs to be set in the control loop
+//   this->_constraintVector.block(0,0,n,1) =  upperBound;                                          <-- Needs to be set in the control loop
+//   this->_constraintVector.block(n,0,n,1) = -lowerBound;                                          <-- Needs to be set in the control loop
+//   this->_constraintVector(2*n) = this->_manipulability - this->_minManipulability;               <-- Needs to be set in the control loop
+     
+     update();                                                                                      // Compute initial state
      
      std::cout << "[INFO] [SERIAL LINK CONTROL] Controlling the '" << endpointName << "' frame on the '" 
                << this->_model->name() << "' robot.\n";
