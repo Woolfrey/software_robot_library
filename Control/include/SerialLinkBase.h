@@ -43,7 +43,7 @@ class SerialLinkBase : public QPSolver<double>
 		 */
 		virtual
 		Eigen::VectorXd
-		track_endpoint_trajectory(const Pose                      &desiredPose,
+		track_endpoint_trajectory(const Pose                    &desiredPose,
                                   const Eigen::Vector<double,6> &desiredVelocity,
                                   const Eigen::Vector<double,6> &desiredAcceleration) = 0;
 		
