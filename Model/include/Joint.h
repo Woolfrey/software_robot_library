@@ -131,6 +131,11 @@ class Joint
           double speed_limit() const { return this->_speedLimit; }
           
           /**
+           * @return The effort (force or torque) limit for the joints.
+           */
+          double effort_limit() const { return this->_effortLimit; }
+          
+          /**
            * @return The viscous friction (Ns/m^2) of this joint.
            */
           double damping() const { return this->_damping; }
