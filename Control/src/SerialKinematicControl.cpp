@@ -76,8 +76,7 @@ SerialKinematicControl::resolve_endpoint_motion(const Eigen::Vector<double,6> &e
 
             // Weight the solution by the Cartesian inertia matrix:
             Matrix<double,6,6> A = this->_jacobianMatrix
-                                   * this->_model->joint_inertia_matrix().ldlt().solve(
-                                     this->_jacobianMatrix.transpose());
+                                 * this->_model->joint_inertia_matrix().ldlt().solve(this->_jacobianMatrix.transpose());
 
             MatrixXd H = this->_jacobianMatrix.transpose()*A*this->_jacobianMatrix;
 
@@ -99,7 +98,7 @@ SerialKinematicControl::resolve_endpoint_motion(const Eigen::Vector<double,6> &e
 
             if(not this->_redundantTaskSet)
             {
-                this->_redundantTask = (this->_controlFrequency/50)*manipulabilityGradient;         // Autonomously reconfigure the robot away from singularities
+                this->_redundantTask = (this->_controlFrequency/10)*manipulabilityGradient;         // Autonomously reconfigure the robot away from singularities
             }
 
             controlVelocity =
