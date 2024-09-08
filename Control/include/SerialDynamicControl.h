@@ -11,8 +11,7 @@ class SerialDynamicControl : public SerialLinkBase
          * @param model A pointer to a KinematicTree object.
          * @param endpointName The name of the reference frame in the KinematicTree to be controlled.
          */
-        SerialDynamicControl(KinematicTree *model, const std::string &endpointName)
-                            : SerialLinkBase(model, endpointName){}
+        SerialDynamicControl(KinematicTree *model, const std::string &endpointName);
 
         /**
          * Solve the joint torques required to move the endpoint at a given acceleration.

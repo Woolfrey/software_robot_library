@@ -1,6 +1,19 @@
 #include <SerialDynamicControl.h>
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
+ //                                          Constructor                                           //
+////////////////////////////////////////////////////////////////////////////////////////////////////
+SerialDynamicControl::SerialDynamicControl(KinematicTree *model,
+                                           const std::string &endpointName)
+                                           : SerialLinkBase(model, endpointName)
+{
+    // NOTE: We should make these scale with the control frequency.
+    
+    this->_jointPositionGain = 225.0;
+    this->_jointVelocityGain = 30.0;
+}
+
+  ////////////////////////////////////////////////////////////////////////////////////////////////////
  //               Solve the joint torques required to achieve a given endpoint motion              //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 inline
@@ -11,15 +24,19 @@ SerialDynamicControl::resolve_endpoint_motion(const Eigen::Vector<double,6> &end
 
     unsigned int numJoints = this->_model->number_of_joints();                                      // Makes things easier
 
-    Eigen::VectorXd controlTorque(numJoints); controlTorque.setZero();                              // Value to be returned
+    VectorXd controlTorque(numJoints); controlTorque.setZero();                                     // Value to be returned
 
-    Eigen::VectorXd controlAcceleration(numJoints); controlAcceleration.setZero();                  // Value to be calculated
+    VectorXd controlAcceleration(numJoints); controlAcceleration.setZero();                         // Value to be calculated
+    
+    VectorXd lowerBound(numJoints), upperBound(numJoints);                                          // On the joint control
+    
+    // NOTE: If this is the first time this function is called,
+    //       the QP solver won't have a previous solution
+    VectorXd startPoint = (QPSolver<double>::last_solution().size() == 0)
+                        ? Eigen::VectorXd::Zero(this->_model->number_of_joints())
+                        : QPSolver<double>::last_solution();
 
-    Eigen::VectorXd startPoint = QPSolver<double>::last_solution();                                 // For the QP solver
-
-    Eigen::VectorXd lowerBound(numJoints), upperBound(numJoints);                                   // On the joint control
-
-    for(int i = 0; i < numJoints; i++)
+    for(int i = 0; i < numJoints; ++i)
     {
         // NOTE: Can't use structured binding on Eigen::Vector because its size is not
         //       known at compile time, so we have to assign to variable and transfer:
@@ -43,12 +60,13 @@ SerialDynamicControl::resolve_endpoint_motion(const Eigen::Vector<double,6> &end
             // See: github.com/Woolfrey/software_simple_qp
 
             controlAcceleration
-            = QPSolver<double>::constrained_least_squares(endpointMotion - this->_model->time_derivative(this->_jacobianMatrix)*this->_model->joint_velocities(), // y
-                                                          this->_jacobianMatrix,                    // A
-                                                          this->_cartesianStiffness,                // W
-                                                          lowerBound,                               // x_min
-                                                          upperBound,                               // x_max
-                                                          startPoint);                              // Initial guess for solution x
+            = QPSolver<double>::constrained_least_squares(
+                endpointMotion - this->_model->time_derivative(this->_jacobianMatrix)*this->_model->joint_velocities(), // y
+                this->_jacobianMatrix,                                                              // A
+                this->_cartesianStiffness,                                                          // W
+                lowerBound,                                                                         // x_min
+                upperBound,                                                                         // x_max
+                startPoint);                                                                        // Initial guess for solution x
         }
         else                                                                                        // Redundant robot
         {
@@ -67,22 +85,25 @@ SerialDynamicControl::resolve_endpoint_motion(const Eigen::Vector<double,6> &end
 
             controlAcceleration
             = QPSolver<double>::solve(this->_model->joint_inertia_matrix(),                         // H
-                                        this->_redundantTask,                                       // f
-                                        this->_jacobianMatrix,                                      // B
-                                        endpointMotion - this->_model->time_derivative(this->_jacobianMatrix)*this->_model->joint_velocities(), // z
-                                        startPoint);                                                // Initial guess for solution x
+                                      this->_redundantTask,                                         // f
+                                      this->_jacobianMatrix,                                        // B
+                                      endpointMotion - this->_model->time_derivative(this->_jacobianMatrix)*this->_model->joint_velocities(), // z
+                                      startPoint);                                                  // Initial guess for solution x
 
             this->_redundantTaskSet = false;                                                        // Reset for next control loop
         }
     }
     else                                                                                            // Apply damped least squares
     {
-
+            throw std::runtime_error("[ERROR] [SERIAL DYNAMIC CONTROL] resolve_endpoint_motion(): "
+                                     "Singular; not yet programmed!");
     }
 
-    controlTorque = this->_model->joint_inertia_matrix()*controlAcceleration
+    controlTorque = this->_model->joint_inertia_matrix()*controlAcceleration;
+    /* This should be handled by the low-level control on the robot itself:
                   + this->_model->joint_coriolis_matrix()*this->_model->joint_velocities()
                   + this->_model->joint_damping_vector();
+    */
 
     return controlTorque;
 }
@@ -96,7 +117,7 @@ SerialDynamicControl::track_endpoint_trajectory(const Pose                    &d
                                                 const Eigen::Vector<double,6> &desiredVelocity,
                                                 const Eigen::Vector<double,6> &desiredAcceleration)
 {
-     // NOTE: I just put Pose _endpointPose as a member in the base class
+     // NOTE: I just put Pose<DataType> _endpointPose as a member in the base class
      
      return resolve_endpoint_motion(desiredAcceleration
                                   + this->_cartesianStiffness*this->_endpointPose.error(desiredPose)
@@ -123,25 +144,71 @@ SerialDynamicControl::track_joint_trajectory(const Eigen::VectorXd &desiredPosit
                                     "the velocity argument had " + std::to_string(desiredVelocity.size()) + " elements.");
     }
 
+    Eigen::VectorXd accelerationControl(numJoints);
     Eigen::VectorXd torqueControl(numJoints);                                                       // Value to be returned
+    accelerationControl = desiredAcceleration                                                       // Feedforward control
+                        + this->_jointPositionGain*(desiredPosition - this->_model->joint_positions())
+                        + this->_jointVelocityGain*(desiredVelocity - this->_model->joint_velocities());
 
-    for(int i = 0; i < numJoints; i++)
-    {   /*
-        torqueControl(i) = this->_model->joint_inertia_matrix().row(i)*(desiredAcceleration(i)                                                                  // Feedforward control
-                         + this->_jointPositionGain*(desiredPosition(i) - this->_model->joint_positions()[i])
-                         + this->_jointDerivativeGain*(desiredVelocity(i) - this->_model->joint_velocities()[i]))
-                         + this->_model->joint_coriolis_matrix().row(i)*this->_model->joint_velocities()
-                         + this->_model->joint_damping_vector()(; // Feedback control
-         */
-
-        Limits controlLimits = compute_control_limits(numJoints);                                   // Get the instantaneous limits on the joint speed
-
-             if(torqueControl(i) <= controlLimits.lower) torqueControl(i) = controlLimits.lower + 1e-03; // Just above the limit
-        else if(torqueControl(i) >= controlLimits.upper) torqueControl(i) = controlLimits.upper - 1e-03; // Just below the limit
+    // Obtain the minimum and maximum limits based on the joint position and velocity
+    std::vector<Limits> controlLimits(numJoints);
+    for(int i = 0; i < numJoints; ++i)
+    {
+        controlLimits[i] = compute_control_limits(i);                                               // get the instantaneous limits on the joint acceleration
     }
+
+    // Obtain the effort limits imposed by the motors
+    Eigen::VectorXd effort_limits(numJoints); effort_limits.setZero();                              // Set the initial joint torques
+    for(int i = 0; i < numJoints; ++i)
+    {
+        effort_limits(i) =  this->_model->link(i)->joint().effort_limit();
+    }
+
+    Eigen::VectorXd lowerBound(numJoints), upperBound(numJoints);                                   // On the joint control
+    Eigen::MatrixXd constraintMatrix;
+    Eigen::VectorXd constraintVector;
+    Eigen::VectorXd start;
+
+    constraintMatrix.resize(4*numJoints,numJoints);
+    constraintMatrix.setZero();
+    constraintMatrix.block(0,0,numJoints,numJoints) = this->_model->joint_inertia_matrix();
+    constraintMatrix.block(numJoints,0,numJoints,numJoints) = -constraintMatrix.block(0,0,numJoints,numJoints);
+    constraintMatrix.block(2*numJoints,0,numJoints,numJoints).setIdentity();
+    constraintMatrix.block(3*numJoints,0,numJoints,numJoints).setIdentity();
+    constraintMatrix.block(3*numJoints,0,numJoints,numJoints) = -constraintMatrix.block(3*numJoints,0,numJoints,numJoints);
+
+    constraintVector.resize(4*numJoints);
+    constraintVector.setZero();
+    constraintVector.segment(0,numJoints) = effort_limits+this->_model->joint_gravity_vector();
+    constraintVector.segment(numJoints,numJoints) = -(-effort_limits+this->_model->joint_gravity_vector());
+
+    for (int i = 0; i < numJoints; ++i)
+    {
+        constraintVector(2*numJoints+i) = controlLimits[i].upper;
+        constraintVector(3*numJoints+i) = -controlLimits[i].lower;
+    }
+
+    start.resize(numJoints);
+    start.setZero();
+    start = accelerationControl;
+
+    Eigen::MatrixXd H; H.setIdentity(numJoints,numJoints);                                          // Solution is unweighted
+    Eigen::VectorXd f;  f.setZero(numJoints) ;
+
+    f = -H*accelerationControl;
+
+    accelerationControl = QPSolver<double>::solve(H, f,
+                                                  constraintMatrix,                 // B
+                                                  constraintVector,                 // z
+                                                  start);
+
+    torqueControl = this->_model->joint_inertia_matrix()*(accelerationControl)
+                  + this->_model->joint_coriolis_matrix()*this->_model->joint_velocities()
+                  + this->_model->joint_damping_vector(); // Feedback control
 
     return torqueControl;
 }
+
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //                   Compute the instantaneous limits on the joint acceleration                  //
@@ -153,6 +220,7 @@ SerialDynamicControl::compute_control_limits(const unsigned int &jointNumber)
     // Flacco, F., De Luca, A., & Khatib, O. (2012).
     // "Motion control of redundant robots under joint constraints: Saturation in the null space."
     // IEEE International Conference on Robotics and Automation, 285-292.
+    // Calculating the limits given the maximum acceleration is achieved by using the QP solver, outside this function
 
     Limits limits;                                                                                  // Value to be returned
 
@@ -160,17 +228,15 @@ SerialDynamicControl::compute_control_limits(const unsigned int &jointNumber)
                  + this->_model->joint_velocities()[jointNumber]*(1.0/this->_controlFrequency)
                  - this->_model->link(jointNumber)->joint().position_limits().lower;                // Distance from lower limit
 
-    limits.lower = std::max( -2*delta*(1.0/pow(this->_controlFrequency,2)),
-                  (std::max((-this->_model->link(jointNumber)->joint().speed_limit() + this->_model->joint_velocities()[jointNumber])*(1.0/this->_controlFrequency),
-                             -this->_maxJointAcceleration)));
+    limits.lower = std::max((-2*delta)*pow(this->_controlFrequency,2),
+                            (-this->_model->link(jointNumber)->joint().speed_limit() + this->_model->joint_velocities()[jointNumber])*(this->_controlFrequency));
+
 
     delta = this->_model->link(jointNumber)->joint().position_limits().upper
-          - this->_model->joint_velocities()[jointNumber]*(1/this->_controlFrequency)
+          - this->_model->joint_velocities()[jointNumber]*(1.0/this->_controlFrequency)
           - this->_model->joint_positions()[jointNumber];                                           // Distance to upper limit
 
-    limits.upper = std::min( 2*delta*(1.0/pow(this->_controlFrequency,2)),
-                  (std::min((this->_model->link(jointNumber)->joint().speed_limit() - this->_model->joint_velocities()[jointNumber])*(1.0/this->_controlFrequency),
-                             this->_maxJointAcceleration)));
-
+    limits.upper = std::min(abs(2*delta*pow(this->_controlFrequency,2)),
+                            (this->_model->link(jointNumber)->joint().speed_limit() - this->_model->joint_velocities()[jointNumber])*(this->_controlFrequency));
     return limits;
 }
