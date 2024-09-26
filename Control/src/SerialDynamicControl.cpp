@@ -11,6 +11,8 @@ SerialDynamicControl::SerialDynamicControl(KinematicTree *model,
     
     _jointPositionGain = 225.0;
     _jointVelocityGain = 30.0;
+    
+    
 }
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -20,6 +22,8 @@ inline
 Eigen::VectorXd
 SerialDynamicControl::resolve_endpoint_motion(const Eigen::Vector<double,6> &endpointMotion)
 {
+    // NOTE: In future we need to include a control barrier function for singularity avoidance.
+    
     using namespace Eigen;                                                                          // Makes reading code below a bit simpler
 
     unsigned int numJoints = _model->number_of_joints();                                            // Makes things easier
@@ -85,7 +89,7 @@ SerialDynamicControl::resolve_endpoint_motion(const Eigen::Vector<double,6> &end
 
             if(not _redundantTaskSet)
             {
-                _redundantTask = this->manipulability_gradient() * _controlFrequency / 20.0         // Autonomously reconfigure away from singularities
+                _redundantTask = this->manipulability_gradient() * _controlFrequency / 100.0         // Autonomously reconfigure away from singularities
                                - _model->joint_damping_vector();                                    // Necessary for stability
             }
 
