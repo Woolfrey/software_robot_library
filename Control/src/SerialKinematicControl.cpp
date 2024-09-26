@@ -181,14 +181,14 @@ SerialKinematicControl::compute_control_limits(const unsigned int &jointNumber)
 	Limits limits;                                                                                  // Value to be returned
 
 	double delta = _model->joint_positions()[jointNumber]
-	             - _model->link(jointNumber)->joint().position_limits().lower;                // Distance from lower limit
+	             - _model->link(jointNumber)->joint().position_limits().lower;                      // Distance from lower limit
 	
 	limits.lower = std::max(-delta*_controlFrequency,
 	               std::max(-_model->link(jointNumber)->joint().speed_limit(),
 	                        -2*sqrt(_maxJointAcceleration*delta)));
 	                        
 	delta = _model->link(jointNumber)->joint().position_limits().upper
-	      - _model->joint_positions()[jointNumber];                                           // Distance to upper limit
+	      - _model->joint_positions()[jointNumber];                                                 // Distance to upper limit
 	
 	limits.upper = std::min(delta*_controlFrequency,
 	               std::min(_model->link(jointNumber)->joint().speed_limit(),
