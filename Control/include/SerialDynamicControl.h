@@ -1,7 +1,7 @@
 #ifndef SERIALDYNAMICCONTROL_H
 #define SERIALDYNAMICCONTROL_H
 
-#include <SerialLinkBase.h>
+#include "SerialLinkBase.h"
 
 class SerialDynamicControl : public SerialLinkBase
 {
