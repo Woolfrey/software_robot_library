@@ -173,13 +173,13 @@ class SerialLinkBase : public QPSolver<double>
 		
 		double _maxJointAcceleration = 0.5;                                                         ///< As it says.
 		
-		Eigen::Matrix<double,6,6> _cartesianStiffness
-		= (Eigen::Matrix<double,6,6>(6,6) << 10.0,  0.0,  0.0, 0.0, 0.0, 0.0,
-		                                      0.0, 10.0,  0.0, 0.0, 0.0, 0.0,
-		                                      0.0,  0.0, 10.0, 0.0, 0.0, 0.0,
-		                                      0.0,  0.0,  0.0, 2.0, 0.0, 0.0,
-		                                      0.0,  0.0,  0.0, 0.0, 2.0, 0.0,
-		                                      0.0,  0.0,  0.0, 0.0, 0.0, 2.0).finished();           ///< Gain on the endpoint pose error
+		Eigen::Matrix<double,6,6> _cartesianStiffness =
+		(Eigen::Matrix<double,6,6>(6,6) << 10.0,  0.0,  0.0, 0.0, 0.0, 0.0,
+		                                    0.0, 10.0,  0.0, 0.0, 0.0, 0.0,
+		                                    0.0,  0.0, 10.0, 0.0, 0.0, 0.0,
+		                                    0.0,  0.0,  0.0, 2.0, 0.0, 0.0,
+		                                    0.0,  0.0,  0.0, 0.0, 2.0, 0.0,
+		                                    0.0,  0.0,  0.0, 0.0, 0.0, 2.0).finished();             ///< Gain on the endpoint pose error
 		
 		Eigen::Matrix<double,6,6> _cartesianDamping = 0.1*_cartesianStiffness;                      ///< Gain the endpoint velocity error
 		
