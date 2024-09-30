@@ -7,12 +7,33 @@ SerialDynamicControl::SerialDynamicControl(KinematicTree *model,
                                            const std::string &endpointName)
                                            : SerialLinkBase(model, endpointName)
 {
-    // NOTE: We should make these scale with the control frequency.
-    
-    _jointPositionGain = 225.0;
-    _jointVelocityGain = 30.0;
-    
-    
+    // NOTE: Need to set default gains here.
+    //       They should be proportional to the control frequency.
+}
+
+  ///////////////////////////////////////////////////////////////////////////////////////////////////
+ //                  Compute the joint torques needed to track a given trajectory                 //
+///////////////////////////////////////////////////////////////////////////////////////////////////
+inline
+Eigen::VectorXd
+SerialDynamicControl::track_endpoint_trajectory(const Pose                    &desiredPose,
+                                                const Eigen::Vector<double,6> &desiredVelocity,
+                                                const Eigen::Vector<double,6> &desiredAcceleration)
+{
+     // NOTE: It more intuitive to express Cartesian gains in terms of Newtons, but when optimising the
+     // joint control it is more straightforward to use acceleration. Thus we compute:
+     //
+     // \ddot{x} = \ddot{x}_d + A^{-1}(D*\dot{e} + K*e),
+     //
+     // where A is the Cartesian inertia matrix
+     
+     return resolve_endpoint_motion
+     (
+            desiredAcceleration                                                                      // Feedforward term
+          + _jacobianMatrix*_model->joint_inertia_matrix().ldlt().solve(_jacobianMatrix.transpose()) // Inverse of Cartesian inertia
+          *(_cartesianDamping*(desiredVelocity - _jacobianMatrix*_model->joint_velocities())         // Velocity feedback
+          + _cartesianStiffness*_endpointPose.error(desiredPose))                                    // Position feedback
+      );
 }
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -22,20 +43,30 @@ inline
 Eigen::VectorXd
 SerialDynamicControl::resolve_endpoint_motion(const Eigen::Vector<double,6> &endpointMotion)
 {
+    // NOTE: The input needs to be a 6x1 acceleration vector because we use Gauss' principle of
+    // least constraint to solve the redundant case.
+
     // NOTE: In future we need to include a control barrier function for singularity avoidance.
     
     using namespace Eigen;                                                                          // Makes reading code below a bit simpler
 
     unsigned int numJoints = _model->number_of_joints();                                            // Makes things easier
 
-    Vector<double,6> cartesianAcceleration = endpointMotion
-                                           - _model->time_derivative(_jacobianMatrix)*_model->joint_velocities();
+    return Eigen::VectorXd::Zero(numJoints);
+    
+    // THIS STILL NEEDS TESTING!
+/*
+    Vector<double,6> cartesianAcceleration =
+    endpointMotion - _model->time_derivative(_jacobianMatrix)*_model->joint_velocities();           // Offset nonlinear effects
                                            
     // Compute instantaneous limits on joint acceleration
     VectorXd lowerBound(numJoints), upperBound(numJoints);
     
-    for(int i = 0; i < numJoints; i++)
+    for(int i = 0; i < numJoints; ++i)
     {
+        // NOTE: We can't assign directly because the size
+        //       of the vectors is not known at compile time.
+        
         const auto &[lower, upper] = compute_control_limits(i);
         
         lowerBound[i] = lower;
@@ -48,7 +79,7 @@ SerialDynamicControl::resolve_endpoint_motion(const Eigen::Vector<double,6> &end
     {
         startPoint = QPSolver<double>::last_solution();
         
-        for(int i = 0; i < numJoints; i++)
+        for(int i = 0; i < numJoints; ++i)
         {
                  if(startPoint[i] <= lowerBound[i]) startPoint[i] = lowerBound[i] + 1e-03;
             else if(startPoint[i] >= upperBound[i]) startPoint[i] = upperBound[i] - 1e-03;
@@ -58,7 +89,7 @@ SerialDynamicControl::resolve_endpoint_motion(const Eigen::Vector<double,6> &end
     
     VectorXd jointAcceleration(numJoints); jointAcceleration.setZero();                             // We want to solve for this
     
-    if(_manipulability > _minManipulability)                                                        // Not singular
+    if(not is_singular())
     {
         if(_model->number_of_joints() <= 6)                                                         // Fully actuated or underactuated robots
         {
@@ -89,7 +120,7 @@ SerialDynamicControl::resolve_endpoint_motion(const Eigen::Vector<double,6> &end
 
             if(not _redundantTaskSet)
             {
-                _redundantTask = this->manipulability_gradient() * _controlFrequency / 100.0         // Autonomously reconfigure away from singularities
+                _redundantTask = this->manipulability_gradient() * _controlFrequency / 100.0        // Autonomously reconfigure away from singularities
                                - _model->joint_damping_vector();                                    // Necessary for stability
             }
 
@@ -110,6 +141,7 @@ SerialDynamicControl::resolve_endpoint_motion(const Eigen::Vector<double,6> &end
     else // SINGULAR
     {
         // Control barrier function must have been violated, so apply damped least squares:
+        //
         // Chiaverini, S., Egeland, O., & Kanestrom, R. K. (1991, June).
         // Achieving user-defined accuracy with damped least-squares inverse kinematics.
         // In Fifth International Conference on Advanced Robotics Robots in Unstructured Environments
@@ -123,7 +155,7 @@ SerialDynamicControl::resolve_endpoint_motion(const Eigen::Vector<double,6> &end
            
         MatrixXd H = _jacobianMatrix.transpose()*_jacobianMatrix;
         
-        for(int i = 0; i < numJoints; i++) H(i,i) += dampingFactor;
+        for(int i = 0; i < numJoints; ++i) H(i,i) += dampingFactor;
         
         jointAcceleration = QPSolver<double>::solve
         (
@@ -136,20 +168,8 @@ SerialDynamicControl::resolve_endpoint_motion(const Eigen::Vector<double,6> &end
     }
     
     return _model->joint_inertia_matrix()*jointAcceleration;
-}
-
-  ///////////////////////////////////////////////////////////////////////////////////////////////////
- //                  Compute the joint torques needed to track a given trajectory                 //
-///////////////////////////////////////////////////////////////////////////////////////////////////
-inline
-Eigen::VectorXd
-SerialDynamicControl::track_endpoint_trajectory(const Pose                    &desiredPose,
-                                                const Eigen::Vector<double,6> &desiredVelocity,
-                                                const Eigen::Vector<double,6> &desiredAcceleration)
-{
-     return resolve_endpoint_motion(desiredAcceleration
-                                  + _cartesianStiffness*_endpointPose.error(desiredPose)
-                                  + _cartesianDamping*(desiredVelocity - _jacobianMatrix*_model->joint_velocities()));
+    
+    */
 }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -181,7 +201,7 @@ SerialDynamicControl::track_joint_trajectory(const Eigen::VectorXd &desiredPosit
     // Compute instantaneous limits on joint acceleration
     VectorXd lowerBound(numJoints), upperBound(numJoints);
     
-    for(int i = 0; i < numJoints; i++)
+    for(int i = 0; i < numJoints; ++i)
     {
         const auto &[lower, upper] = compute_control_limits(i);
         
@@ -195,7 +215,7 @@ SerialDynamicControl::track_joint_trajectory(const Eigen::VectorXd &desiredPosit
     {
         startPoint = QPSolver<double>::last_solution();
         
-        for(int i = 0; i < numJoints; i++)
+        for(int i = 0; i < numJoints; ++i)
         {
                  if(startPoint[i] <= lowerBound[i]) startPoint[i] = lowerBound[i] + 1e-03;
             else if(startPoint[i] >= upperBound[i]) startPoint[i] = upperBound[i] - 1e-03;
