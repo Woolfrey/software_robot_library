@@ -59,7 +59,7 @@ SerialKinematicControl::resolve_endpoint_motion(const Eigen::Vector<double,6> &e
     
     VectorXd controlVelocity(numJoints); controlVelocity.setZero();                                 // We want to compute this
     
-    if(_manipulability > _minManipulability)                                                        // Not singular
+    if(not is_singular())                                                                           // Not singular
     {
         if(_model->number_of_joints() <= 6)                                                         // Fully actuated or underactuated robots
         {
@@ -86,7 +86,7 @@ SerialKinematicControl::resolve_endpoint_motion(const Eigen::Vector<double,6> &e
 
             if(not _redundantTaskSet)
             {
-                _redundantTask = manipulabilityGradient * _controlFrequency / 20.0;                 // Autonomously reconfigure away from singularities
+                _redundantTask = manipulabilityGradient * _controlFrequency / 10.0;                 // Autonomously reconfigure away from singularities
             }
 
             controlVelocity = QPSolver<double>::constrained_least_squares(
@@ -117,7 +117,6 @@ SerialKinematicControl::resolve_endpoint_motion(const Eigen::Vector<double,6> &e
         // subject to: B*x <= z
            
         MatrixXd H = _jacobianMatrix.transpose()*_jacobianMatrix;
-        
         for(int i = 0; i < numJoints; i++) H(i,i) += dampingFactor;
         
         controlVelocity = QPSolver<double>::solve
@@ -141,7 +140,7 @@ SerialKinematicControl::track_joint_trajectory(const Eigen::VectorXd &desiredPos
                                                const Eigen::VectorXd &desiredVelocity,
 						                       const Eigen::VectorXd &desiredAcceleration)
 {
-	unsigned int numJoints = _model->number_of_joints();                                      // Makes things easier
+	unsigned int numJoints = _model->number_of_joints();                                            // Makes things easier
 	
 	if(desiredPosition.size() != numJoints or desiredVelocity.size() != numJoints)
 	{
@@ -156,7 +155,7 @@ SerialKinematicControl::track_joint_trajectory(const Eigen::VectorXd &desiredPos
 	
 	for(int i = 0; i < numJoints; i++)
 	{
-		velocityControl(i) = desiredVelocity(i)                                                                  // Feedforward control
+		velocityControl(i) = desiredVelocity(i)                                                      // Feedforward control
 		                   + _jointPositionGain*(desiredPosition(i) - _model->joint_positions()[i]); // Feedback control
 		
 		Limits controlLimits = compute_control_limits(i);                                           // Get the instantaneous limits on the joint speed
