@@ -83,7 +83,7 @@ Link::update_state(const double &jointPosition, const double &jointVelocity)
           
           return false;
      }
-     else     return update_state(this->_parentLink->pose(), this->_parentLink->twist(), jointPosition, jointVelocity);
+     else return update_state(this->_parentLink->pose(), this->_parentLink->twist(), jointPosition, jointVelocity);
 }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -125,6 +125,7 @@ Link::update_state(const Pose                    &previousPose,
           this->_inertia = R*this->_localInertia*R.transpose();                                     // Rotate moment of inertia to base frame
           
           Eigen::Vector3d w = this->_twist.tail(3);                                                 // Need to do this so we can call the cross() method below
+          
           for(int i = 0; i < 3; i++) this->_inertiaDerivative.col(i) = w.cross(this->_inertia.col(i)); // Compute time derivative of moment of inertia
           
           return true;
