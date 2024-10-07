@@ -311,6 +311,7 @@ bool KinematicTree::update_state(const Eigen::VectorXd &jointPosition,
                   << "This model has " << this->_numberOfJoints << " joints, but "
                   << "the joint position argument had " << jointPosition.size() << " elements, "
                   << "and the joint velocity argument had " << jointVelocity.size() << " element." << std::endl;
+                  
         return false;
     }
     
@@ -327,7 +328,7 @@ bool KinematicTree::update_state(const Eigen::VectorXd &jointPosition,
     
     std::deque<Link*> candidateList(this->_baseLinks.begin(), this->_baseLinks.end());
     
-    while(!candidateList.empty())
+    while(not candidateList.empty())
     {
         Link *currentLink = candidateList.back();
         candidateList.pop_back();
@@ -339,7 +340,7 @@ bool KinematicTree::update_state(const Eigen::VectorXd &jointPosition,
                        ? currentLink->update_state(this->base.pose(), this->base.twist(), jointPosition(k), jointVelocity(k))
                        : currentLink->update_state(jointPosition(k), jointVelocity(k));
         
-        if(!success)
+        if(not success)
         {
             std::cerr << "[ERROR] [KINEMATIC TREE] update_state(): "
                       << "Unable to update the state for the '" << currentLink->name()
@@ -353,9 +354,9 @@ bool KinematicTree::update_state(const Eigen::VectorXd &jointPosition,
         
         double mass = currentLink->mass();
         
-        for(int i = 0; i < k+1; i++)
+        for(int i = 0; i < k+1; ++i)
         {
-            for(int j = i; j < k+1; j++)
+            for(int j = i; j < k+1; ++j)
             {
                 this->_jointInertiaMatrix(i,j) += mass * Jv.col(i).dot(Jv.col(j))
                                                 + Jw.col(i).dot(currentLink->inertia() * Jw.col(j));
@@ -363,6 +364,7 @@ bool KinematicTree::update_state(const Eigen::VectorXd &jointPosition,
         }
         
         Eigen::Matrix<double,6,Eigen::Dynamic> Jdot = time_derivative(J);
+        
         this->_jointCoriolisMatrix.block(0,0,k+1,k+1) += mass * Jv.transpose() * Jdot.block(0,0,3,k+1)
                                                        + Jw.transpose() * (currentLink->inertia_derivative() * Jw + currentLink->inertia() * Jdot.block(3,0,3,k+1));
         
@@ -377,12 +379,12 @@ bool KinematicTree::update_state(const Eigen::VectorXd &jointPosition,
                                                          - mass * (SkewSymmetric(currentLink->twist().head(3)) * Jv).transpose();
         
         std::vector<Link*> temp = currentLink->child_links();
-        if(!temp.empty()) candidateList.insert(candidateList.begin(), temp.begin(), temp.end());
+        if(not temp.empty()) candidateList.insert(candidateList.begin(), temp.begin(), temp.end());
     }
     
-    for(int i = 1; i < this->_numberOfJoints; i++)
+    for(int i = 1; i < this->_numberOfJoints; ++i)
     {
-        for(int j = 0; j < i; j++) this->_jointInertiaMatrix(i,j) = this->_jointInertiaMatrix(j,i);
+        for(int j = 0; j < i; ++j) this->_jointInertiaMatrix(i,j) = this->_jointInertiaMatrix(j,i);
     }
     
     return true;
@@ -478,9 +480,9 @@ KinematicTree::time_derivative(const Eigen::Matrix<double,6,Eigen::Dynamic> &jac
      Eigen::Matrix<double,6,Eigen::Dynamic> Jdot(6,jacobianMatrix.cols());
      Jdot.setZero();
 
-     for(int i = 0; i < jacobianMatrix.cols(); i++)
+     for(int i = 0; i < jacobianMatrix.cols(); ++i)
      {
-          for(int j = 0; j <= i; j++)
+          for(int j = 0; j <= i; ++j)
           {
                // Compute dJ(i)/dq(j)
                if(this->_link[j]->joint().is_revolute())
@@ -502,7 +504,7 @@ KinematicTree::time_derivative(const Eigen::Matrix<double,6,Eigen::Dynamic> &jac
                }
                
                // Compute dJ(j)/dq(i)
-               if(i != j && this->_link[j]->joint().is_revolute())                                  // J_j = [a_j x r_j; a_j]
+               if(i != j and this->_link[j]->joint().is_revolute())                                 // J_j = [a_j x r_j; a_j]
                {
                     double qdot = this->_jointVelocity(i);                                          // Makes things a little easier
                     
@@ -554,7 +556,7 @@ KinematicTree::partial_derivative(const Eigen::Matrix<double,6,Eigen::Dynamic> &
      
      int j = jointNumber;                                                                           // Makes things a little easier
      
-     for(int i = 0; i < numberOfColumns-1; i++)
+     for(int i = 0; i < numberOfColumns-1; ++i)
      {
           if(this->_link[i]->joint().is_revolute())                                                 // J_i = [a_i x r_i ; a_i]
           {
@@ -671,11 +673,11 @@ KinematicTree::char_to_vector(const char* character)
      std::vector<double> numberAsVector;                                                            // Temporary storage
      
      int startPoint = 0;                                                                         
-     for(int i = 0; i < std::strlen(character); i++)
+     for(int i = 0; i < std::strlen(character); ++i)
      {
           if(character[i] == ' ')                                                                   // Find the space in the char array
           {
-               for(int j = startPoint; j < i; j++) numberAsString += character[j];                  // Add the character to the string
+               for(int j = startPoint; j < i; ++j) numberAsString += character[j];                  // Add the character to the string
                
                numberAsVector.push_back(std::stod(numberAsString));                                 // Convert to double (override double)
                
@@ -685,7 +687,7 @@ KinematicTree::char_to_vector(const char* character)
           }
      }
      
-     for(int i = startPoint; i < std::strlen(character); i++) numberAsString += character[i];       // Get the last number in the char array
+     for(int i = startPoint; i < std::strlen(character); ++i) numberAsString += character[i];       // Get the last number in the char array
      
      numberAsVector.push_back(std::stof(numberAsString));
 
