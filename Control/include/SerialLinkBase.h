@@ -22,7 +22,9 @@ class SerialLinkBase : public QPSolver<double>
 		 * @param model A pointer to the KinematicTree object to be controlled.
 		 * @param endpointName The name of the endpoint on the KinematicTree to be controlled.
 		 */
-		SerialLinkBase(KinematicTree *model, const std::string &endpointName);
+		SerialLinkBase(KinematicTree *model,
+		               const std::string &endpointName,
+		               const double &controlFrequency = 100.0);
 		
 		/**
 		 * Compute the required joint motion to achieve the specified endpoint motion.
@@ -199,7 +201,7 @@ class SerialLinkBase : public QPSolver<double>
 		
 		ReferenceFrame *_endpointFrame;                                                             ///< Pointer to frame controlled in underlying model
 		
-		double _controlFrequency = 100;                                                             ///< Used in certain control calculations.
+		double _controlFrequency = 100.0;                                                           ///< Used in certain control calculations.
 	
 		/**
 		 * Computes the instantaneous limits on the joint control.
