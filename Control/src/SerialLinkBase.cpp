@@ -10,13 +10,21 @@
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //                                           Constructor                                         //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-SerialLinkBase::SerialLinkBase(KinematicTree *model, const std::string &endpointName)
-					           : _model(model)
+SerialLinkBase::SerialLinkBase(KinematicTree *model,
+                               const std::string &endpointName,
+                               const double &controlFrequency)
+					           : _model(model),
+					             _controlFrequency(controlFrequency)
 {     
      // Record pointer to the endpoint frame to be controlled so we don't need to search for it later.   
      // NOTE: This will throw a runtime error if it doesn't exist.
      
-     this->_endpointFrame = this->_model->find_frame(endpointName);
+     _endpointFrame = _model->find_frame(endpointName);
+     
+     update();                                                                                      // Compute initial state
+     
+     QPSolver::set_barrier_reduction_rate(0.9);
+     QPSolver::set_barrier_scalar(1000.0);
 
      // Resize dimensions of inequality constraints for the QP solver: B*qdot < z, where:
      //
@@ -24,22 +32,20 @@ SerialLinkBase::SerialLinkBase(KinematicTree *model, const std::string &endpoint
      //     [     -I    ]       [   -qdot_min  ]
      //     [  (dm/dq)' ]       [  (m - m_min) ]
      
-     unsigned int n = this->_model->number_of_joints();
+     unsigned int n = _model->number_of_joints();
      
-     this->_constraintMatrix.resize(2*n+1,n);
-     this->_constraintMatrix.block(0,0,n,n).setIdentity();
-     this->_constraintMatrix.block(n,0,n,n) = -this->_constraintMatrix.block(0,0,n,n);
-//   this->_constraintMatrix.row(2*n) = this->manipulability_gradient();                            <-- Needs to be set in the control loop
+     _constraintMatrix.resize(2*n+1,n);
+     _constraintMatrix.block(0,0,n,n).setIdentity();
+     _constraintMatrix.block(n,0,n,n) = -_constraintMatrix.block(0,0,n,n);
+//   _constraintMatrix.row(2*n) = this->manipulability_gradient();                            <-- Needs to be set in the control loop
 
-     this->_constraintVector.resize(2*n+1);
-//   this->_constraintVector.block(0,0,n,1) =  upperBound;                                          <-- Needs to be set in the control loop
-//   this->_constraintVector.block(n,0,n,1) = -lowerBound;                                          <-- Needs to be set in the control loop
-//   this->_constraintVector(2*n) = this->_manipulability - this->_minManipulability;               <-- Needs to be set in the control loop
-     
-     update();                                                                                      // Compute initial state
-     
+     _constraintVector.resize(2*n+1);
+//   _constraintVector.block(0,0,n,1) =  upperBound;                                          <-- Needs to be set in the control loop
+//   _constraintVector.block(n,0,n,1) = -lowerBound;                                          <-- Needs to be set in the control loop
+//   _constraintVector(2*n) = _manipulability - _minManipulability;               <-- Needs to be set in the control loop
+
      std::cout << "[INFO] [SERIAL LINK CONTROL] Controlling the '" << endpointName << "' frame on the '" 
-               << this->_model->name() << "' robot.\n";
+               << _model->name() << "' robot.\n";
 }
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -48,15 +54,15 @@ SerialLinkBase::SerialLinkBase(KinematicTree *model, const std::string &endpoint
 void
 SerialLinkBase::update()
 {
-	this->_endpointPose = this->_endpointFrame->link->pose() * this->_endpointFrame->relativePose;  // Compute new endpoint pose
+	_endpointPose = _endpointFrame->link->pose() * _endpointFrame->relativePose;                    // Compute new endpoint pose
 	                      
-    this->_jacobianMatrix = this->_model->jacobian(this->_endpointFrame);                           // Jacobian for the endpoint
+    _jacobianMatrix = _model->jacobian(_endpointFrame);                                             // Jacobian for the endpoint
 	                      
-	this->_forceEllipsoid = this->_jacobianMatrix*this->_jacobianMatrix.transpose();                // Used for certain calculations
+	_forceEllipsoid = _jacobianMatrix*_jacobianMatrix.transpose();                                  // Used for certain calculations
 	
-	double temp = sqrt(this->_forceEllipsoid.determinant());                                        // Proximity to a singularity
+	double temp = sqrt(_forceEllipsoid.determinant());                                              // Proximity to a singularity
 	
-	this->_manipulability = ( temp < 0 or std::isnan(temp)) ? 0.0 : temp;                           // Rounding error can mean manipulability is negative or nan
+	_manipulability = ( temp < 0 or std::isnan(temp)) ? 0.0 : temp;                                 // Rounding error can mean manipulability is negative or nan
 }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -82,8 +88,8 @@ SerialLinkBase::set_cartesian_gains(Eigen::Matrix<double,6,6> &stiffness,
      }
      else
      {
-          this->_cartesianStiffness = stiffness;
-          this->_cartesianDamping   = damping;
+          _cartesianStiffness = stiffness;
+          _cartesianDamping   = damping;
      
           return true;
      }
@@ -106,8 +112,8 @@ SerialLinkBase::set_joint_gains(const double &proportional,
 	}
 	else
 	{
-		this->_jointPositionGain = proportional;
-		this->_jointVelocityGain = derivative;
+		_jointPositionGain = proportional;
+		_jointVelocityGain = derivative;
 		return true;
 	}
 }
@@ -127,7 +133,7 @@ SerialLinkBase::set_max_joint_acceleration(const double &acceleration)
 	}
 	else
 	{
-		this->_maxJointAcceleration = acceleration;
+		_maxJointAcceleration = acceleration;
 		
 		return true;
 	}
@@ -139,18 +145,18 @@ SerialLinkBase::set_max_joint_acceleration(const double &acceleration)
 bool
 SerialLinkBase::set_redundant_task(const Eigen::VectorXd &task)
 {
-     if(task.size() != this->_model->number_of_joints())
+     if(task.size() != _model->number_of_joints())
      {
           std::cerr << "[ERROR] [SERIAL LINK] set_redundant_task(): "
-                    << "This robot model has " << this->_model->number_of_joints() << " joints, "
+                    << "This robot model has " << _model->number_of_joints() << " joints, "
                     << "but you assigned a task with " << task.size() << " elements.\n";
           
           return false;
      }
      else
      {
-          this->_redundantTask = task;
-          this->_redundantTaskSet = true;
+          _redundantTask = task;
+          _redundantTaskSet = true;
           
           return true;
      }
@@ -162,30 +168,29 @@ SerialLinkBase::set_redundant_task(const Eigen::VectorXd &task)
 Eigen::VectorXd
 SerialLinkBase::manipulability_gradient()
 {
-    // NOTE TO FUTURE SELF: Gradient with respect to first joint in a chain is always zero.
-    //                      It is possible to reduce calcs if this condition can be efficiently
-    //                      integrated in the loop below.
+    using namespace Eigen;                                                                          // For clarity
 
-    Eigen::VectorXd gradient(this->_model->number_of_joints());                                     // Value to be returned
- 
-    gradient.setZero();                                                                             // Any branching chains off of this one must be zero
+    VectorXd gradient = VectorXd::Zero(_model->number_of_joints());                                 // Initialise gradient as all zero
 
-    Eigen::LDLT<Eigen::Matrix<double,6,6>> JJT(this->_forceEllipsoid);                              // Pre-compute the decomposition
+    LDLT<Matrix<double,6,6>> JJT(_forceEllipsoid);                                                  // Decompose for faster inverse
 
-    Link *currentLink = this->_endpointFrame->link;                                                 // Starting link for computation
+    Matrix<double,Dynamic,6> JT = _jacobianMatrix.transpose();                                      // Cache transpose for speed
 
-    while(currentLink != nullptr)
+    Link *currentLink = _endpointFrame->link;                                                       // Start with the end-effector link
+
+    // Move down the kinematic chain and compute gradients w.r.t each joint
+    while (currentLink != nullptr)
     {
-	    Eigen::Matrix<double,6,Eigen::Dynamic> dJ
-	    = this->_model->partial_derivative(this->_jacobianMatrix,currentLink->number());
-	    
-	    gradient(currentLink->number())
-	    = this->_manipulability*(JJT.solve(dJ*this->_jacobianMatrix.transpose())).trace();
-	    
-	    currentLink = currentLink->parent_link();                                                   // Get pointer to next link in chain
-    }
+        if (currentLink->parent_link() == nullptr) break;                                           // Gradient for 1st link in chain is always zero
 
-    gradient(0) = 0.0;
+        int jointIndex = currentLink->number();
+
+        Matrix<double,6,Dynamic> dJ = this->_model->partial_derivative(this->_jacobianMatrix, jointIndex); // Compute the partial derivative of the Jacobian w.r.t. the current joint
+        
+        gradient(jointIndex) = this->_manipulability * (JJT.solve(dJ * JT)).trace();                // Compute the manipulability gradient contribution for this joint
+
+        currentLink = currentLink->parent_link();                                                   // Move to the parent link in the kinematic chain
+    }
 
     return gradient;
 }
