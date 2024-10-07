@@ -4,11 +4,11 @@
  //                                          Constructor                                           //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 SerialDynamicControl::SerialDynamicControl(KinematicTree *model,
-                                           const std::string &endpointName)
-                                           : SerialLinkBase(model, endpointName)
+                                           const std::string &endpointName,
+                                           const double &controlFrequency)
+                                           : SerialLinkBase(model, endpointName, controlFrequency)
 {
-    // NOTE: Need to set default gains here.
-    //       They should be proportional to the control frequency.
+    // NOTE: Need to set default gains here. They should be proportional to the control frequency.
 }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -20,11 +20,9 @@ SerialDynamicControl::track_endpoint_trajectory(const Pose                    &d
                                                 const Eigen::Vector<double,6> &desiredVelocity,
                                                 const Eigen::Vector<double,6> &desiredAcceleration)
 {
-     // NOTE: It more intuitive to express Cartesian gains in terms of Newtons, but when optimising the
-     // joint control it is more straightforward to use acceleration. Thus we compute:
-     //
-     // \ddot{x} = \ddot{x}_d + A^{-1}(D*\dot{e} + K*e),
-     //
+     // NOTE: It more intuitive to express Cartesian gains in terms of Newtons,
+     // but when optimising the joint control it is more straightforward to use acceleration.
+     // Thus we compute: \ddot{x} = \ddot{x}_d + A^{-1}(D*\dot{e} + K*e),
      // where A is the Cartesian inertia matrix
      
      return resolve_endpoint_motion
@@ -33,7 +31,7 @@ SerialDynamicControl::track_endpoint_trajectory(const Pose                    &d
           + _jacobianMatrix*_model->joint_inertia_matrix().ldlt().solve(_jacobianMatrix.transpose()) // Inverse of Cartesian inertia
           *(_cartesianDamping*(desiredVelocity - _jacobianMatrix*_model->joint_velocities())         // Velocity feedback
           + _cartesianStiffness*_endpointPose.error(desiredPose))                                    // Position feedback
-      );
+     );
 }
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -198,6 +196,17 @@ SerialDynamicControl::track_joint_trajectory(const Eigen::VectorXd &desiredPosit
                                + _jointVelocityGain * (desiredVelocity - _model->joint_velocities()) // Velocity feedback
                                + _jointPositionGain * (desiredPosition - _model->joint_positions()); // Position feedback
 
+
+    for(int i = 0; i < numJoints; ++i)
+    {
+        const auto &[lower, upper] = compute_control_limits(i);
+        
+        jointAcceleration[i] = std::clamp(jointAcceleration[i], lower, upper);
+    }
+    
+    return _model->joint_inertia_matrix()*jointAcceleration;
+    
+/*
     // Compute instantaneous limits on joint acceleration
     VectorXd lowerBound(numJoints), upperBound(numJoints);
     
@@ -223,9 +232,9 @@ SerialDynamicControl::track_joint_trajectory(const Eigen::VectorXd &desiredPosit
     }
     else startPoint = (lowerBound + upperBound) / 2.0;                                              // Start in the middle
     
-    // Due to inertial coupling, if halt 1 joint at the limit, this will cause
-    // spikes in joint torque on others. Therefore, solve a QP problem weighted by inertia to
-    // minimise tracking error.
+    // Due to inertial coupling, if we halt 1 joint at the limit,
+    // this will cause spikes in joint torque on others.
+    // Therefore, solve a QP problem weighted by inertia to minimise tracking error.
     
     // Solve a problem of the form:
     // min_x 1/2(y - A*x)^T*W*(y - A*x)
@@ -244,6 +253,7 @@ SerialDynamicControl::track_joint_trajectory(const Eigen::VectorXd &desiredPosit
     );
     
     return _model->joint_inertia_matrix() * jointAcceleration;
+ */
 }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -256,7 +266,6 @@ SerialDynamicControl::compute_control_limits(const unsigned int &jointNumber)
     // Flacco, F., De Luca, A., & Khatib, O. (2012).
     // "Motion control of redundant robots under joint constraints: Saturation in the null space."
     // IEEE International Conference on Robotics and Automation, 285-292.
-    // Calculating the limits given the maximum acceleration is achieved by using the QP solver, outside this function
 
     Limits limits;                                                                                  // Value to be returned
 
