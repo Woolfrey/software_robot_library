@@ -27,68 +27,67 @@ SerialKinematicControl::track_endpoint_trajectory(const Pose                    
 Eigen::VectorXd
 SerialKinematicControl::resolve_endpoint_motion(const Eigen::Vector<double,6> &endpointMotion)
 {
-    using namespace Eigen;                                                                          // Makes reading code below a bit simpler
+    using namespace Eigen;                                                                          // Improves readability
     
-    unsigned int numJoints = _model->number_of_joints();                                            // Makes things easier
-    
-    VectorXd startPoint = _model->joint_velocities();                                               // Used in the QP solver
-    
-    // Get the instantaneous limits on the joint velocities
-    
-    VectorXd lowerBound(numJoints), upperBound(numJoints);
-    
-    for(int i = 0; i < numJoints; i++)
+    // Variables used in this scope
+    unsigned int numJoints = _model->number_of_joints();                                            // Makes referencing easier       
+    VectorXd startPoint = _model->joint_velocities();                                               // Needed for the QP solver
+    VectorXd lowerBound(numJoints), upperBound(numJoints);                                          // Limits on joint control
+
+    // Compute joint velocity limits and ensure the starting point is within bounds
+    for (unsigned int i = 0; i < numJoints; ++i)
     {
+        // NOTE: Size of bounds is not known at compile time,
+        // so we must manually transfer values
         const auto &[lower, upper] = compute_control_limits(i);
-        
         lowerBound[i] = lower;
         upperBound[i] = upper;
-        
-        // Ensure start point is within limits, or QP solver might fail
-             if(startPoint[i] <= lower) startPoint[i] = lower + 1e-03;
-        else if(startPoint[i] >= upper) startPoint[i] = upper - 1e-03;
+
+        startPoint[i] = std::clamp(startPoint[i], lower + 1e-03, upper - 1e-03);                    // Ensure within bounds of QP solver might fail
     }
-    
-    VectorXd manipulabilityGradient = this->manipulability_gradient();                              // Used in a couple of places, so compute once here
-    
-    // Update the constraints for the QP solver
-    _constraintMatrix.row(2*numJoints) = -manipulabilityGradient.transpose();
-    _constraintVector.block(        0, 0, numJoints, 1) =  upperBound;
-    _constraintVector.block(numJoints, 0, numJoints, 1) = -lowerBound;
-    _constraintVector(2*numJoints) = (_manipulability - _minManipulability) * _controlFrequency / 10.0; // ADJUST THIS?
-    
-    VectorXd controlVelocity(numJoints); controlVelocity.setZero();                                 // We want to compute this
-    
-    if(not is_singular())                                                                           // Not singular
+
+    // Compute manipulability gradient once and update constraints
+    const VectorXd manipulabilityGradient = manipulability_gradient();                              // Used in a few places, so compute it once here
+    _constraintMatrix.row(2 * numJoints) = -manipulabilityGradient.transpose();                     // Part of the control barrier function
+    _constraintVector.head(numJoints) = upperBound;
+    _constraintVector.segment(numJoints, numJoints) = -lowerBound;
+    _constraintVector(2 * numJoints) = (_manipulability - _minManipulability) * 100 * sqrt(_controlFrequency);
+
+    VectorXd controlVelocity = VectorXd::Zero(numJoints);                                           // We need to compute this
+
+    if (not is_singular())
     {
-        if(_model->number_of_joints() <= 6)                                                         // Fully actuated or underactuated robots
+        if (numJoints <= 6)                                                                         // Fully actuated or underactuated robots
         {
             // Solve a problem of the form:
             // min 0.5*x'*H*x + x'*f
             // subject to: B*x <= z
 
             // See: github.com/Woolfrey/software_simple_qp
-
-            controlVelocity = QPSolver<double>::solve(_jacobianMatrix.transpose()*_jacobianMatrix,  // H
-                                                     -_jacobianMatrix.transpose()*endpointMotion,   // f
-                                                      _constraintMatrix,                            // B
-                                                      _constraintVector,                            // z
-                                                      startPoint);                             
+            
+            controlVelocity = QPSolver<double>::solve(
+                _jacobianMatrix.transpose() * _jacobianMatrix,                                      // H
+               -_jacobianMatrix.transpose() * endpointMotion,                                       // f
+                _constraintMatrix,                                                                  // B
+                _constraintVector,                                                                  // z
+                startPoint                                                                          // Initial guess
+            );
         }
-        else // REDUNDANT CASE
+        else                                                                                        // Redundant robot
         {
+            if (not _redundantTaskSet)
+            {
+                _redundantTask = manipulabilityGradient * sqrt(_controlFrequency) / 5.0;   
+                _redundantTaskSet = false;                                                          // Set false for next control loop
+            }
+
             // Solve a problem of the form:
             // min (x_d - x)'*W*(x_d - x)
             // subject to: A*x = y
             //             B*x < z
 
             // See: github.com/Woolfrey/software_simple_qp
-
-            if(not _redundantTaskSet)
-            {
-                _redundantTask = manipulabilityGradient * _controlFrequency / 10.0;                 // Autonomously reconfigure away from singularities
-            }
-
+            
             controlVelocity = QPSolver<double>::constrained_least_squares(
                 _redundantTask,                                                                     // x_d
                 _model->joint_inertia_matrix(),                                                     // W
@@ -96,13 +95,11 @@ SerialKinematicControl::resolve_endpoint_motion(const Eigen::Vector<double,6> &e
                 endpointMotion,                                                                     // y
                 _constraintMatrix,                                                                  // B
                 _constraintVector,                                                                  // z
-                startPoint                                                                          // Initial guess for x
-            );                                                                        
-
-            _redundantTaskSet = false;                                                              // Reset for next control loop
+                startPoint                                                                          // Initial guess
+            );
         }
     }
-    else // SINGULAR
+    else                                                                                            // Singular case
     {
         // Control barrier function must have been violated, so apply damped least squares:
         // Chiaverini, S., Egeland, O., & Kanestrom, R. K. (1991, June).
@@ -115,18 +112,18 @@ SerialKinematicControl::resolve_endpoint_motion(const Eigen::Vector<double,6> &e
         // Solve a problem of the form:
         // min 0.5*x'*H*x + x'*f
         // subject to: B*x <= z
-           
-        MatrixXd H = _jacobianMatrix.transpose()*_jacobianMatrix;
-        for(int i = 0; i < numJoints; i++) H(i,i) += dampingFactor;
         
-        controlVelocity = QPSolver<double>::solve
-        (
+        MatrixXd H = _jacobianMatrix.transpose() * _jacobianMatrix; 
+        
+        H.diagonal().array() += dampingFactor;
+        
+        controlVelocity = QPSolver<double>::solve(
             H,
-            -_jacobianMatrix.transpose()*endpointMotion,
-            _constraintMatrix.block(0,0,2*numJoints,numJoints),                                     // Ignore last row
-            _constraintVector.head(2*numJoints),                                                    // Ignore last element
+           -_jacobianMatrix.transpose() * endpointMotion,
+            _constraintMatrix.block(0, 0, 2 * numJoints, numJoints),                                // Use only first 2*numJoints rows
+            _constraintVector.head(2 * numJoints),                                                  // Use only first 2*numJoints elements
             startPoint
-        );   
+        );
     }
 
     return controlVelocity;
@@ -153,7 +150,7 @@ SerialKinematicControl::track_joint_trajectory(const Eigen::VectorXd &desiredPos
 	
 	Eigen::VectorXd velocityControl(numJoints);                                                     // Value to be returned
 	
-	for(int i = 0; i < numJoints; i++)
+	for(int i = 0; i < numJoints; ++i)
 	{
 		velocityControl(i) = desiredVelocity(i)                                                      // Feedforward control
 		                   + _jointPositionGain*(desiredPosition(i) - _model->joint_positions()[i]); // Feedback control
@@ -192,6 +189,15 @@ SerialKinematicControl::compute_control_limits(const unsigned int &jointNumber)
 	limits.upper = std::min(delta*_controlFrequency,
 	               std::min(_model->link(jointNumber)->joint().speed_limit(),
 	                        2*sqrt(_maxJointAcceleration*delta)));
+	                        
+	if(limits.lower > limits.upper)
+	{
+	    throw std::runtime_error(
+	        "[ERROR] [SERIAL KINEMATIC CONTROL] compute_control_limits():"
+	        "Lower limit for the '" + _model->link(jointNumber)->joint().name() + "' joint is greater than "
+	        "upper limit (" + std::to_string(limits.lower) + " > " + std::to_string(limits.upper) + "). "
+	        "How did that happen???");
+    }
 	                        
 	return limits;
 }
