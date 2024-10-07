@@ -21,8 +21,10 @@ class SerialKinematicControl : public SerialLinkBase
 		 * @param model A pointer to a KinematicTree object.
 		 * @param endpointName The name of the reference frame in the KinematicTree to be controlled.
 		 */
-		SerialKinematicControl(KinematicTree *model, const std::string &endpointName)
-		                       : SerialLinkBase(model, endpointName){}
+		SerialKinematicControl(KinematicTree *model,
+		                       const std::string &endpointName,
+		                       const double &controlFrequency = 100.0)
+		                       : SerialLinkBase(model, endpointName, controlFrequency){}
 		
 		/**
 		 * Solve the joint velocities required to move the endpoint at a given speed.
