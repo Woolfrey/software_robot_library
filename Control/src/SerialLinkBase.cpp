@@ -45,7 +45,7 @@ SerialLinkBase::SerialLinkBase(KinematicTree *model,
 //   _constraintVector(2*n) = _manipulability - _minManipulability;               <-- Needs to be set in the control loop
 
      std::cout << "[INFO] [SERIAL LINK CONTROL] Controlling the '" << endpointName << "' frame on the '" 
-               << _model->name() << "' robot.\n";
+               << _model->name() << "' robot." << std::endl;
 }
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
