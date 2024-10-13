@@ -108,9 +108,10 @@ Link::update_state(const Pose                    &previousPose,
           this->_pose = previousPose * this->_joint.origin();                                       // Update pose of link in base frame
           
           this->_jointAxis = (this->_pose.rotation()*this->_joint.axis()).normalized();             // Update axis of actuation in base frame
-          
+
+          // NOTE: This can throw an error!
           this->_pose *= this->_joint.position_offset(jointPosition);                               // Shouldn't this be on line 222? Did I write this???
-          
+ 
           this->_twist = previousTwist;                                                             // Propagate linear, angular velocity
           
           this->_twist.head(3) += Eigen::Vector3d(previousTwist.tail(3)).cross(this->_pose.translation() - previousPose.translation()); // Added linear velocity due to angular velocity
