@@ -266,7 +266,7 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
      this->_jointBaseCoriolisMatrix.resize(this->_numberOfJoints, NoChange);
      
      std::cout << "[INFO] [KINEMATIC TREE] Successfully generated the '" << this->_name << "' robot model."
-               << " It has " << this->_numberOfJoints << " joints (reduced from " << this->_fullLinkList.size() << ").\n";
+               << " It has " << this->_numberOfJoints << " joints (reduced from " << this->_fullLinkList.size() << ")." << std::endl;
 
      #ifndef NDEBUG
           std::cout << "\nHere is a list of all the joints on the robot:\n";          
@@ -345,6 +345,7 @@ bool KinematicTree::update_state(const Eigen::VectorXd &jointPosition,
             std::cerr << "[ERROR] [KINEMATIC TREE] update_state(): "
                       << "Unable to update the state for the '" << currentLink->name()
                       << "' link (" << currentLink->joint().name() << " joint).\n";
+                      
             return false;
         }
         
