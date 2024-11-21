@@ -12,22 +12,26 @@
 #include <iostream>
 #include <vector>
 
+namespace RobotLibrary {
+
+/**
+ * A data structure for holding the results of the QR decomposition.
+ */
+struct QRDecomposition
+{
+     Eigen::MatrixXd Q;                                                                             ///< An orthogonal matrix such that Q'*Q = I
+     Eigen::MatrixXd R;                                                                             ///< An upper-triangular matrix 
+                                                                 
+};   
+
+}
+
 /**
  * It's obvious what this function does.
  * @param A a square matrix
  * @return True if positive-definite, false otherwise
  */
-bool is_positive_definite(const Eigen::MatrixXd &A);
-
-/**
- * A data structure for holding the results of the QR decomposition.
- */
-struct QRdecomposition
-{
-     Eigen::MatrixXd Q;                                                                             ///< An orthogonal matrix such that Q'*Q = I
-     Eigen::MatrixXd R;                                                                             ///< An upper-triangular matrix 
-                                                                 
-};                                                                                                  // Semicolon needed after struct declaration
+bool is_positive_definite(const Eigen::MatrixXd &A);                                                                                               // Semicolon needed after struct declaration
        
 /**
  * Decompose a matrix A = Q*R where Q is an orthogonal matrix, and R is upper-triangular.
@@ -35,7 +39,7 @@ struct QRdecomposition
  * @param tolerance The rounding error on a singularity
  * @return A QRDecomposition data structure
  */
-QRdecomposition
+RobotLibrary::QRDecomposition
 schwarz_rutishauser(const Eigen::MatrixXd &A, const double tolerance = 1e-04);
 
 /**

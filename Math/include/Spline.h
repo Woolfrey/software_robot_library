@@ -11,6 +11,8 @@
 #include "Polynomial.h" 
 #include <vector>                                                                            // Using "" tells the compiler to look locally
 
+namespace RobotLibrary {
+
 class Spline
 {
     public:
@@ -41,5 +43,7 @@ class Spline
     std::vector<double> _points;                                                                    ///< The support points on the spline
      
 };                                                                                                  // Semicolon needed after a class declaration
+
+}
 
 #endif

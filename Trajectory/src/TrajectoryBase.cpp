@@ -5,7 +5,9 @@
  * @brief  Source files for the TrajectoryBase class.
  */
  
-#include <TrajectoryBase.h>
+#include "TrajectoryBase.h"
+
+namespace RobotLibrary {
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //                                       Constructor                                             //
@@ -48,4 +50,6 @@ TrajectoryBase::TrajectoryBase(const State  &startPoint,
                                     "the end velocity had " + std::to_string(endPoint.velocity.size()) + " elements, and "
                                     "the end acceleration had " + std::to_string(endPoint.acceleration.size()) + " elements.");
     }
+}
+
 }

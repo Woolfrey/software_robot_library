@@ -5,8 +5,10 @@
  * @brief  Source files for the TrapezoidalVelocity class(es).
  */
  
-#include <TrapezoidalVelocity.h>
+#include "TrapezoidalVelocity.h"
 #include <vector>
+
+namespace RobotLibrary {
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                                       Constructor                                              //
@@ -169,4 +171,6 @@ TrapezoidalVelocity::query_state(const double &time)
     
     // else
     return this->_trajectories.back().query_state(time);                                            // Final trajectory
+}
+
 }

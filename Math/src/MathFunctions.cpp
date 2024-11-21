@@ -43,7 +43,7 @@ bool is_positive_definite(const Eigen::MatrixXd &A)
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                                     QR DECOMPOSITION                                           //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-QRdecomposition
+RobotLibrary::QRDecomposition
 schwarz_rutishauser(const Eigen::MatrixXd &A,
                     const double tolerance)
 {
@@ -71,7 +71,7 @@ schwarz_rutishauser(const Eigen::MatrixXd &A,
           // The null space of A is obtained with N = Qn*Qn'.
           // This algorithm returns only Qr and R for efficiency.
           
-          QRdecomposition decomp;
+          RobotLibrary::QRDecomposition decomp;
           decomp.Q = A;
           decomp.R.resize(n,n); decomp.R.setZero();
           

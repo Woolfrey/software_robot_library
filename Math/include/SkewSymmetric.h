@@ -9,6 +9,8 @@
 #define SKEW_SYMMETRIC_H
 
 #include <Eigen/Core>
+
+namespace RobotLibrary {
  
 class SkewSymmetric
 {
@@ -40,5 +42,7 @@ class SkewSymmetric
           Eigen::Vector3d _vec;                                                                     ///< The underlying 3D vector
           
 };                                                                                                  // Semicolon needed after class declaration
+
+}
 
 #endif

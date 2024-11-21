@@ -11,6 +11,8 @@
 #include <Eigen/Core>                                                                               // Eigen::Vector
 #include <iostream>                                                                                 // std::cout
 
+namespace RobotLibrary {
+
 /**
  * A data structure for the state of a system.
  */
@@ -97,5 +99,7 @@ class TrajectoryBase
     unsigned int _dimensions;                                                                       ///< The number of dimensions this trajectory spans
     
 };                                                                                                  // Semicolon needed after class declaration
+
+}
 
 #endif

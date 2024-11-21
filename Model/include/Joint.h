@@ -14,6 +14,8 @@
 #include <string>
 #include <vector>
 
+namespace RobotLibrary {
+
 /**
  * A data structure for joint limits.
  * It could represent position, velocity, acceleration, or torque depending on the context.
@@ -166,4 +168,5 @@ class Joint
           
 };                                                                                                  // Semicolon needed after a class declaration
 
+}
 #endif

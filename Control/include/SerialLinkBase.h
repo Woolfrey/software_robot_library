@@ -8,11 +8,12 @@
 #ifndef SERIALLINKBASE_H_
 #define SERIALLINKBASE_H_
 
+#include <Eigen/Dense>                                                                              // Matrix decomposition
 #include "KinematicTree.h"                                                                          // Computes the kinematics and dynamics
 #include "MathFunctions.h"
 #include "QPSolver.h"                                                                               // Control optimisation
 
-#include <Eigen/Dense>                                                                              // Matrix decomposition
+namespace RobotLibrary {
 
 class SerialLinkBase : public QPSolver<double>
 {
@@ -213,5 +214,7 @@ class SerialLinkBase : public QPSolver<double>
 		compute_control_limits(const unsigned int &jointNumber) = 0;
 	
 };                                                                                                  // Semicolon needed after a class declaration
+
+}
 
 #endif

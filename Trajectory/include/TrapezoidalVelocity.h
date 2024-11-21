@@ -11,7 +11,9 @@
 #include "TrajectoryBase.h"                                                                         // Tells the compiler to look locally
 
 #include <Eigen/Geometry> 
-#include <vector>                                                                          // Eigen::Vector, Eigen::Matrix, Eigen::Quaternion
+#include <vector>                                                                                   // Eigen::Vector, Eigen::Matrix, Eigen::Quaternion
+
+namespace RobotLibrary {
 
 /**
  * This class defines a trapezoidal velocity profile between 2 points.
@@ -115,5 +117,7 @@ class TrapezoidalVelocity : public TrajectoryBase
         std::vector<TrapezoidalBase> _trajectories;                                                 ///< An array of individual trapezoidal trajectories connecting and 2 points.
         
 };                                                                                                  // Semicolon required after class declaration
+
+}
 
 #endif

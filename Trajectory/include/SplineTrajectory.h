@@ -12,6 +12,8 @@
 #include "Spline.h"
 #include "TrajectoryBase.h"
 
+namespace RobotLibrary {
+
 class SplineTrajectory : public TrajectoryBase
 {
     public:
@@ -56,5 +58,7 @@ class SplineTrajectory : public TrajectoryBase
         std::vector<Spline> _spline;                                                                ///< Underlying spline object over real numbers
         
 };                                                                                                  // Semicolon needed after a class declarationS
+
+}
 
 #endif

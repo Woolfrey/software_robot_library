@@ -10,6 +10,8 @@
 
 #include "SerialLinkBase.h"
 
+namespace RobotLibrary {
+
 /**
  * Algorithms for velocity control of a serial link robot arm.
  */
@@ -69,5 +71,7 @@ class SerialKinematicControl : public SerialLinkBase
 		Limits compute_control_limits(const unsigned int &jointNumber);
 	
 };                                                                                                  // Semicolon needed after a class declaration
+
+}
 
 #endif

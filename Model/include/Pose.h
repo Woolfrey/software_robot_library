@@ -11,6 +11,8 @@
 #include <Eigen/Geometry>                                                                           // Quaternion
 #include <iostream>                                                                                 // std::cout
 
+namespace RobotLibrary {
+
 class Pose
 {
      public:
@@ -89,5 +91,6 @@ class Pose
             Eigen::Quaterniond _quaternion = {1.0, 0.0, 0.0, 0.0};                                  ///< The orientation or rotation component
      
 };                                                                                                  // Semicolon needed after class declaration
+}
 
 #endif

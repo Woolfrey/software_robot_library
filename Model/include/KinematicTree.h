@@ -16,6 +16,8 @@
 #include <map>                                                                                      // map
 #include <tinyxml2.h>                                                                               // For parsing urdf files
 
+namespace RobotLibrary {
+
 /**
  * A structure containing necessary information for defining a reference frame on a kinematic tree.
  */
@@ -263,5 +265,7 @@ class KinematicTree
            */
           Eigen::Vector3d char_to_vector(const char* character);                      
 };                                                                                                  // Semicolon needed after class declarations
+
+}
 
 #endif

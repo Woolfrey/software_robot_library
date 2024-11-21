@@ -5,8 +5,10 @@
  * @brief  Source files for the KinematicTree class.
  */
  
-#include <KinematicTree.h>
+#include "KinematicTree.h"
 #include <deque>
+
+namespace RobotLibrary {
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //                                        Constructor                                            //
@@ -693,4 +695,6 @@ KinematicTree::char_to_vector(const char* character)
      numberAsVector.push_back(std::stof(numberAsString));
 
      return Eigen::Vector3d(numberAsVector.data());                                                 // Return the extracted data
+}
+
 }

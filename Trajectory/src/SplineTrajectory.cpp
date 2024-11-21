@@ -5,7 +5,9 @@
  * @brief  Source files for the spline trajectory class.
  */
 
-#include <SplineTrajectory.h>
+#include "SplineTrajectory.h"
+
+namespace RobotLibrary {
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                                     Constructor                                                //
@@ -151,4 +153,6 @@ SplineTrajectory::query_state(const double &time)
         
         return state;
     }
+}
+
 }

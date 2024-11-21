@@ -14,6 +14,8 @@
 
 #include <vector>                                                                                   // std::vector
 
+namespace RobotLibrary {
+
 class Link : public RigidBody 
 {
      public:
@@ -119,5 +121,7 @@ class Link : public RigidBody
           unsigned int _number;                                                                     ///< The number in the kinematic chain
           
 };                                                                                                  // Semicolon needed at the end of class declaration
+
+}
 
 #endif

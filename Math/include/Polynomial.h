@@ -10,6 +10,8 @@
 
 #include <Eigen/Dense>                                                                              // Eigen::Matrix, Eigen::Vector, and decompositions
 
+namespace RobotLibrary {
+
 /**
  * A data structure for representing the output of a function f(x), and its derivatives df/dx, d^2f/dx^2.
  */
@@ -60,5 +62,7 @@ class Polynomial
         Eigen::VectorXd _coefficients;                                                              ///< As it says.
         
 };                                                                                                  // Semicolon needed after class declaration
+
+}
 
 #endif

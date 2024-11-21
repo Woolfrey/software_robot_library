@@ -11,6 +11,8 @@
 #include "Pose.h"
 #include "SplineTrajectory.h"
 
+namespace RobotLibrary {
+
 /**
  * A data structure for returning state information from functions.
  */
@@ -75,5 +77,7 @@ class CartesianSpline
         
         SplineTrajectory _spline;                                                                   ///< Underlying trajectory over real numbers
 };
+
+}
 
 #endif

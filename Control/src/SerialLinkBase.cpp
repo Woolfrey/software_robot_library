@@ -5,7 +5,9 @@
  * @brief  Source files.
  */
  
-#include <SerialLinkBase.h>
+#include "SerialLinkBase.h"
+
+namespace RobotLibrary {
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //                                           Constructor                                         //
@@ -193,4 +195,6 @@ SerialLinkBase::manipulability_gradient()
     }
 
     return gradient;
+}
+
 }

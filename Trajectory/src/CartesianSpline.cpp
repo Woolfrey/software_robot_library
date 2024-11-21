@@ -5,7 +5,9 @@
  * @brief  Source files for the CartesianSpline class.
  */
  
-#include <CartesianSpline.h>
+#include "CartesianSpline.h"
+
+namespace RobotLibrary {
 
   //////////////////////////////////////////////////////////////////////////////////////////////////// 
  //                              Constructor for cubic splines                                     //
@@ -76,4 +78,6 @@ CartesianSpline::query_state(const double &time)
     CartesianState returnValue = {pose, state.velocity, state.acceleration};                        // Put them together in data structur
     
     return returnValue;
+}
+
 }

@@ -5,7 +5,9 @@
  * @brief  Source files for the joint class.
  */
 
-#include <Joint.h>
+#include "Joint.h"
+
+namespace RobotLibrary {
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                                          Constructor                                           //
@@ -108,4 +110,6 @@ Joint::position_offset(const double &position)
                                          sin(0.5*position)*this->_axis(2)));
      }
      else     return Pose(position*this->_axis, Eigen::Quaterniond(1, 0, 0, 0));
+}
+
 }

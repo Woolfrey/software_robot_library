@@ -13,6 +13,8 @@
 #include <Eigen/Core>
 #include <string>
 
+namespace RobotLibrary {
+
 /**
  * A class representing a solid object in 3D space.
  */
@@ -110,5 +112,7 @@ class RigidBody
           std::string _name = "unnamed";                                                            ///< Unique identifier for this object.
           
 };                                                                                                  // Semicolon needed after a class declaration
+
+}
 
 #endif

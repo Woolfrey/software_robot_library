@@ -5,7 +5,9 @@
  * @brief  Source files for the Kinematic Control class.
  */
  
-#include <SerialKinematicControl.h>
+#include "SerialKinematicControl.h"
+
+namespace RobotLibrary {
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //               Compute the endpoint velocity needed to track a given trajectory                //
@@ -200,4 +202,6 @@ SerialKinematicControl::compute_control_limits(const unsigned int &jointNumber)
     }
 	                        
 	return limits;
+}
+
 }

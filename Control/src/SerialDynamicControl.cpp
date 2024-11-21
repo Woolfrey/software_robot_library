@@ -1,4 +1,6 @@
-#include <SerialDynamicControl.h>
+#include "SerialDynamicControl.h"
+
+namespace RobotLibrary {
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                                          Constructor                                           //
@@ -288,4 +290,6 @@ SerialDynamicControl::compute_control_limits(const unsigned int &jointNumber)
                             _maxJointAcceleration));
                            
     return limits;
+}
+
 }

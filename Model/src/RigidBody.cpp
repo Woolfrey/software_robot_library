@@ -5,7 +5,9 @@
  * @brief  Source files for the RigidBody class.
  */
  
-#include <RigidBody.h>
+#include "RigidBody.h"
+
+namespace RobotLibrary {
  
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                                          Constructor                                           //
@@ -72,4 +74,6 @@ RigidBody::combine_inertia(const RigidBody &other,
                             -t(1),  t(0),    0;                                                     // As a skew-symmetric matrix
      
      this->_localInertia += R*other.inertia()*R.transpose() - other.mass()*S*S;                     // From the parallel axis theorem
+}
+
 }

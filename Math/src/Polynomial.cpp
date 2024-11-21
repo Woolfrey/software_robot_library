@@ -5,7 +5,9 @@
  * @brief  Source files for the Polynomial class.
  */
 
-#include <Polynomial.h>
+#include "Polynomial.h"
+
+namespace RobotLibrary {
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                                      Constructor                                               //
@@ -89,4 +91,6 @@ Polynomial::evaluate_point(const double &input)
     }
     
     return output;
+}
+
 }

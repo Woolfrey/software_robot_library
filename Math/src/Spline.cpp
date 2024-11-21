@@ -5,7 +5,10 @@
  * @brief  Source files for the Spline class.
  */
  
-#include <Spline.h>
+#include "Spline.h"
+
+namespace RobotLibrary {
+
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                                        Constructor                                             //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -69,4 +72,6 @@ Spline::evaluate_point(const double &input)
     }
     // else
     return this->_polynomial.back().evaluate_point(this->_points.back());
+}
+
 }

@@ -5,7 +5,9 @@
  * @brief  Source files for the Link class.
  */
  
-#include <Link.h>
+#include "Link.h"
+
+namespace RobotLibrary {
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //                          Add a proceeding link in the kinematic chain                         //
@@ -131,4 +133,6 @@ Link::update_state(const Pose                    &previousPose,
           
           return true;
      }
+}
+
 }

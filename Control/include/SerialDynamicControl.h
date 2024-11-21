@@ -3,6 +3,8 @@
 
 #include "SerialLinkBase.h"
 
+namespace RobotLibrary {
+
 class SerialDynamicControl : public SerialLinkBase
 {
     public:
@@ -57,5 +59,7 @@ class SerialDynamicControl : public SerialLinkBase
          */
         Limits compute_control_limits(const unsigned int &jointNumber);
 };
+
+}
 
 #endif

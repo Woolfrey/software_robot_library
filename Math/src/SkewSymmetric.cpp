@@ -5,7 +5,9 @@
  * @brief  Source files for the SkewSymmetric class.
  */
 
-#include <SkewSymmetric.h>
+#include "SkewSymmetric.h"
+
+namespace RobotLibrary {
 
 /**
  * Get this object as a 3x3 matrix.
@@ -41,4 +43,6 @@ SkewSymmetric::operator*(const Eigen::Matrix<double,3,Eigen::Dynamic> &other)
     }
 
     return result;
+}
+
 }

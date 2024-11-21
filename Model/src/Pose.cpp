@@ -5,8 +5,9 @@
  * @brief  A class representing the position and orientation of an object in 3D space.
  */
  
-#include <Pose.h>
+#include "Pose.h"
 
+namespace RobotLibrary {
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //                   Get this object as a 4x4 homogeneous transformation matrix                  //
@@ -82,4 +83,6 @@ Eigen::Vector<double,3>
 Pose::operator* (const Eigen::Vector<double,3> &other)
 {
      return this->_translation + this->_quaternion.toRotationMatrix()*other;
+}
+
 }
