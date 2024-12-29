@@ -109,7 +109,7 @@ SerialKinematicControl::resolve_endpoint_motion(const Eigen::Vector<double,6> &e
         // In Fifth International Conference on Advanced Robotics Robots in Unstructured Environments
         // (pp. 672-677). IEEE.
        
-        double dampingFactor = pow(1.0 - _manipulability/_minManipulability, 2.0) * 0.10;           // Attenuate damping based on proximity to singularity
+        double dampingFactor = pow(1.0 - _manipulability/_minManipulability, 2.0) * 0.01;           // Attenuate damping based on proximity to singularity
 
         // Solve a problem of the form:
         // min 0.5*x'*H*x + x'*f
