@@ -93,6 +93,12 @@ class SerialLinkBase : public QPSolver<double>
 		set_max_joint_acceleration(const double &accel);
 		
 		/**
+         * Set the threshold for singularity avoidance.
+         */
+        bool
+        set_manipulability_threshold(const double &threshold);
+		
+		/**
 		 * Get the measure of manipulability for the current state.
 		 * The robot is in a singular configuration when manipulability = 0.
 		 * @return A scalar quantity that measures proximity to a singularity.

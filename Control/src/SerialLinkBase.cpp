@@ -142,6 +142,27 @@ SerialLinkBase::set_max_joint_acceleration(const double &acceleration)
 }
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
+ //                         Set the threshold for singularity avoidance                            //
+////////////////////////////////////////////////////////////////////////////////////////////////////
+bool
+SerialLinkBase::set_manipulability_threshold(const double &threshold)
+{
+    if(threshold <= 0)
+    {
+        std::cerr << "[ERROR] [SERIAL LINK CONTROL] set_manipulability_threshold(): "
+                  << "Input was " << threshold << " but it must be positive.\n";
+        
+        return false;
+    }
+    else
+    {
+        _minManipulability = threshold;
+        
+        return true;
+    }
+}
+
+  ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                  Set a secondary task to be executed by a redundant robot arm                  //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 bool
