@@ -17,7 +17,7 @@
  * @see https://github.com/Woolfrey/software_robot_library for more information.
  */
 
-#include "SkewSymmetric.h"
+#include "Math/SkewSymmetric.h"
 
 namespace RobotLibrary { namespace Math {
 

@@ -17,7 +17,7 @@
  * @see https://github.com/Woolfrey/software_robot_library for more information.
  */
  
-#include "SerialKinematicControl.h"
+#include "Control/SerialKinematicControl.h"
 
 namespace RobotLibrary { namespace Control {
 

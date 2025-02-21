@@ -16,7 +16,7 @@
  * @see https://github.com/Woolfrey/software_robot_library for more information.
  */
  
-#include <MathFunctions.h>
+#include <Math/MathFunctions.h>
 
 namespace RobotLibrary { namespace Math {
 

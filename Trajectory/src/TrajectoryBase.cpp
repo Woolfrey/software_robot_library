@@ -15,7 +15,7 @@
  * @see https://github.com/Woolfrey/software_robot_library for more information.
  */
  
-#include "TrajectoryBase.h"
+#include "Trajectory/TrajectoryBase.h"
 
 namespace RobotLibrary { namespace Trajectory {
 

@@ -16,7 +16,7 @@
  * @see https://github.com/Woolfrey/software_robot_library for more information.
  */
  
-#include "TrapezoidalVelocity.h"
+#include "Trajectory/TrapezoidalVelocity.h"
 #include <vector>
 
 namespace RobotLibrary { namespace Trajectory {

@@ -17,7 +17,7 @@
  * @see https://github.com/Woolfrey/software_robot_library for more information.
  */
  
-#include "Pose.h"
+#include "Model/Pose.h"
 
 namespace RobotLibrary { namespace Model {
 

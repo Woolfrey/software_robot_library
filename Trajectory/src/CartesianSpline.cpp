@@ -16,7 +16,7 @@
  * @see https://github.com/Woolfrey/software_robot_library for more information.
  */
  
-#include "CartesianSpline.h"
+#include "Trajectory/CartesianSpline.h"
 
 namespace RobotLibrary { namespace Trajectory {
 

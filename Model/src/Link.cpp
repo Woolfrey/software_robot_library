@@ -16,7 +16,7 @@
  * @see https://github.com/Woolfrey/software_robot_library for more information.
  */
  
-#include "Link.h"
+#include "Model/Link.h"
 
 namespace RobotLibrary { namespace Model {
 

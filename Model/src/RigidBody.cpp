@@ -16,7 +16,7 @@
  * @see https://github.com/Woolfrey/software_robot_library for more information.
  */
  
-#include "RigidBody.h"
+#include "Model/RigidBody.h"
 
 namespace RobotLibrary { namespace Model {
  

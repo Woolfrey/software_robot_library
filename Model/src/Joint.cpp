@@ -17,7 +17,7 @@
  */
 
 
-#include "Joint.h"
+#include "Model/Joint.h"
 
 namespace RobotLibrary { namespace Model {
 

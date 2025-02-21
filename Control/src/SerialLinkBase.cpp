@@ -17,7 +17,7 @@
  * @see https://github.com/Woolfrey/software_robot_library for more information.
  */
 
-#include "SerialLinkBase.h"
+#include "Control/SerialLinkBase.h"
 
 namespace RobotLibrary { namespace Control {
 

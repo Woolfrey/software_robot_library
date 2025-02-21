@@ -15,7 +15,7 @@
  * 
  * @see https://github.com/Woolfrey/software_robot_library for more information.
  */
-#include "SplineTrajectory.h"
+#include "Trajectory/SplineTrajectory.h"
 
 namespace RobotLibrary { namespace Trajectory {
 

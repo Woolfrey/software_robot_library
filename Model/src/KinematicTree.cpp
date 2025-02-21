@@ -18,7 +18,7 @@
  * @see https://github.com/Woolfrey/software_robot_library for more information.
  */
  
-#include "KinematicTree.h"
+#include "Model/KinematicTree.h"
 #include <deque>
 
 namespace RobotLibrary { namespace Model {
@@ -54,9 +54,9 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
           throw runtime_error("[ERROR] [KINEMATIC TREE] Constructor: "
                               "There does not appear to be a 'robot' element in the URDF.");
      }
-     
+
      this->_name = robot->Attribute("name");                                                        // Assign the name
-     
+
      // Search through every 'link' in the urdf file and convert it to a RigidBody object
      for(auto iterator = robot->FirstChildElement("link"); iterator; iterator = iterator->NextSiblingElement("link"))
      {
@@ -65,7 +65,7 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
           string name = iterator->Attribute("name");
           Vector3d   centreOfMass = {0,0,0};
           Matrix<double,3,3> momentOfInertia; momentOfInertia.setZero();
-          
+
           // Get the inertia properties if they exist
           XMLElement *inertial = iterator->FirstChildElement("inertial");
           
@@ -84,7 +84,7 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
                momentOfInertia << ixx, ixy, ixz,
                                   ixy, iyy, iyz,
                                   ixz, iyz, izz;
-               
+
                XMLElement* origin = inertial->FirstChildElement("origin");
                
                if(origin != nullptr)
@@ -94,14 +94,13 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
                     
                     // NOTE: URDF specifies a pose for the center of mass,
                     //       which is a little superfluous, so we will reduce it
-                    
                     Pose pose(xyz, AngleAxis<double>(rpy(0),Vector3d::UnitX())
                                             *AngleAxis<double>(rpy(1),Vector3d::UnitY())
                                             *AngleAxis<double>(rpy(2),Vector3d::UnitZ()));
                                                            
 
                     centreOfMass = pose.translation();                                              // Location for the center of mass
-                    
+  
                     Matrix<double,3,3> R = pose.rotation();                                         // Get the SO(3) matrix
                     
                     momentOfInertia = R*momentOfInertia*R.transpose();                              // Rotate the inertia to the origin frame
@@ -110,7 +109,7 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
      
           rigidBodyList.emplace(name, RigidBody(name,mass,momentOfInertia,centreOfMass));           // Put it in the list so we can find it later
      }
-     
+
      // Search through every joint and create a RobotLibrary::Joint object
      unsigned int linkNumber = 0;
      for(auto iterator = robot->FirstChildElement("joint"); iterator; iterator = iterator->NextSiblingElement("joint"))
@@ -207,7 +206,7 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
                connectionList.emplace(childLinkName, parentLinkName);                               // Store this so we can search later
           }
      }
-     
+
      // Find and set the base
      if(rigidBodyList.size() == 1)
      {
@@ -221,7 +220,7 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
           
           throw std::runtime_error(message);
      }
-     
+
      // Form the connections between all the links
      for(auto &currentLink : this->_fullLinkList)
      {
@@ -234,7 +233,7 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
                currentLink.set_parent_link(&this->_fullLinkList[parentLinkNum]);                    // Set the parent/child link relationship
           }
      }
-     
+
      unsigned int activeJointCount = 0;
      
      // Merge the dynamic properties of all the links connected by fixed joints     
@@ -267,7 +266,7 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
                activeJointCount++;                                                                  // Increment the counter of active links
           }
      }
-     
+
      this->_numberOfJoints = this->_link.size();
      
      // Resize the relevant matrices, vectors accordingly
@@ -687,29 +686,34 @@ KinematicTree::find_frame(const std::string &frameName)
 Eigen::Vector3d
 KinematicTree::char_to_vector(const char* character)
 {
-     std::string numberAsString;                                                                    // So we can concatenate individual char together
-     std::vector<double> numberAsVector;                                                            // Temporary storage
-     
-     int startPoint = 0;                                                                         
-     for(int i = 0; i < std::strlen(character); ++i)
-     {
-          if(character[i] == ' ')                                                                   // Find the space in the char array
-          {
-               for(int j = startPoint; j < i; ++j) numberAsString += character[j];                  // Add the character to the string
-               
-               numberAsVector.push_back(std::stod(numberAsString));                                 // Convert to double (override double)
-               
-               startPoint = i+1;                                                                    // Advance the start point
-               
-               numberAsString.clear();                                                              // Clear the string to get the new number
-          }
-     }
-     
-     for(int i = startPoint; i < std::strlen(character); ++i) numberAsString += character[i];       // Get the last number in the char array
-     
-     numberAsVector.push_back(std::stof(numberAsString));
+    std::string numberAsString;                                                                     // So we can concatenate individual char together
+    
+    std::vector<double> numberAsVector;                                                             // Temporary storage
 
-     return Eigen::Vector3d(numberAsVector.data());                                                 // Return the extracted data
+    int startPoint = 0;
+                                                                     
+    for(int i = 0; i < std::strlen(character); ++i)
+    {
+        if(character[i] == ' ')                                                                     // Find the space in the char array
+        {
+            for(int j = startPoint; j < i; ++j)
+            {
+                numberAsString += character[j];                                                     // Add the character to the string
+            }
+            
+            numberAsVector.push_back(std::stod(numberAsString));                                    // Convert to double (override double)
+
+            startPoint = i+1;                                                                       // Advance the start point
+
+            numberAsString.clear();                                                                 // Clear the string to get the new number
+        }
+    }
+
+    for(int i = startPoint; i < std::strlen(character); ++i) numberAsString += character[i];        // Get the last number in the char array
+
+    numberAsVector.push_back(std::stof(numberAsString));
+
+    return Eigen::Vector3d(numberAsVector.data());                                                 // Return the extracted data
 }
 
 } }

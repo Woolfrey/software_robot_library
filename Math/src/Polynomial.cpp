@@ -17,7 +17,7 @@
  */
  
 
-#include "Polynomial.h"
+#include "Math/Polynomial.h"
 
 namespace RobotLibrary { namespace Math {
 
