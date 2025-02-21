@@ -1,13 +1,25 @@
 /**
- * @file   Polynomial.cpp
- * @author Jon Woolfrey
- * @date   July 2024
- * @brief  Source files for the Polynomial class.
+ * @file    Polynomial.cpp
+ * @author  Jon Woolfrey
+ * @email   jonathan.woolfrey@gmail.com
+ * @date    February 2025
+ * @version 1.0
+ * @brief   Represents a polynomial function.
+ * 
+ * @details This class represents a polynomial function of the form  f(x) = a_0 + a_1 * x + a_2 * x^2 + ...
+ *          By querying a point it can return the interpolated value and its derivatives.
+ * 
+ * @copyright Copyright (c) 2025 Jon Woolfrey
+ * 
+ * @license GNU General Public License V3
+ * 
+ * @see https://github.com/Woolfrey/software_robot_library for more information.
  */
+ 
 
 #include "Polynomial.h"
 
-namespace RobotLibrary {
+namespace RobotLibrary { namespace Math {
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                                      Constructor                                               //
@@ -93,4 +105,4 @@ Polynomial::evaluate_point(const double &input)
     return output;
 }
 
-}
+} }

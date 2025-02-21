@@ -1,18 +1,30 @@
 /**
- * @file   SerialLinkBase.cpp
- * @author Jon Woolfrey
- * @data   July 2023
- * @brief  Source files.
+ * @file    SerialKinematicControl.h
+ * @author  Jon Woolfrey
+ * @email   jonathan.woolfrey@gmail.com
+ * @date    February 2025
+ * @version 1.0
+ * @brief   A base class providing a standardised interface for all serial link robot arm controllers.
+ * 
+ * @details This class is designed to provide a standardised structure for all types of serial link
+ *          robot arm controllers. This enables seemless interfacing between position/velocity and
+ *          dynamic control.
+ * 
+ * @copyright Copyright (c) 2025 Jon Woolfrey
+ * 
+ * @license GNU General Public License V3
+ * 
+ * @see https://github.com/Woolfrey/software_robot_library for more information.
  */
- 
+
 #include "SerialLinkBase.h"
 
-namespace RobotLibrary {
+namespace RobotLibrary { namespace Control {
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //                                           Constructor                                         //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-SerialLinkBase::SerialLinkBase(KinematicTree *model,
+SerialLinkBase::SerialLinkBase(RobotLibrary::Model::KinematicTree *model,
                                const std::string &endpointName,
                                const double &controlFrequency)
 					           : _model(model),
@@ -74,14 +86,14 @@ bool
 SerialLinkBase::set_cartesian_gains(Eigen::Matrix<double,6,6> &stiffness,
                                     Eigen::Matrix<double,6,6> &damping)
 {
-     if(not is_positive_definite(stiffness))
+     if(not RobotLibrary::Math::is_positive_definite(stiffness))
      {
           std::cerr << "[ERROR] [SERIAL LINK CONTROL] set_cartesian_gains(): "
                     << "The stiffness matrix was not positive definite.\n";
           
           return false;
      }
-     else if(not is_positive_definite(damping))
+     else if(not RobotLibrary::Math::is_positive_definite(damping))
      {
           std::cerr << "[ERROR] [SERIAL LINK CONTROL] set_cartesian_gains(): "
                     << "The damping matrix was not positive definite.\n";
@@ -199,7 +211,7 @@ SerialLinkBase::manipulability_gradient()
 
     Matrix<double,Dynamic,6> JT = _jacobianMatrix.transpose();                                      // Cache transpose for speed
 
-    Link *currentLink = _endpointFrame->link;                                                       // Start with the end-effector link
+    RobotLibrary::Model::Link *currentLink = _endpointFrame->link;                                  // Start with the end-effector link
 
     // Move down the kinematic chain and compute gradients w.r.t each joint
     while (currentLink != nullptr)
@@ -218,4 +230,4 @@ SerialLinkBase::manipulability_gradient()
     return gradient;
 }
 
-}
+} }

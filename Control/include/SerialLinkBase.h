@@ -1,8 +1,20 @@
 /**
- * @file   SerialLinkBase.h
- * @author Jon Woolfrey
- * @date   September 2023
- * @brief  A base class for control of serial link robot arms.
+ * @file    SerialKinematicControl.h
+ * @author  Jon Woolfrey
+ * @email   jonathan.woolfrey@gmail.com
+ * @date    February 2025
+ * @version 1.0
+ * @brief   A base class providing a standardised interface for all serial link robot arm controllers.
+ * 
+ * @details This class is designed to provide a standardised structure for all types of serial link
+ *          robot arm controllers. This enables seemless interfacing between position/velocity and
+ *          dynamic control.
+ * 
+ * @copyright Copyright (c) 2025 Jon Woolfrey
+ * 
+ * @license GNU General Public License V3
+ * 
+ * @see https://github.com/Woolfrey/software_robot_library for more information.
  */
 
 #ifndef SERIALLINKBASE_H_
@@ -13,22 +25,25 @@
 #include "MathFunctions.h"
 #include "QPSolver.h"                                                                               // Control optimisation
 
-namespace RobotLibrary {
+namespace RobotLibrary { namespace Control {
 
+/**
+ * @brief A class that provides a standard interface for all serial link robot arm controllers.
+ */
 class SerialLinkBase : public QPSolver<double>
 {
 	public:
 		/**
-		 * Constructor.
+		 * @brief Constructor.
 		 * @param model A pointer to the KinematicTree object to be controlled.
 		 * @param endpointName The name of the endpoint on the KinematicTree to be controlled.
 		 */
-		SerialLinkBase(KinematicTree *model,
+		SerialLinkBase(RobotLibrary::Model::KinematicTree *model,
 		               const std::string &endpointName,
 		               const double &controlFrequency = 100.0);
 		
 		/**
-		 * Compute the required joint motion to achieve the specified endpoint motion.
+		 * @brief Compute the required joint motion to achieve the specified endpoint motion.
 		 * @param endpointMotion The desired velocity or acceleration of the endpoint.
 		 * @return The required joint velocity or torque to achieved the endpoint motion.
 		 */
@@ -37,8 +52,8 @@ class SerialLinkBase : public QPSolver<double>
 		resolve_endpoint_motion(const Eigen::Vector<double,6> &endpointMotion) = 0;
 		
 		/**
-		 * Compute the required joint motion to track a given state for the endpoint.
-		 * The function will compute the feedforward + feedback control.
+		 * @brief Compute the required joint motion to track a given state for the endpoint.
+		 *        The function will compute the feedforward + feedback control.
 		 * @param desiredPose The desired pose at the current time.
 		 * @param desiredVel The desired velocity at the current time.
 		 * @param desiredAcc The desired acceleration at the current time.
@@ -46,13 +61,13 @@ class SerialLinkBase : public QPSolver<double>
 		 */
 		virtual
 		Eigen::VectorXd
-		track_endpoint_trajectory(const Pose                    &desiredPose,
+		track_endpoint_trajectory(const RobotLibrary::Model::Pose &desiredPose,
                                   const Eigen::Vector<double,6> &desiredVelocity,
                                   const Eigen::Vector<double,6> &desiredAcceleration) = 0;
 		
 		/**
-		 * Compute the joint motion to follow a desired joint state.
-		 * This function will compute the feedforward + feedback control.
+		 * @brief Compute the joint motion to follow a desired joint state.
+		 *        This function will compute the feedforward + feedback control.
 		 * @param desiredPose The desired pose at the current time.
 		 * @param desiredVel The desired velocity at the current time.
 		 * @param desiredAcc The desired acceleration at the current time.
@@ -65,7 +80,7 @@ class SerialLinkBase : public QPSolver<double>
 		                       const Eigen::VectorXd &desiredAcceleration) = 0;
 		                                               
 		/**
-		 * Set the gains for Cartesian feedback control.
+		 * @brief Set the gains for Cartesian feedback control.
 		 * @param stiffness Proportional gain on the pose error.
 		 * @param damping Derivative gain on the velocity error.
 		 * @return Returns false if there was a problem.
@@ -75,7 +90,7 @@ class SerialLinkBase : public QPSolver<double>
 		                    Eigen::Matrix<double,6,6> &damping);
 
 		/**
-		 * Set the feedback gains for joint control.
+		 * @brief Set the feedback gains for joint control.
 		 * @param proportional Gain on position error.
 		 * @param derivative Gain on the velocity error.
 		 * @return Returns false if there was an issue.
@@ -85,7 +100,7 @@ class SerialLinkBase : public QPSolver<double>
 		                const double &derivative);
 		
 		/**
-		 * Set the maximum permissable joint acceleration.
+		 * @brief Set the maximum permissable joint acceleration.
 		 * @param accel The maximum joint acceleration.
 		 * @return Returns false if there was a problem.
 		 */                 
@@ -93,14 +108,14 @@ class SerialLinkBase : public QPSolver<double>
 		set_max_joint_acceleration(const double &accel);
 		
 		/**
-         * Set the threshold for singularity avoidance.
+         * @brief Set the threshold for singularity avoidance.
          */
         bool
         set_manipulability_threshold(const double &threshold);
 		
 		/**
-		 * Get the measure of manipulability for the current state.
-		 * The robot is in a singular configuration when manipulability = 0.
+		 * @brief Get the measure of manipulability for the current state.
+		 *        The robot is in a singular configuration when manipulability = 0.
 		 * @return A scalar quantity that measures proximity to a singularity.
 		 */
 	    double
@@ -113,36 +128,36 @@ class SerialLinkBase : public QPSolver<double>
 		manipulability_gradient();
 		
 		/**
-		 * Get the position and orientation of the endpoint frame relative to the base of the robot.
+		 * @brief Get the position and orientation of the endpoint frame relative to the base of the robot.
 		 * @return A RobotLibrary::Pose object.
 		 */
-		Pose
+		RobotLibrary::Model::Pose
 		endpoint_pose() const { return _endpointPose; }
 		
 		/**
-		 * Get the linear & angular velocity of the endpoint.
+		 * @brief Get the linear & angular velocity of the endpoint.
 		 * @return A 6D Eigen::Vector object.
 		 */
 		Eigen::Vector<double,6>
 		endpoint_velocity() const { return _jacobianMatrix*_model->joint_velocities(); }
 		
 		/**
-           * Get the Jacobian matrix (partial derivative of forward kinematics) for the endpoint being controlled.
+         * @brief Get the Jacobian matrix (partial derivative of forward kinematics) for the endpoint being controlled.
 		 * @return Returns a 6xn matrix for the Jacobian to the endpoint of this serial link object.
 		 */
 		Eigen::Matrix<double,6,Eigen::Dynamic> jacobian() const { return _jacobianMatrix; }
      
 		/**
-		 * Updates properties specific to this controller.
-		 * NOTE: underlying KinematicTree model MUST be updated first.
-		 * This is because multiple serial link objects may exist on a single kinematic tree.
+		 * @brief Updates properties specific to this controller.
+		 *        NOTE: underlying KinematicTree model MUST be updated first.
+		 *        This is because multiple serial link objects may exist on a single kinematic tree.
 		 */
 		void
 		update();
 		
 		/**
-		 * Assign the redundant task for use in the next control calculation.
-		 * NOTE: In kinematic control, this is a joint velocity vector. In dyamic control, it is a joint torque vector.
+		 * @brief Assign the redundant task for use in the next control calculation.
+		 *        NOTE: In kinematic control, this is a joint velocity vector. In dyamic control, it is a joint torque vector.
 		 * @param task A vector for the joint motion to be executed using extra degrees of freedom in a redundant robot.
 		 * @return True if successful, false otherwise.
 		 */
@@ -150,20 +165,20 @@ class SerialLinkBase : public QPSolver<double>
 		set_redundant_task(const Eigen::VectorXd &task);
 		
 		/**
-		 * Check whether the robot is in a singular configuration or not.
+		 * @brief Check whether the robot is in a singular configuration or not.
 		 * @return True if singular, false if not.
 		 */
 		bool
 		is_singular() { return (_manipulability < _minManipulability) ? true : false; }
 		
 		/**
-		 * Get a pointer to the model this controller uses.
+		 * @brief Get a pointer to the model this controller uses.
 		 */
-		KinematicTree*
+		RobotLibrary::Model::KinematicTree*
 		model() const { return _model; }
 		
 	    /**
-	     * Get the control frequency.
+	     * @brief Get the control frequency.
 	     */
 	    double
 	    frequency() const { return _controlFrequency; }
@@ -202,25 +217,25 @@ class SerialLinkBase : public QPSolver<double>
 		
 		Eigen::VectorXd _redundantTask;                                                             ///< Used to control null space of redundant robots
 		
-		KinematicTree* _model;                                                                      ///< Pointer to the underlying robot model
+		RobotLibrary::Model::KinematicTree* _model;                                                 ///< Pointer to the underlying robot model
 		
-		Pose _endpointPose;                                                                         ///< Class denoting position and orientation of endpoint frame
+		RobotLibrary::Model::Pose _endpointPose;                                                    ///< Class denoting position and orientation of endpoint frame
 		
-		ReferenceFrame *_endpointFrame;                                                             ///< Pointer to frame controlled in underlying model
+		RobotLibrary::Model::ReferenceFrame *_endpointFrame;                                        ///< Pointer to frame controlled in underlying model
 		
 		double _controlFrequency = 100.0;                                                           ///< Used in certain control calculations.
 	
 		/**
-		 * Computes the instantaneous limits on the joint control.
+		 * @brief Computes the instantaneous limits on the joint control.
 		 * @param jointNumber Which joint to compute the limits for.
 		 * @return A Limit data structure.
 		 */
 		virtual
-		Limits
+		RobotLibrary::Model::Limits
 		compute_control_limits(const unsigned int &jointNumber) = 0;
 	
 };                                                                                                  // Semicolon needed after a class declaration
 
-}
+} }
 
 #endif

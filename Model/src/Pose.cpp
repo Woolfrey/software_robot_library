@@ -1,13 +1,25 @@
 /**
- * @file   Pose.h
- * @author Jon Woolfrey
- * @date   September 2023
- * @brief  A class representing the position and orientation of an object in 3D space.
+ * @file    Pose.cpp
+ * @author  Jon Woolfrey
+ * @email   jonathan.woolfrey@gmail.com
+ * @date    February 2025
+ * @version 1.0
+ * @brief   A class that describes the position & orientation of an object in 3D space.
+ * 
+ * @details This class describes the position of an object as a 3D vector, and the orientation
+ *          using a quaternion. Arithmetic can be used to propagate & invert these objects for
+ *          performing transforms in 3D space.
+ * 
+ * @copyright Copyright (c) 2025 Jon Woolfrey
+ * 
+ * @license GNU General Public License V3
+ * 
+ * @see https://github.com/Woolfrey/software_robot_library for more information.
  */
  
 #include "Pose.h"
 
-namespace RobotLibrary {
+namespace RobotLibrary { namespace Model {
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //                   Get this object as a 4x4 homogeneous transformation matrix                  //
@@ -85,4 +97,4 @@ Pose::operator* (const Eigen::Vector<double,3> &other)
      return this->_translation + this->_quaternion.toRotationMatrix()*other;
 }
 
-}
+} }

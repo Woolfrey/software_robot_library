@@ -1,8 +1,19 @@
 /**
- * @file   RigidBody.h
- * @author Jon Woolfrey
- * @date   September 2023
- * @brief  A class specifying dynamic properties of a solid object.
+ * @file    RigidBody.h
+ * @author  Jon Woolfrey
+ * @email   jonathan.woolfrey@gmail.com
+ * @date    February 2025
+ * @version 1.0
+ * @brief   A class for describing the kinematics & dynamics of a single, ridid body.
+ * 
+ * @details This class contains the kinematic & dynamic properties of a single rigid body.
+ *          It can be used to compute the forces and torques due to its dynamic motion.
+ * 
+ * @copyright Copyright (c) 2025 Jon Woolfrey
+ * 
+ * @license GNU General Public License V3
+ * 
+ * @see https://github.com/Woolfrey/software_robot_library for more information.
  */
 
 #ifndef RIGIDBODY_H_
@@ -13,21 +24,21 @@
 #include <Eigen/Core>
 #include <string>
 
-namespace RobotLibrary {
+namespace RobotLibrary { namespace Model {
 
 /**
- * A class representing a solid object in 3D space.
+ * @brief A class representing a solid object in 3D space.
  */
 class RigidBody
 {
      public:   
           /**
-           * Empty constructor.
+           * @brief Empty constructor.
            */
           RigidBody() {}
           
           /**
-           * Full constructor for creating a RigidBody object.
+           * @brief Full constructor for creating a RigidBody object.
            * @param name A unique identifier.
            * @param mass The weight of this object (kg).
            * @param inertia 3x3 matrix specifying the moment of inertia (kg*m^2)
@@ -39,42 +50,42 @@ class RigidBody
                     const Eigen::Vector3d &centerOfMass);
                 
           /**
-           * @return Returns the mass of this object.
+           * @brief  Returns the mass of this object.
            */
           double mass() const { return this->_mass; }
           
           /**
-           * @return Returns the moment of inertia for this object.
+           * @brief  Returns the moment of inertia for this object.
            */
           Eigen::Matrix3d inertia() const { return this->_inertia; }
           
           /**
-           * @return Returns the time derivative of the moment of inertia.
+           * @brief  Returns the time derivative of the moment of inertia.
            */
           Eigen::Matrix3d inertia_derivative() const { return this->_inertiaDerivative; }
           
           /**
-           * @return The pose of this object in some global frame.
+           * @brief  The pose of this object in some global frame.
            */
           Pose pose() const { return this->_pose; }
           
           /**
-           * @return The name of this object.
+           * @brief  The name of this object.
            */
           std::string name() const { return this->_name; }
           
           /**
-           * @return The center of mass for this object in its local reference frame.
+           * @brief  The center of mass for this object in its local reference frame.
            */
           Eigen::Vector3d center_of_mass() const { return this->_centerOfMass; }                    // Get the center of mass
           
           /**
-           * @return The linear and angular velocity of this object.
+           * @brief  The linear and angular velocity of this object.
            */
           Eigen::Vector<double,6> twist() const { return this->_twist; }
           
           /**
-           * Combines the inertial properties of another rigid body with this one.
+           * @brief Combines the inertial properties of another rigid body with this one.
            * @param other The other rigid body object to be added to this one.
            * @param pose The pose of the other rigid body relative to this one.
            */
@@ -83,7 +94,7 @@ class RigidBody
                             const Pose      &pose);
                             
           /**
-           * Updates the kinematic properties for this object.
+           * @brief Updates the kinematic properties for this object.
            * @param pose The pose of this object in a global reference frame.
            * @param twist The linear and angular velocity of this object.
            */              
@@ -113,6 +124,6 @@ class RigidBody
           
 };                                                                                                  // Semicolon needed after a class declaration
 
-}
+} }
 
 #endif

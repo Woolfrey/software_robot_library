@@ -1,13 +1,25 @@
 /**
- * @file   Joint.cpp
- * @author Jon Woolfrey
- * @date   July 2024
- * @brief  Source files for the joint class.
+ * @file    Joint.cpp
+ * @author  Jon Woolfrey
+ * @email   jonathan.woolfrey@gmail.com
+ * @date    February 2025
+ * @version 1.0
+ * @brief   A class that describes an actuated joint on a robot.
+ * 
+ * @details This class defines the kinematic & actuation properties of a joint on a robot.
+ *          It is designed to be incorporated in to a larger, multi-body class.
+ * 
+ * @copyright Copyright (c) 2025 Jon Woolfrey
+ * 
+ * @license GNU General Public License V3
+ * 
+ * @see https://github.com/Woolfrey/software_robot_library for more information.
  */
+
 
 #include "Joint.h"
 
-namespace RobotLibrary {
+namespace RobotLibrary { namespace Model {
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                                          Constructor                                           //
@@ -112,4 +124,4 @@ Joint::position_offset(const double &position)
      else     return Pose(position*this->_axis, Eigen::Quaterniond(1, 0, 0, 0));
 }
 
-}
+} }

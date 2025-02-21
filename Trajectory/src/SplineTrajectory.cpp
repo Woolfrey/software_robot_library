@@ -1,13 +1,23 @@
 /**
- * @file   SplineTrajectory.cpp
- * @author Jon Woolfrey
- * @date   July 2024
- * @brief  Source files for the spline trajectory class.
+ * @file    SplineTrajectory.cpp
+ * @author  Jon Woolfrey
+ * @email   jonathan.woolfrey@gmail.com
+ * @date    February 2025
+ * @version 1.0
+ * @brief   This class gives a spline as a function of time over a finite series of points.
+ * 
+ * @details Given a set of points and times, this class will generate piece-wise polynomials to interpolate
+ *          between them. It ensures continuity at the velocity and acceleration level.
+ * 
+ * @copyright Copyright (c) 2025 Jon Woolfrey
+ * 
+ * @license GNU General Public License V3
+ * 
+ * @see https://github.com/Woolfrey/software_robot_library for more information.
  */
-
 #include "SplineTrajectory.h"
 
-namespace RobotLibrary {
+namespace RobotLibrary { namespace Trajectory {
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                                     Constructor                                                //
@@ -53,7 +63,7 @@ SplineTrajectory::SplineTrajectory(const std::vector<State>  &waypoints,
         }
     } 
               
-    std::vector<FunctionPoint> points(waypoints.size());
+    std::vector<RobotLibrary::Math::FunctionPoint> points(waypoints.size());
     
     for(int i = 0; i < this->_dimensions; i++)
     {
@@ -108,14 +118,14 @@ SplineTrajectory::SplineTrajectory(const std::vector<Eigen::VectorXd> &positions
         {        
             // This function fits velocities at intermediate points to ensure
             // continuity down to acceleration level
-            vel = solve_cubic_spline_derivatives(pos,times, startVelocity[j], 0.0);
+            vel = RobotLibrary::Math::solve_cubic_spline_derivatives(pos,times, startVelocity[j], 0.0);
         }
         else
         {
             vel = {startVelocity[j], 0.0};                                                          // No intermediate points, so just use the start & end
         }
         
-        std::vector<FunctionPoint> points;                                                          // Contains position, velocity, acceleration data
+        std::vector<RobotLibrary::Math::FunctionPoint> points;                                      // Contains position, velocity, acceleration data
         
         for(int i = 0; i < positions.size(); i++)
         {
@@ -155,4 +165,4 @@ SplineTrajectory::query_state(const double &time)
     }
 }
 
-}
+} }

@@ -1,14 +1,27 @@
 /**
- * @file   KinematicTree.cpp
- * @author Jon Woolfrey
- * @date   July 2023
- * @brief  Source files for the KinematicTree class.
+ * @file    KinematicTree.cpp
+ * @author  Jon Woolfrey
+ * @email   jonathan.woolfrey@gmail.com
+ * @date    February 2025
+ * @version 1.0
+ * @brief   A class for a multi rigid body system of branching serial link structures.
+ * 
+ * @details This class is used to compute the kinematics and dynamics of branching, serial link structures.
+ *          It presumes only open-chain branches. It computes forward kinematics, and inverse dynamics.
+ *          It is designed to be embedded in to a control class to obtain things like the Jacobian,
+ *          inertia matrix, Coriolis matrix, etc.
+ * 
+ * @copyright Copyright (c) 2025 Jon Woolfrey
+ * 
+ * @license GNU General Public License V3
+ * 
+ * @see https://github.com/Woolfrey/software_robot_library for more information.
  */
  
 #include "KinematicTree.h"
 #include <deque>
 
-namespace RobotLibrary {
+namespace RobotLibrary { namespace Model {
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //                                        Constructor                                            //
@@ -339,8 +352,8 @@ bool KinematicTree::update_state(const Eigen::VectorXd &jointPosition,
         Link *parentLink = currentLink->parent_link();
         
         bool success = parentLink == nullptr 
-                       ? currentLink->update_state(this->base.pose(), this->base.twist(), jointPosition(k), jointVelocity(k))
-                       : currentLink->update_state(jointPosition(k), jointVelocity(k));
+                     ? currentLink->update_state(this->base.pose(), this->base.twist(), jointPosition(k), jointVelocity(k))
+                     : currentLink->update_state(jointPosition(k), jointVelocity(k));
         
         if(not success)
         {
@@ -351,7 +364,7 @@ bool KinematicTree::update_state(const Eigen::VectorXd &jointPosition,
             return false;
         }
         
-        Eigen::Matrix<double,6,Eigen::Dynamic> J = jacobian(currentLink, currentLink->center_of_mass(), k+1);
+        Eigen::Matrix<double,6,Eigen::Dynamic> J  = jacobian(currentLink, currentLink->center_of_mass(), k+1);
         Eigen::Matrix<double,3,Eigen::Dynamic> Jv = J.block(0,0,3,k+1);
         Eigen::Matrix<double,3,Eigen::Dynamic> Jw = J.block(3,0,3,k+1);
         
@@ -373,6 +386,8 @@ bool KinematicTree::update_state(const Eigen::VectorXd &jointPosition,
         
         this->_jointGravityVector.head(k+1) -= mass * Jv.transpose() * this->_gravityVector;
         this->_jointDampingVector[k] = currentLink->joint().damping() * this->_jointVelocity[k];
+        
+        using namespace RobotLibrary::Math;
         
         this->_jointBaseInertiaMatrix.block(0,0,k+1,3) += mass * Jv.transpose();
         this->_jointBaseInertiaMatrix.block(0,3,k+1,3) += Jw.transpose() * this->base.inertia()
@@ -697,4 +712,4 @@ KinematicTree::char_to_vector(const char* character)
      return Eigen::Vector3d(numberAsVector.data());                                                 // Return the extracted data
 }
 
-}
+} }

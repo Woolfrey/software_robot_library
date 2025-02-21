@@ -1,8 +1,20 @@
 /**
- * @file   SerialKinematicControl.h
- * @author Jon Woolfrey
- * @data   December 2023
- * @brief  A class for position/velocity control of a robot arm.
+ * @file    SerialKinematicControl.h
+ * @author  Jon Woolfrey
+ * @email   jonathan.woolfrey@gmail.com
+ * @date    February 2025
+ * @version 1.0
+ * @brief   Computes velocity (position) feedback control for a serial link robot arm.
+ * 
+ * @details This class contains methods for performing velocity control of a serial link robot arm
+ *          in both Cartesian and joint space. The fundamental feedforward + feedback control is given by:
+ *          control velocity = desired velocity + gain * (desired position - actual position).
+ * 
+ * @copyright Copyright (c) 2025 Jon Woolfrey
+ * 
+ * @license GNU General Public License V3
+ * 
+ * @see https://github.com/Woolfrey/software_robot_library for more information.
  */
 
 #ifndef SERIALKINEMATICCONTROL_H_
@@ -10,26 +22,26 @@
 
 #include "SerialLinkBase.h"
 
-namespace RobotLibrary {
+namespace RobotLibrary { namespace Control {
 
 /**
- * Algorithms for velocity control of a serial link robot arm.
+ * @brief Algorithms for velocity control of a serial link robot arm.
  */
 class SerialKinematicControl : public SerialLinkBase
 {
 	public:
 		/**
-		 * Constructor.
+		 * @brief Constructor.
 		 * @param model A pointer to a KinematicTree object.
 		 * @param endpointName The name of the reference frame in the KinematicTree to be controlled.
 		 */
-		SerialKinematicControl(KinematicTree *model,
+		SerialKinematicControl(RobotLibrary::Model::KinematicTree *model,
 		                       const std::string &endpointName,
 		                       const double &controlFrequency = 100.0)
 		                       : SerialLinkBase(model, endpointName, controlFrequency){}
 		
 		/**
-		 * Solve the joint velocities required to move the endpoint at a given speed.
+		 * @brief Solve the joint velocities required to move the endpoint at a given speed.
 		 * @param endpointMotion A twist vector (linear & angular velocity).
 		 * @return A nx1 vector of joint velocities.
 		 */
@@ -37,19 +49,19 @@ class SerialKinematicControl : public SerialLinkBase
 		resolve_endpoint_motion(const Eigen::Vector<double,6> &endPointMotion);
 		
 		/**
-		 * Solve the joint velocities required to track a Cartesian trajectory.
+		 * @brief Solve the joint velocities required to track a Cartesian trajectory.
 		 * @param desiredPose The desired position & orientation (pose) for the endpoint.
 		 * @param desiredVel The desired linear & angular velocity (twist) for the endpoint.
 		 * @param desiredAcc Not used in velocity control.
 		 * @return The joint velocities (nx1) required to track the trajectory.
 		 */
 		Eigen::VectorXd
-		track_endpoint_trajectory(const Pose                    &desiredPose,
-					              const Eigen::Vector<double,6> &desiredVelocity,
-					              const Eigen::Vector<double,6> &desiredAcceleration);
+		track_endpoint_trajectory(const RobotLibrary::Model::Pose &desiredPose,
+					              const Eigen::Vector<double,6>   &desiredVelocity,
+					              const Eigen::Vector<double,6>   &desiredAcceleration);
 
 		/**
-		 * Solve the joint velocities required to track a joint space trajectory.
+		 * @brief Solve the joint velocities required to track a joint space trajectory.
 		 * @param desiredPos The desired joint position (nx1).
 		 * @param desiredVel The desired joint velocity (nx1).
 		 * @param desiredAcc Not used in velocity control.
@@ -63,15 +75,16 @@ class SerialKinematicControl : public SerialLinkBase
 	protected:
 	
 		/**
-		 * Compute the instantaneous limits on the joint velocity control.
-		 * It computes the minimum between joint positions, speed, and acceleration limits.
+		 * @brief Compute the instantaneous limits on the joint velocity control.
+		 *        It computes the minimum between joint positions, speed, and acceleration limits.
 		 * @param jointNumber The joint for which to compute the limits.
 		 * @return The upper and lower joint speed at the current time.
 		 */
-		Limits compute_control_limits(const unsigned int &jointNumber);
+		RobotLibrary::Model::Limits
+		compute_control_limits(const unsigned int &jointNumber);
 	
 };                                                                                                  // Semicolon needed after a class declaration
 
-}
+} }
 
 #endif
