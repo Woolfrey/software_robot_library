@@ -23,7 +23,7 @@
 
 #include "Joint.h"                                                                                  // Custom class for describing a moveable connection between links
 #include "Link.h"                                                                                   // Custom class combining a rigid body and joint
-#include "SkewSymmetric.h"                                                                          // Custom class
+#include "RobotLibrary/Math/SkewSymmetric.h"                                                        // Custom class
 
 #include <fstream>                                                                                  // For loading files
 #include <map>                                                                                      // map

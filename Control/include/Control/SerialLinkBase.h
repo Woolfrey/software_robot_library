@@ -21,9 +21,9 @@
 #define SERIALLINKBASE_H_
 
 #include <Eigen/Dense>                                                                              // Matrix decomposition
-#include "KinematicTree.h"                                                                          // Computes the kinematics and dynamics
-#include "MathFunctions.h"
-#include "QPSolver.h"                                                                               // Control optimisation
+#include "RobotLibrary/Model/KinematicTree.h"                                                       // Computes the kinematics and dynamics
+#include "RobotLibrary/Math/MathFunctions.h"
+#include "RobotLibrary/Math/QPSolver.h"                                                                          // Control optimisation
 
 namespace RobotLibrary { namespace Control {
 
