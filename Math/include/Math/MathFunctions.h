@@ -1,8 +1,19 @@
 /**
- * @file   MathFunctions.h
- * @author Jon Woolfrey
- * @date   September 2023
- * @brief  Useful math functions.
+ * @file    MathFunctions.h
+ * @author  Jon Woolfrey
+ * @email   jonathan.woolfrey@gmail.com
+ * @date    February 2025
+ * @version 1.0
+ * @brief   Useful math functions for robot kinematics & control.
+ * 
+ * @details This header files contains forward declarations for useful math functions that are not
+ *          offered by the Eigen library.
+ * 
+ * @copyright Copyright (c) 2025 Jon Woolfrey
+ * 
+ * @license GNU General Public License V3
+ * 
+ * @see https://github.com/Woolfrey/software_robot_library for more information.
  */
 
 #ifndef MATHFUNCTIONS_H_
@@ -12,7 +23,7 @@
 #include <iostream>
 #include <vector>
 
-namespace RobotLibrary {
+namespace RobotLibrary { namespace Math {
 
 /**
  * A data structure for holding the results of the QR decomposition.
@@ -23,8 +34,6 @@ struct QRDecomposition
      Eigen::MatrixXd R;                                                                             ///< An upper-triangular matrix 
                                                                  
 };   
-
-}
 
 /**
  * It's obvious what this function does.
@@ -39,7 +48,7 @@ bool is_positive_definite(const Eigen::MatrixXd &A);                            
  * @param tolerance The rounding error on a singularity
  * @return A QRDecomposition data structure
  */
-RobotLibrary::QRDecomposition
+RobotLibrary::Math::QRDecomposition
 schwarz_rutishauser(const Eigen::MatrixXd &A, const double tolerance = 1e-04);
 
 /**
@@ -79,5 +88,7 @@ solve_cubic_spline_derivatives(const std::vector<double> &y,
                                const std::vector<double> &x,
                                const double &firstDerivative = 0,
                                const double &finalDerivative = 0);
-                               
+
+} }
+                     
 #endif                                    

@@ -1,14 +1,25 @@
 /**
- * @file   TrapezoidalVelocity.cpp
- * @author Jon Woolfrey
- * @date   July 2024
- * @brief  Source files for the TrapezoidalVelocity class(es).
+ * @file    TrapezoidalVelocity.h
+ * @author  Jon Woolfrey
+ * @email   jonathan.woolfrey@gmail.com
+ * @date    February 2025
+ * @version 1.0
+ * @brief   A class with a trapezoidal velocity profile.
+ * 
+ * @details This class generates a trajectory using a trapezoidal velocity profile. It will ramp up
+ *          at a given acceleration, and coast at a constant speed, before decelerating.
+ * 
+ * @copyright Copyright (c) 2025 Jon Woolfrey
+ * 
+ * @license GNU General Public License V3
+ * 
+ * @see https://github.com/Woolfrey/software_robot_library for more information.
  */
  
-#include "TrapezoidalVelocity.h"
+#include "Trajectory/TrapezoidalVelocity.h"
 #include <vector>
 
-namespace RobotLibrary {
+namespace RobotLibrary { namespace Trajectory {
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                                       Constructor                                              //
@@ -173,4 +184,4 @@ TrapezoidalVelocity::query_state(const double &time)
     return this->_trajectories.back().query_state(time);                                            // Final trajectory
 }
 
-}
+} }

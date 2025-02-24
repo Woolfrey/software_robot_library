@@ -1,26 +1,37 @@
 /**
- * @file   CartesianSpline.h
- * @author Jon Woolfrey
- * @date   June 2024
- * @brief  A class defining splines over poses (i.e. SE(3)).
+ * @file    CartesianSpline.h
+ * @author  Jon Woolfrey
+ * @email   jonathan.woolfrey@gmail.com
+ * @date    February 2025
+ * @version 1.0
+ * @brief   A class that defines trajectories for position & orientation in 3D space.
+ * 
+ * @details This class generates trajectories for position & orientation by using a spline to
+ *          interpolate over a series of poses.
+ * 
+ * @copyright Copyright (c) 2025 Jon Woolfrey
+ * 
+ * @license GNU General Public License V3
+ * 
+ * @see https://github.com/Woolfrey/software_robot_library for more information.
  */
- 
+
 #ifndef CARTESIANSPLINE_H_
 #define CARTESIANSPLINE_H_
 
-#include "Pose.h"
-#include "SplineTrajectory.h"
+#include "RobotLibrary/Model/Pose.h"
+#include "RobotLibrary/Trajectory/SplineTrajectory.h"
 
-namespace RobotLibrary {
+namespace RobotLibrary { namespace Trajectory {
 
 /**
- * A data structure for returning state information from functions.
+ * @brief A data structure for returning state information from functions.
  */
 struct CartesianState
 {
-     Pose  pose;                                                                                    ///< Does this really need an explanation?
-     Eigen::Vector<double,6> twist;                                                                 ///< Linear and angular velocity
-     Eigen::Vector<double,6> acceleration;                                                          ///<  Linear and angular acceleration
+     RobotLibrary::Model::Pose pose;                                                                ///< Does this really need an explanation?
+     Eigen::Vector<double,6>   twist;                                                               ///< Linear and angular velocity
+     Eigen::Vector<double,6>   acceleration;                                                        ///<  Linear and angular acceleration
 };                                                                                                  // Semicolon needed after declaration
 
 /**
@@ -31,44 +42,44 @@ class CartesianSpline
     public:
         
         /**
-         * Empty constructor.
+         * @brief Empty constructor.
          */
         CartesianSpline() {}
         
         /**
-         * Constructor for cubic splines.
+         * @brief Constructor for cubic splines.
          * @poses An array of poses (position & orientation) to pass through.
          * @times The time at which to pass through each pose.
          * @startTwist The initial linear & angular velocity.
          */
-        CartesianSpline(const std::vector<Pose> &poses,
+        CartesianSpline(const std::vector<RobotLibrary::Model::Pose> &poses,
                         const std::vector<double> &times,
                         const Eigen::Vector<double,6> &startTwist);
                         
         /**
-         * Constructor for cubic splines, but only 2 poses are specified.
+         * @brief Constructor for cubic splines, but only 2 poses are specified.
          * @param startPose The initial position & orientation.
          * @param endPose The final position & orientation.
          * @param startTwist the initial linear & angular velocity.
          * @param endTwist The final linear & angular velocity.
          */
-        CartesianSpline(const Pose &startPose,
-                        const Pose &endPose,
+        CartesianSpline(const RobotLibrary::Model::Pose &startPose,
+                        const RobotLibrary::Model::Pose &endPose,
                         const Eigen::Vector<double,6> &startTwist,
                         const double &startTime,
                         const double &endTime)
         :
-        CartesianSpline(std::vector<Pose>{startPose, endPose},
+        CartesianSpline(std::vector<RobotLibrary::Model::Pose>{startPose, endPose},
                         std::vector<double>{startTime, endTime},
                         startTwist) {}
         /**
-         * Get the state for the given time.
+         * @brief Get the state for the given time.
          */               
         CartesianState
         query_state(const double &time);
         
         /**
-         * As it says.
+         * @brief As it says.
          */
         double
         end_time() const { return _spline.end_time(); }
@@ -78,6 +89,6 @@ class CartesianSpline
         SplineTrajectory _spline;                                                                   ///< Underlying trajectory over real numbers
 };
 
-}
+} }
 
 #endif

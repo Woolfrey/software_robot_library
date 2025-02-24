@@ -1,17 +1,29 @@
 /**
- * @file   SkewSymmetric.cpp
- * @author Jon Woolfrey
- * @date   July 2024
- * @brief  Source files for the SkewSymmetric class.
+ * @file    SkewSymmetric.cpp
+ * @author  Jon Woolfrey
+ * @email   jonathan.woolfrey@gmail.com
+ * @date    February 2025
+ * @version 1.0
+ * @brief   Represents a 3D skew-symmetric matrix such that S^T = -S.
+ * 
+ * @details This class is used to generate a skew-symmetric matrix for use in computations that
+ *          are otherwise not offered by the Eigen library. Eigen offers the cross() method for
+ *          3D vectors, but does not enable representation as a matrix-vector product.
+ * 
+ * @copyright Copyright (c) 2025 Jon Woolfrey
+ * 
+ * @license GNU General Public License V3
+ * 
+ * @see https://github.com/Woolfrey/software_robot_library for more information.
  */
 
-#include "SkewSymmetric.h"
+#include "Math/SkewSymmetric.h"
 
-namespace RobotLibrary {
+namespace RobotLibrary { namespace Math {
 
-/**
- * Get this object as a 3x3 matrix.
- */
+  ////////////////////////////////////////////////////////////////////////////////////////////////////
+ //                                 Get this object as a 3x3 matrix                                //
+////////////////////////////////////////////////////////////////////////////////////////////////////
 Eigen::Matrix<double,3,3>
 SkewSymmetric::as_matrix()
 {
@@ -23,12 +35,9 @@ SkewSymmetric::as_matrix()
     return S;
 }
 
-/**
- * Multiply this skew-symmetric matrix with another tensor.
- * This speeds up calcs by skipping the 0's along the diagonal.
- * @param other The other tensor to multiply with (3xn)
- * @return A 3xn matrix resulting from the product.
- */
+  ////////////////////////////////////////////////////////////////////////////////////////////////////
+ //                       Multiply this skew-symmetric matrix with another tensor                  //
+////////////////////////////////////////////////////////////////////////////////////////////////////
 Eigen::Matrix<double,3,Eigen::Dynamic>
 SkewSymmetric::operator*(const Eigen::Matrix<double,3,Eigen::Dynamic> &other)
 {
@@ -45,4 +54,4 @@ SkewSymmetric::operator*(const Eigen::Matrix<double,3,Eigen::Dynamic> &other)
     return result;
 }
 
-}
+} }

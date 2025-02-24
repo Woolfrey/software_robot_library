@@ -1,13 +1,24 @@
 /**
- * @file   Link.cpp
- * @author Jon Woolfrey
- * @date   July 2023
- * @brief  Source files for the Link class.
+ * @file    Link.cpp
+ * @author  Jon Woolfrey
+ * @email   jonathan.woolfrey@gmail.com
+ * @date    February 2025
+ * @version 1.0
+ * @brief   A class that combines a RobotLibrary::Model::RigidyBody object with a RobotLibrary::Model::Joint object.
+ * 
+ * @details This class describes a link as a part of a serial link chain. It contains both a joint
+ *          and a rigid body to define the kinematic and dynamic properties.
+ * 
+ * @copyright Copyright (c) 2025 Jon Woolfrey
+ * 
+ * @license GNU General Public License V3
+ * 
+ * @see https://github.com/Woolfrey/software_robot_library for more information.
  */
  
-#include "Link.h"
+#include "Model/Link.h"
 
-namespace RobotLibrary {
+namespace RobotLibrary { namespace Model {
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //                          Add a proceeding link in the kinematic chain                         //
@@ -135,4 +146,4 @@ Link::update_state(const Pose                    &previousPose,
      }
 }
 
-}
+} }

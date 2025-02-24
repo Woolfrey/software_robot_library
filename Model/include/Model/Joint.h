@@ -1,24 +1,35 @@
 /**
- * @file   Joint.h
- * @author Jon Woolfrey
- * @date   September 2023
- * @brief  A class that defines an actuated joint connecting two rigid bodies together.s
+ * @file    Joint.h
+ * @author  Jon Woolfrey
+ * @email   jonathan.woolfrey@gmail.com
+ * @date    February 2025
+ * @version 1.0
+ * @brief   A class that describes an actuated joint on a robot.
+ * 
+ * @details This class defines the kinematic & actuation properties of a joint on a robot.
+ *          It is designed to be incorporated in to a larger, multi-body class.
+ * 
+ * @copyright Copyright (c) 2025 Jon Woolfrey
+ * 
+ * @license GNU General Public License V3
+ * 
+ * @see https://github.com/Woolfrey/software_robot_library for more information.
  */
 
 #ifndef JOINT_H_
 #define JOINT_H_
 
-#include "Pose.h"                                                                                   // This tells the compiler to search locally
+#include "RobotLibrary/Model/Pose.h"
 
 #include <Eigen/Core>
 #include <string>
 #include <vector>
 
-namespace RobotLibrary {
+namespace RobotLibrary { namespace Model {
 
 /**
- * A data structure for joint limits.
- * It could represent position, velocity, acceleration, or torque depending on the context.
+ * @brief A data structure for joint limits.
+ *        It could represent position, velocity, acceleration, or torque depending on the context.
  */
 struct Limits
 {
@@ -27,13 +38,13 @@ struct Limits
 };                                                                                                  // Semicolon needed after declaring a data structure
 
 /**
- * A class representing an actuated joint on a mechanism.
+ * @brief A class representing an actuated joint on a mechanism.
  */
 class Joint
 {
      public:
           /**
-           * Minimum constructor which delegates to the full constructor.
+           * @brief Minimum constructor which delegates to the full constructor.
            * @param name A unique identifier for this joint.
            * @param type Options are 'revolute', 'prismatic', or 'continuous'.
            * @param axis A unit vector defining the axis of actuation.
@@ -47,7 +58,7 @@ class Joint
           Joint(name, type, axis, Pose(), positionLimit, 100*2*M_PI/60, 10.0, 1.0, 0.0) {}
           
           /**
-           * Full constructor for a Joint object.
+           * @brief Full constructor for a Joint object.
            * @param name A unique identifier for this joint.
            * @param type Options are 'revolute', 'prismatic', or 'continuous'.
            * @param axis A unit vector defining the axis of actuation.
@@ -69,49 +80,56 @@ class Joint
                 const double                  &friction);
           
           /**
+           * @brief Determine if a joint is defined as "fixed" in the URDF
            * @return Returns true if this joint is not actuated.
            */
           bool is_fixed() const { return this->_isFixed; }
           
           /**
+           * @brief Determine if the link is translational, as per the URDF.
            * @return Returns true if this is a translational joint.
            */
           bool is_prismatic() const { return not this->_isRevolute; }                               // Because I'm lazy
           
           /**
+           * @brief Determine if the link is rotational, as per the URDF.
            * @return Returns true if this is a rotational joint.
            */
           bool is_revolute() const { return this->_isRevolute; }
           
           /**
-           * @return Returns a unit vector for local axis of actuation.
+           * @brief Get the axis of actuation of a joint in the base frame of the robot
+           * @return A 3D vector of unit norm.
            */
           Eigen::Vector<double,3> axis() const { return this->_axis; }
           
           /**
-           * The relative transform due to the joint position.
+           * @brief The relative transform due to the joint position.
            * @param position The joint position (radians or metres)
            * @return The local pose origin.
            */
           Pose position_offset(const double &position);
           
           /**
-           * @return Returns the pose of this joint relative to the parent link in a kinematic chain.
+           * @brief Returns the pose of this joint relative to its parent link.
+           * @return A RobotLibrary::Model::Pose object
            */
           Pose origin() const { return this->_origin; }
           
           /**
-           * @return Returns the joint type as a string (prismatic, revolute, or fixed)
+           * @brief Find out what type of joint this is (revolute, prismatic, fixed)
+           * @return Returns the joint type as a string
            */
           std::string type() const { return this->_type; }
           
           /**
-           * @return Returns the name of this joint.
+           * @brief Find out the (unique) name for this joint.
+           * @return A string.
            */
           std::string name() const { return this->_name; }
           
           /**
-           * Extends the pose of this joint relative to its parent link in a kinematic chain.
+           * @brief Extends the pose of this joint relative to its parent link in a kinematic chain.
            * @param other The additional transformation before this one.
            */
           void extend_origin(const Pose &other)
@@ -121,24 +139,27 @@ class Joint
           } 
           
           /**
-           * Get the position limits for this joint.
+           * @brief Get the position limits for this joint.
            * @param lower Argument in which the lower limit will be stored.
            * @param upper Argument in which the upper limit will be stored.
            */
           Limits position_limits() const { return this->_positionLimit; }
           
           /**
-           * @return The speed limit for the specified joint.
+           * @brief Get the maximum speed for this joint.
+           * @return A double (positive value only)
            */
           double speed_limit() const { return this->_speedLimit; }
           
           /**
-           * @return The effort (force or torque) limit for the joints.
+           * @brief Get the maximum actuation effort for this joint.
+           * @return Force for prismatic (N), torque for revolute (Nm)
            */
           double effort_limit() const { return this->_effortLimit; }
           
           /**
-           * @return The viscous friction (Ns/m^2) of this joint.
+           * @brief Get the viscous friction Ns/m^2) of this joint.
+           * @return A positive value.
            */
           double damping() const { return this->_damping; }
           
@@ -168,5 +189,6 @@ class Joint
           
 };                                                                                                  // Semicolon needed after a class declaration
 
-}
-#endif
+}}                                                                                                  // End namespace
+
+#endif                                                                                              //

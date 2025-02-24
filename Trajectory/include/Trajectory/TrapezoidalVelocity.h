@@ -1,34 +1,45 @@
 /**
- * @file   TrapezoidalVelocity.h
- * @author Jon Woolfrey
- * @date   September 2023
- * @brief  A trajectory with constant velocity.
+ * @file    TrapezoidalVelocity.h
+ * @author  Jon Woolfrey
+ * @email   jonathan.woolfrey@gmail.com
+ * @date    February 2025
+ * @version 1.0
+ * @brief   A class with a trapezoidal velocity profile.
+ * 
+ * @details This class generates a trajectory using a trapezoidal velocity profile. It will ramp up
+ *          at a given acceleration, and coast at a constant speed, before decelerating.
+ * 
+ * @copyright Copyright (c) 2025 Jon Woolfrey
+ * 
+ * @license GNU General Public License V3
+ * 
+ * @see https://github.com/Woolfrey/software_robot_library for more information.
  */
 
 #ifndef TRAPEZOIDAL_VELOCITY_H_
 #define TRAPEZOIDAL_VELOCITY_H_
 
-#include "TrajectoryBase.h"                                                                         // Tells the compiler to look locally
+#include "RobotLibrary/Trajectory/TrajectoryBase.h"
 
 #include <Eigen/Geometry> 
 #include <vector>                                                                                   // Eigen::Vector, Eigen::Matrix, Eigen::Quaternion
 
-namespace RobotLibrary {
+namespace RobotLibrary { namespace Trajectory {
 
 /**
- * This class defines a trapezoidal velocity profile between 2 points.
+ * @brief This class defines a trapezoidal velocity profile between 2 points.
  */
 class TrapezoidalBase : public TrajectoryBase
 {
      public:
 
         /**
-         * Emtpy constructor.
+         * @brief Empty constructor.
          */
         TrapezoidalBase() {}
 
         /**
-         * Full constructor.
+         * @brief Full constructor.
          * @param startPoint A vector of positions for the beginning of the trajectory.
          * @param endPoint A vector of positions for the end of the trajectory.
          * @param maxVel A scalar for the maximum speed.
@@ -42,7 +53,7 @@ class TrapezoidalBase : public TrajectoryBase
                         const double          &startTime);
           
         /**
-        * Query the state for the given time. Override from TrajectoryBase class.
+        * @brief Query the state for the given time. Override from TrajectoryBase class.
         * @param pos A storage location for the position.
         * @param vel A storage location for the velocity.
         * @param acc A storage location for the acceleration.
@@ -51,10 +62,10 @@ class TrapezoidalBase : public TrajectoryBase
         */
         State query_state(const double &time);
           
-          /**
-           * Query the total execution time for the trajectory.
-           */
-          double duration() const { return this->_coastTime + 2*this->_rampTime; }
+        /**
+         * @brief Query the total execution time for the trajectory.
+         */
+        double duration() const { return this->_coastTime + 2*this->_rampTime; }
           
      private:
      
@@ -68,14 +79,14 @@ class TrapezoidalBase : public TrajectoryBase
 };                                                                                                  // Semicolon needed after class declaration
 
 /**
- * This class builds upon the TrapezoidalBase to include any number of waypoints.
+ * @brief This class builds upon the TrapezoidalBase to include any number of waypoints.
  */
 class TrapezoidalVelocity : public TrajectoryBase
 {
     public:
     
         /**
-         * Constructor.
+         * @brief Constructor.
          * @param waypoints An array of positions to pass through.
          * @param maxVelocity Defines the height for the trapezoidal velocity profile.
          * @param maxAcceleration Defines the slope of the trapezoidal velocity.
@@ -87,7 +98,7 @@ class TrapezoidalVelocity : public TrajectoryBase
                             const double &startTime);
                            
         /**
-         * Constructor with only 2 points.
+         * @brief Constructor with only 2 points.
          * @param startPosition As it says.
          * @param endPostion As it says.
          * @param maxVelocity Defines the height of the trapezoidal velocity profile.
@@ -104,7 +115,7 @@ class TrapezoidalVelocity : public TrajectoryBase
                             maxVelocity, maxAcceleration, startTime) {}
     
         /**
-         * Query the trajectory state for the given time.
+         * @brief Query the trajectory state for the given time.
          * @param time The point at which to evaluate the state.
          * @return A State data structure containing the position, velocity, and acceleration.
          */
@@ -118,6 +129,6 @@ class TrapezoidalVelocity : public TrajectoryBase
         
 };                                                                                                  // Semicolon required after class declaration
 
-}
+} }
 
 #endif

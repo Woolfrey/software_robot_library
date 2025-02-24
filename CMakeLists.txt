@@ -20,10 +20,10 @@ find_package(Eigen3 3.3 REQUIRED NO_MODULE)                                     
 
 #################################### Download QPSolver #############################################
 
-if(EXISTS "${CMAKE_SOURCE_DIR}/Math/include/QPSolver.h")
-    message(STATUS "Found the QPSolver class in ${CMAKE_SOURCE_DIR}/Math/include/")
+if(EXISTS "${CMAKE_SOURCE_DIR}/Math/include/Math/QPSolver.h")
+    message(STATUS "Found the QPSolver class in ${CMAKE_SOURCE_DIR}/Math/include/Math/")
 else()
-    message(WARNING "QPSolver class not found in ${CMAKE_SOURCE_DIR}/Math/include/")
+    message(WARNING "QPSolver class not found in ${CMAKE_SOURCE_DIR}/Math/include/Math/")
     
     message(STATUS "Downloading from https://github.com/Woolfrey/software_simple_qp ...")
     
@@ -31,7 +31,7 @@ else()
         https://raw.githubusercontent.com/Woolfrey/software_simple_qp/master/include/QPSolver.h
         ${CMAKE_SOURCE_DIR}/Math/include/Math/QPSolver.h)
         
-    if(EXISTS "${CMAKE_SOURCE_DIR}/Math/include/QPSolver.h")
+    if(EXISTS "${CMAKE_SOURCE_DIR}/Math/include/Math/QPSolver.h")
         message(STATUS "... Done!")
     else()
         message(FATAL_ERROR "Could not download QPSolver.")
@@ -51,7 +51,6 @@ add_library(${PROJECT_NAME} INTERFACE)
 target_link_libraries(${PROJECT_NAME} INTERFACE Control Math Model Trajectory)
 
 ####################################################################################################
-
 include(CMakePackageConfigHelpers)                                                                  # Enable CMake's support for exporting targets
 
 # Configure the installation of the package

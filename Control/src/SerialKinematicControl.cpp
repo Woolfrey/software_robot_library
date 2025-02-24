@@ -1,21 +1,33 @@
 /**
- * @file   SerialKinematicControl.cpp
- * @author Jon Woolfrey
- * @data   July 2024
- * @brief  Source files for the Kinematic Control class.
+ * @file    SerialKinematicControl.cpp
+ * @author  Jon Woolfrey
+ * @email   jonathan.woolfrey@gmail.com
+ * @date    February 2025
+ * @version 1.0
+ * @brief   Computes velocity (position) feedback control for a serial link robot arm.
+ * 
+ * @details This class contains methods for performing velocity control of a serial link robot arm
+ *          in both Cartesian and joint space. The fundamental feedforward + feedback control is given by:
+ *          control velocity = desired velocity + gain * (desired position - actual position).
+ * 
+ * @copyright Copyright (c) 2025 Jon Woolfrey
+ * 
+ * @license GNU General Public License V3
+ * 
+ * @see https://github.com/Woolfrey/software_robot_library for more information.
  */
  
-#include "SerialKinematicControl.h"
+#include "Control/SerialKinematicControl.h"
 
-namespace RobotLibrary {
+namespace RobotLibrary { namespace Control {
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //               Compute the endpoint velocity needed to track a given trajectory                //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 Eigen::VectorXd
-SerialKinematicControl::track_endpoint_trajectory(const Pose                    &desiredPose,
-                                                  const Eigen::Vector<double,6> &desiredVelocity,
-                                                  const Eigen::Vector<double,6> &desiredAcceleration)
+SerialKinematicControl::track_endpoint_trajectory(const RobotLibrary::Model::Pose &desiredPose,
+                                                  const Eigen::Vector<double,6>   &desiredVelocity,
+                                                  const Eigen::Vector<double,6>   &desiredAcceleration)
 {
      (void)desiredAcceleration;                                                                     // Not needed in velocity control
      
@@ -109,7 +121,7 @@ SerialKinematicControl::resolve_endpoint_motion(const Eigen::Vector<double,6> &e
         // In Fifth International Conference on Advanced Robotics Robots in Unstructured Environments
         // (pp. 672-677). IEEE.
        
-        double dampingFactor = pow(1.0 - _manipulability/_minManipulability, 2.0) * 0.10;           // Attenuate damping based on proximity to singularity
+        double dampingFactor = pow(1.0 - _manipulability/_minManipulability, 2.0) * 0.01;           // Attenuate damping based on proximity to singularity
 
         // Solve a problem of the form:
         // min 0.5*x'*H*x + x'*f
@@ -157,7 +169,7 @@ SerialKinematicControl::track_joint_trajectory(const Eigen::VectorXd &desiredPos
 		velocityControl(i) = desiredVelocity(i)                                                      // Feedforward control
 		                   + _jointPositionGain*(desiredPosition(i) - _model->joint_positions()[i]); // Feedback control
 		
-		Limits controlLimits = compute_control_limits(i);                                           // Get the instantaneous limits on the joint speed
+		RobotLibrary::Model::Limits controlLimits = compute_control_limits(i);                      // Get the instantaneous limits on the joint speed
 		                   
 		     if(velocityControl(i) <= controlLimits.lower) velocityControl(i) = controlLimits.lower + 1e-03; // Just above the limit
 		else if(velocityControl(i) >= controlLimits.upper) velocityControl(i) = controlLimits.upper - 1e-03; // Just below the limit
@@ -169,14 +181,14 @@ SerialKinematicControl::track_joint_trajectory(const Eigen::VectorXd &desiredPos
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //                   Compute the instantaneous limits on the joint velocities                    //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-Limits
+RobotLibrary::Model::Limits
 SerialKinematicControl::compute_control_limits(const unsigned int &jointNumber)
 {
 	// Flacco, F., De Luca, A., & Khatib, O. (2015).
 	// "Control of redundant robots under hard joint constraints: Saturation in the null space."
 	// IEEE Transactions on Robotics, 31(3), 637-654.
 	
-	Limits limits;                                                                                  // Value to be returned
+	RobotLibrary::Model::Limits limits;                                                             // Value to be returned
 
 	double delta = _model->joint_positions()[jointNumber]
 	             - _model->link(jointNumber)->joint().position_limits().lower;                      // Distance from lower limit
@@ -204,4 +216,4 @@ SerialKinematicControl::compute_control_limits(const unsigned int &jointNumber)
 	return limits;
 }
 
-}
+} }

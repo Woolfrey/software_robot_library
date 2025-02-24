@@ -1,11 +1,24 @@
 /**
- * @file   MathFunctions.cpp
- * @author Jon Woolfrey
- * @date   July 2024
- * @brief  Source code for useful math functions.
+ * @file    MathFunctions.cpp
+ * @author  Jon Woolfrey
+ * @email   jonathan.woolfrey@gmail.com
+ * @date    February 2025
+ * @version 1.0
+ * @brief   Useful math functions for robot kinematics & control.
+ * 
+ * @details This header files contains forward declarations for useful math functions that are not
+ *          offered by the Eigen library.
+ * 
+ * @copyright Copyright (c) 2025 Jon Woolfrey
+ * 
+ * @license GNU General Public License V3
+ * 
+ * @see https://github.com/Woolfrey/software_robot_library for more information.
  */
  
-#include <MathFunctions.h>
+#include <Math/MathFunctions.h>
+
+namespace RobotLibrary { namespace Math {
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                                      POSITIVE DEFINITE?                                        //
@@ -43,7 +56,7 @@ bool is_positive_definite(const Eigen::MatrixXd &A)
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                                     QR DECOMPOSITION                                           //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-RobotLibrary::QRDecomposition
+RobotLibrary::Math::QRDecomposition
 schwarz_rutishauser(const Eigen::MatrixXd &A,
                     const double tolerance)
 {
@@ -71,7 +84,7 @@ schwarz_rutishauser(const Eigen::MatrixXd &A,
           // The null space of A is obtained with N = Qn*Qn'.
           // This algorithm returns only Qr and R for efficiency.
           
-          RobotLibrary::QRDecomposition decomp;
+          RobotLibrary::Math::QRDecomposition decomp;
           decomp.Q = A;
           decomp.R.resize(n,n); decomp.R.setZero();
           
@@ -252,3 +265,5 @@ solve_cubic_spline_derivatives(const std::vector<double> &y,
     
     return temp;                                  
 }
+
+} }

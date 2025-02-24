@@ -1,13 +1,25 @@
 /**
- * @file   Spline.cpp
- * @author Jon Woolfrey
- * @date   July 2024
- * @brief  Source files for the Spline class.
+ * @file    Spline.cpp
+ * @author  Jon Woolfrey
+ * @email   jonathan.woolfrey@gmail.com
+ * @date    February 2025
+ * @version 1.0
+ * @brief   Represents a series of polynomials connecting several points.
+ * 
+ * @details This class will interpolate across multiple points using piecewise polynomials.
+ *          It currently supports cubic splines, and ensures continuity down to the second derivative.
+ *          Higher order polynomials are possible, but continuity of derivatives is not yet supported (please help!)
+ * 
+ * @copyright Copyright (c) 2025 Jon Woolfrey
+ * 
+ * @license GNU General Public License V3
+ * 
+ * @see https://github.com/Woolfrey/software_robot_library for more information.
  */
  
-#include "Spline.h"
+#include "Math/Spline.h"
 
-namespace RobotLibrary {
+namespace RobotLibrary { namespace Math {
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                                        Constructor                                             //
@@ -74,4 +86,4 @@ Spline::evaluate_point(const double &input)
     return this->_polynomial.back().evaluate_point(this->_points.back());
 }
 
-}
+} }

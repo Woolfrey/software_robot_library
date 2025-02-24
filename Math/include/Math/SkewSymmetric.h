@@ -1,8 +1,20 @@
 /**
- * @file   SkewSymmetric.h
- * @author Jon Woolfrey
- * @date   June 2024
- * @brief  A class uses for representing the skew-symmetric matrix mapping of a 3D vector.
+ * @file    SkewSymmetric.h
+ * @author  Jon Woolfrey
+ * @email   jonathan.woolfrey@gmail.com
+ * @date    February 2025
+ * @version 1.0
+ * @brief   Represents a 3D skew-symmetric matrix such that S^T = -S.
+ * 
+ * @details This class is used to generate a skew-symmetric matrix for use in computations that
+ *          are otherwise not offered by the Eigen library. Eigen offers the cross() method for
+ *          3D vectors, but does not enable representation as a matrix-vector product.
+ * 
+ * @copyright Copyright (c) 2025 Jon Woolfrey
+ * 
+ * @license GNU General Public License V3
+ * 
+ * @see https://github.com/Woolfrey/software_robot_library for more information.
  */
  
 #ifndef SKEW_SYMMETRIC_H
@@ -10,27 +22,27 @@
 
 #include <Eigen/Core>
 
-namespace RobotLibrary {
+namespace RobotLibrary { namespace Math {
  
 class SkewSymmetric
 {
      public:
           /**
-           * Constructor.
+           * @brief Constructor.
            * @param vec A 3D Eigen::Vector to be made as a skew-symmetric matrix.
            */
           SkewSymmetric(const Eigen::Vector3d &vec) : _vec(vec) {}
           
           /**
-           * Get this object as a 3x3 matrix.
+           * @brief Get this object as a 3x3 matrix.
            * @return An 3D Eigen::Matrix object.
            */
           Eigen::Matrix3d
           as_matrix();
 
           /**
-           * Multiply this skew-symmetric matrix with another tensor.
-           * This speeds up calcs by skipping the 0's along the diagonal.
+           * @brief Multiply this skew-symmetric matrix with another tensor.
+           *        This speeds up calcs by skipping the 0's along the diagonal.
            * @param other The other tensor to multiply with (3xn)
            * @return A 3xn matrix resulting from the product.
            */
@@ -43,6 +55,6 @@ class SkewSymmetric
           
 };                                                                                                  // Semicolon needed after class declaration
 
-}
+} }
 
 #endif

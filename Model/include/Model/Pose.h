@@ -1,8 +1,20 @@
 /**
- * @file   Pose.h
- * @author Jon Woolfrey
- * @date   September 2023
- * @brief  A class representing the position and orientation of an object in 3D space.
+ * @file    Pose.h
+ * @author  Jon Woolfrey
+ * @email   jonathan.woolfrey@gmail.com
+ * @date    February 2025
+ * @version 1.0
+ * @brief   A class that describes the position & orientation of an object in 3D space.
+ * 
+ * @details This class describes the position of an object as a 3D vector, and the orientation
+ *          using a quaternion. Arithmetic can be used to propagate & invert these objects for
+ *          performing transforms in 3D space.
+ * 
+ * @copyright Copyright (c) 2025 Jon Woolfrey
+ * 
+ * @license GNU General Public License V3
+ * 
+ * @see https://github.com/Woolfrey/software_robot_library for more information.
  */
 
 #ifndef POSE_H_
@@ -11,19 +23,19 @@
 #include <Eigen/Geometry>                                                                           // Quaternion
 #include <iostream>                                                                                 // std::cout
 
-namespace RobotLibrary {
+namespace RobotLibrary { namespace Model {
 
 class Pose
 {
      public:
 
           /**
-           * An empty constructor.
+           * @brief An empty constructor.
            */
           Pose() {};
           
           /**
-           * A full constructor.
+           * @brief A full constructor.
            * @param translation A 3x1 vector for the position/translation component.
            * @param quaternion A quaternion object defining the orientation.
            */
@@ -34,19 +46,19 @@ class Pose
                _quaternion(quaternion.normalized()) {}
           
           /**
-           * Computes the error between this pose object and another.
+           * @brief Computes the error between this pose object and another.
            * @param desired The other pose for which to compute the error.
            * @return A 6x1 vector containing the position error, and orientation error as the angle*axis
            */
           Eigen::Vector<double,6> error(const Pose &desired);
           
           /**
-           * @return Returns this pose as 4x4 homogeneous transformation / SE(3) matrix.
+           * @brief  Returns this pose as 4x4 homogeneous transformation / SE(3) matrix.
            */
           Eigen::Matrix4d as_matrix();
 
           /**
-           * @return Returns the orientation component of the pose as a 3x3 rotation / SO(3) matrix
+           * @brief  Returns the orientation component of the pose as a 3x3 rotation / SO(3) matrix
            */
           Eigen::Matrix3d rotation() const { return this->_quaternion.toRotationMatrix(); }
           
@@ -56,30 +68,30 @@ class Pose
           Eigen::Vector3d translation() const { return this->_translation; }
           
           /**
-           * @return Returns the orientation component as a quaternion object.
+           * @brief  Returns the orientation component as a quaternion object.
            */
           Eigen::Quaterniond quaternion() const { return this->_quaternion; }
           
           /**
-           * @return Computes the inverse / opposite of this pose.
+           * @brief  Computes the inverse / opposite of this pose.
            */
           Pose
           inverse();
           
           /**
-           * Multiply this pose with another to produce a third.
+           * @brief Multiply this pose with another to produce a third.
            */
           Pose
           operator* (const Pose &other) const;
           
           /**
-           * Multiply this pose in place.
+           * @brief Multiply this pose in place.
            */
           void
           operator*= (const Pose &other);
           
           /**
-           * Apply a point transformation to a vector.
+           * @brief Apply a point transformation to a vector.
            */
           Eigen::Vector<double,3>
           operator* (const Eigen::Vector<double,3> &other);
@@ -91,6 +103,7 @@ class Pose
             Eigen::Quaterniond _quaternion = {1.0, 0.0, 0.0, 0.0};                                  ///< The orientation or rotation component
      
 };                                                                                                  // Semicolon needed after class declaration
-}
+
+} }
 
 #endif

@@ -1,13 +1,23 @@
 /**
- * @file   TrajectoryBase.cpp
- * @author Jon Woolfrey
- * @date   July 2024
- * @brief  Source files for the TrajectoryBase class.
+ * @file    TrajectoryBase.h
+ * @author  Jon Woolfrey
+ * @email   jonathan.woolfrey@gmail.com
+ * @date    February 2025
+ * @version 1.0
+ * @brief   A class to standardise the structure of all other trajectory classes.
+ * 
+ * @details This class is used to standardise the structure and interfaces for all trajectory classes.
+ * 
+ * @copyright Copyright (c) 2025 Jon Woolfrey
+ * 
+ * @license GNU General Public License V3
+ * 
+ * @see https://github.com/Woolfrey/software_robot_library for more information.
  */
  
-#include "TrajectoryBase.h"
+#include "Trajectory/TrajectoryBase.h"
 
-namespace RobotLibrary {
+namespace RobotLibrary { namespace Trajectory {
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //                                       Constructor                                             //
@@ -52,4 +62,4 @@ TrajectoryBase::TrajectoryBase(const State  &startPoint,
     }
 }
 
-}
+} }

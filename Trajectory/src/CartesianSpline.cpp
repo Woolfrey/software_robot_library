@@ -1,19 +1,30 @@
 /**
- * @file   CartesianSpline.cpp
- * @author Jon Woolfrey
- * @date   July 2024
- * @brief  Source files for the CartesianSpline class.
+ * @file    CartesianSpline.cpp
+ * @author  Jon Woolfrey
+ * @email   jonathan.woolfrey@gmail.com
+ * @date    February 2025
+ * @version 1.0
+ * @brief   A class that defines trajectories for position & orientation in 3D space.
+ * 
+ * @details This class generates trajectories for position & orientation by using a spline to
+ *          interpolate over a series of poses.
+ * 
+ * @copyright Copyright (c) 2025 Jon Woolfrey
+ * 
+ * @license GNU General Public License V3
+ * 
+ * @see https://github.com/Woolfrey/software_robot_library for more information.
  */
  
-#include "CartesianSpline.h"
+#include "Trajectory/CartesianSpline.h"
 
-namespace RobotLibrary {
+namespace RobotLibrary { namespace Trajectory {
 
   //////////////////////////////////////////////////////////////////////////////////////////////////// 
  //                              Constructor for cubic splines                                     //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-CartesianSpline::CartesianSpline(const std::vector<Pose>       &poses,
-                                 const std::vector<double>     &times,
+CartesianSpline::CartesianSpline(const std::vector<RobotLibrary::Model::Pose> &poses,
+                                 const std::vector<double> &times,
                                  const Eigen::Vector<double,6> &startTwist)
 {
     if(poses.size() < 2)
@@ -54,25 +65,25 @@ CartesianSpline::CartesianSpline(const std::vector<Pose>       &poses,
 CartesianState
 CartesianSpline::query_state(const double &time)
 {
-    State  state = this->_spline.query_state(time);                                                 // Get the state as a 6x1 vector over real numbers
+    State state = this->_spline.query_state(time);                                                 // Get the state as a 6x1 vector over real numbers
     
     // Now we need to convert the "position" vector to a pose
 
     double angle = state.position.tail(3).norm();                                                   // Norm of the angle*axis component
 
-    Pose pose;                                                                                      // We need to compute this
+    RobotLibrary::Model::Pose pose;                                                                 // We need to compute this
 
-    if(abs(angle) < 1e-04) pose = Pose(state.position.head(3),
+    if(abs(angle) < 1e-04) pose = RobotLibrary::Model::Pose(state.position.head(3),
                                   Eigen::Quaterniond(1,0,0,0));                                     // Assume zero rotation
     else
     {
       Eigen::Vector<double,3> axis = state.position.tail(3).normalized();                           // Ensure magnitude of 1 
       
-      pose = Pose(state.position.head(3), 
-                  Eigen::Quaterniond(cos(0.5*angle),
-                                     sin(0.5*angle)*axis(0),
-                                     sin(0.5*angle)*axis(1),
-                                     sin(0.5*angle)*axis(2)));
+      pose = RobotLibrary::Model::Pose(state.position.head(3), 
+                                       Eigen::Quaterniond(cos(0.5*angle),
+                                                          sin(0.5*angle)*axis(0),
+                                                          sin(0.5*angle)*axis(1),
+                                                          sin(0.5*angle)*axis(2)));
     }
 
     CartesianState returnValue = {pose, state.velocity, state.acceleration};                        // Put them together in data structur
@@ -80,4 +91,4 @@ CartesianSpline::query_state(const double &time)
     return returnValue;
 }
 
-}
+} }

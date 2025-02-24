@@ -1,30 +1,43 @@
 /**
- * @file   SplineTrajectory.h
- * @author Jon Woolfrey
- * @date   June 2024
- * @brief  A class defining trajectories with waypoints joined over splines.
+ * @file    SplineTrajectory.h
+ * @author  Jon Woolfrey
+ * @email   jonathan.woolfrey@gmail.com
+ * @date    February 2025
+ * @version 1.0
+ * @brief   This class gives a spline as a function of time over a finite series of points.
+ * 
+ * @details Given a set of points and times, this class will generate piece-wise polynomials to interpolate
+ *          between them. It ensures continuity at the velocity and acceleration level.
+ * 
+ * @copyright Copyright (c) 2025 Jon Woolfrey
+ * 
+ * @license GNU General Public License V3
+ * 
+ * @see https://github.com/Woolfrey/software_robot_library for more information.
  */
  
 #ifndef SPLINETRAJECTORY_H_
 #define SPLINETRAJECTORY_H_
 
-#include "MathFunctions.h"
-#include "Spline.h"
-#include "TrajectoryBase.h"
+#include "RobotLibrary/Math/MathFunctions.h"
+#include "RobotLibrary/Math/Spline.h"
+#include "RobotLibrary/Trajectory/TrajectoryBase.h"
 
-namespace RobotLibrary {
-
+namespace RobotLibrary { namespace Trajectory {
+/**
+ * @brief This class gives a spline as a function of time over a finite series of points.
+ */
 class SplineTrajectory : public TrajectoryBase
 {
     public:
         
         /**
-         * An empty constructor.
+         * @brief An empty constructor.
          */
         SplineTrajectory() {}
         
         /**
-         * Constructor.
+         * @brief Constructor.
          * @param waypoints The states (position, velocity, acceleration) for given points in time.
          * @param times The time at which to pass through each waypoint.
          * @param polynomialOrder The type of polynomial interpolation to use.
@@ -34,8 +47,8 @@ class SplineTrajectory : public TrajectoryBase
                          const unsigned int        &polynomialOrder);
         
         /**
-         * A basic constructor for a cubic spline where the waypoints and start velocity are given.
-         * The final velocity is assumed to be zero.
+         * @brief A basic constructor for a cubic spline where the waypoints and start velocity are given.
+         *        The final velocity is assumed to be zero.
          * @param positions An array of positions to pass through.
          * @param times The time at which to pass through each position.
          * @param startVelocity The initial velocity of the trajectory.
@@ -45,8 +58,8 @@ class SplineTrajectory : public TrajectoryBase
                          const Eigen::VectorXd &startVelocity);
                                                 
         /**
-         * Query the state for the given input time.
-         * This overrides the virtual function in the TrajectoryBase class.
+         * @brief Query the state for the given input time.
+         *        This overrides the virtual function in the TrajectoryBase class.
          * @param time The point at which to evaluate the trajectory.
          * @return The position, velocity, acceleration as a State data structure.
          */
@@ -55,10 +68,10 @@ class SplineTrajectory : public TrajectoryBase
     
     private:
         
-        std::vector<Spline> _spline;                                                                ///< Underlying spline object over real numbers
+        std::vector<RobotLibrary::Math::Spline> _spline;                                            ///< Underlying spline object over real numbers
         
 };                                                                                                  // Semicolon needed after a class declarationS
 
-}
+} }
 
 #endif

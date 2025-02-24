@@ -1,13 +1,24 @@
 /**
- * @file   RigidBody.cpp
- * @author Jon Woolfrey
- * @date   July 2023
- * @brief  Source files for the RigidBody class.
+ * @file    RigidBody.cpp
+ * @author  Jon Woolfrey
+ * @email   jonathan.woolfrey@gmail.com
+ * @date    February 2025
+ * @version 1.0
+ * @brief   A class for describing the kinematics & dynamics of a single, ridid body.
+ * 
+ * @details This class contains the kinematic & dynamic properties of a single rigid body.
+ *          It can be used to compute the forces and torques due to its dynamic motion.
+ * 
+ * @copyright Copyright (c) 2025 Jon Woolfrey
+ * 
+ * @license GNU General Public License V3
+ * 
+ * @see https://github.com/Woolfrey/software_robot_library for more information.
  */
  
-#include "RigidBody.h"
+#include "Model/RigidBody.h"
 
-namespace RobotLibrary {
+namespace RobotLibrary { namespace Model {
  
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                                          Constructor                                           //
@@ -76,4 +87,4 @@ RigidBody::combine_inertia(const RigidBody &other,
      this->_localInertia += R*other.inertia()*R.transpose() - other.mass()*S*S;                     // From the parallel axis theorem
 }
 
-}
+} }
