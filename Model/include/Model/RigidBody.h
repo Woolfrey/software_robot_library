@@ -19,7 +19,7 @@
 #ifndef RIGIDBODY_H_
 #define RIGIDBODY_H_
 
-#include "Pose.h"
+#include "RobotLibrary/Model/Pose.h"
 
 #include <Eigen/Core>
 #include <string>

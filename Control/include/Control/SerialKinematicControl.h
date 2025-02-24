@@ -20,7 +20,7 @@
 #ifndef SERIALKINEMATICCONTROL_H_
 #define SERIALKINEMATICCONTROL_H_
 
-#include "SerialLinkBase.h"
+#include "RobotLibrary/Control/SerialLinkBase.h"
 
 namespace RobotLibrary { namespace Control {
 

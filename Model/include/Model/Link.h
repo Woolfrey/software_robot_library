@@ -19,9 +19,9 @@
 #ifndef LINK_H_
 #define LINK_H_
 
-#include "Joint.h"
-#include "Pose.h"
-#include "RigidBody.h"
+#include "RobotLibrary/Model/Joint.h"
+#include "RobotLibrary/Model/Pose.h"
+#include "RobotLibrary/Model/RigidBody.h"
 
 #include <vector>                                                                                   // std::vector
 

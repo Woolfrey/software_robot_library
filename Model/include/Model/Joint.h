@@ -19,7 +19,8 @@
 #ifndef JOINT_H_
 #define JOINT_H_
 
-#include "Pose.h"                                                                                   // This tells the compiler to search locally
+#include "RobotLibrary/Model/Pose.h"
+
 #include <Eigen/Core>
 #include <string>
 #include <vector>

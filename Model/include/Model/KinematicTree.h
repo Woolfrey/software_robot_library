@@ -21,12 +21,12 @@
 #ifndef KINEMATICTREE_H_
 #define KINEMATICTREE_H_
 
-#include "Joint.h"                                                                                  // Custom class for describing a moveable connection between links
-#include "Link.h"                                                                                   // Custom class combining a rigid body and joint
+#include "RobotLibrary/Model/Joint.h"                                                               // Custom class for describing a moveable connection between links
+#include "RobotLibrary/Model/Link.h"                                                                // Custom class combining a rigid body and joint
 #include "RobotLibrary/Math/SkewSymmetric.h"                                                        // Custom class
 
 #include <fstream>                                                                                  // For loading files
-#include <map>                                                                                      // map
+#include <map>                                                                                      // std::map
 #include <tinyxml2.h>                                                                               // For parsing urdf files
 
 namespace RobotLibrary { namespace Model {
@@ -188,6 +188,13 @@ class KinematicTree
           name() const { return this->_name; }
           
           /**
+           * @brief Retrieve the name of the base link.
+           * @return A std::string object.
+           */
+          std::string
+          base_name() const { return this->_baseName; }
+          
+          /**
            * @brief Returns a pointer to a reference frame on this model.
            * @param name In the URDF, the name of the parent link attached to a fixed joint
            * @return A ReferenceFrame data structure.
@@ -257,6 +264,8 @@ class KinematicTree
           std::vector<Link*> _baseLinks;                                                            ///< Array of links attached directly to the base.
           
           std::string _name;                                                                        ///< A unique name for this model.
+          
+          std::string _baseName;                                                                    ///< Name of the base link
           
           unsigned int _numberOfJoints;                                                             ///< The number of actuated joint in the kinematic tree.
                   

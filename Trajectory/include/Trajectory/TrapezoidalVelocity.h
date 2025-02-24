@@ -19,7 +19,7 @@
 #ifndef TRAPEZOIDAL_VELOCITY_H_
 #define TRAPEZOIDAL_VELOCITY_H_
 
-#include "TrajectoryBase.h"                                                                         // Tells the compiler to look locally
+#include "RobotLibrary/Trajectory/TrajectoryBase.h"
 
 #include <Eigen/Geometry> 
 #include <vector>                                                                                   // Eigen::Vector, Eigen::Matrix, Eigen::Quaternion

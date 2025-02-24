@@ -210,7 +210,9 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
      // Find and set the base
      if(rigidBodyList.size() == 1)
      {
-          this->base = rigidBodyList.begin()->second;
+          this->base = rigidBodyList.begin()->second;                                               // Get underlying RigidBody object
+          
+          this->_baseName = rigidBodyList.begin()->first;                                           // Save the name
      }
      else
      {
@@ -283,6 +285,8 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
                << " It has " << this->_numberOfJoints << " joints (reduced from " << this->_fullLinkList.size() << ")." << std::endl;
 
      #ifndef NDEBUG
+          std::cout << "\nThe base link is: " << this->_baseName << ".\n";
+          
           std::cout << "\nHere is a list of all the joints on the robot:\n";          
           vector<Link*> candidateList = this->_baseLinks;                                           // Start with links connect to base
           while(candidateList.size() > 0)

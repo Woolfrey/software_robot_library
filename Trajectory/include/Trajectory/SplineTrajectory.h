@@ -21,7 +21,7 @@
 
 #include "RobotLibrary/Math/MathFunctions.h"
 #include "RobotLibrary/Math/Spline.h"
-#include "TrajectoryBase.h"
+#include "RobotLibrary/Trajectory/TrajectoryBase.h"
 
 namespace RobotLibrary { namespace Trajectory {
 /**
