@@ -54,6 +54,15 @@ class SerialLinkBase : public QPSolver<double>
 		resolve_endpoint_motion(const Eigen::Vector<double,6> &endpointMotion) = 0;
 		
 		/**
+         * @brief Compute the joint motion required to execute the specified endpoint twist (linear & angular velocity)
+         * @param twist The desired linear & angular velocity, as a 6D vector.
+         * @return The required joint velocity, or joint torque.
+         */
+        virtual
+        Eigen::VectorXd
+        resolve_endpoint_twist(const Eigen::Vector<double,6> &twist) = 0;
+		
+		/**
 		 * @brief Compute the required joint motion to track a given state for the endpoint.
 		 *        The function will compute the feedforward + feedback control.
 		 * @param desiredPose The desired pose at the current time.

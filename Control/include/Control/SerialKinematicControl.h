@@ -49,6 +49,15 @@ class SerialKinematicControl : public SerialLinkBase
 		resolve_endpoint_motion(const Eigen::Vector<double,6> &endPointMotion);
 		
 		/**
+         * @brief Compute the joint velocity required to execute the specified endpoint twist (linear & angular velocity).
+                  This overrides the virtual method defined in the base class.
+         * @param twist The desired linear & angular velocity, as a 6D vector.
+         * @return The required joint velocity, or joint torque.
+         */
+        Eigen::VectorXd
+        resolve_endpoint_twist(const Eigen::Vector<double,6> &twist);
+		
+		/**
 		 * @brief Solve the joint velocities required to track a Cartesian trajectory.
 		 * @param desiredPose The desired position & orientation (pose) for the endpoint.
 		 * @param desiredVel The desired linear & angular velocity (twist) for the endpoint.
