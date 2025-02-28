@@ -15,19 +15,50 @@
  * @license GNU General Public License V3
  * 
  * @see https://github.com/Woolfrey/software_robot_library for more information.
+ * @see https://github.com/Woolfrey/software_simple_qp for the optimisation algorithm used in the control.
  */
 
-#ifndef SERIALLINKBASE_H_
-#define SERIALLINKBASE_H_
-
+#ifndef SERIAL_LINK_BASE_H_
+#define SERIAL_LINK_BASE_H_
 
 #include "RobotLibrary/Model/KinematicTree.h"                                                       // Computes the kinematics and dynamics
-#include "RobotLibrary/Math/MathFunctions.h"
-#include "RobotLibrary/Math/QPSolver.h"  
+#include "RobotLibrary/Math/MathFunctions.h"                                        
+#include "RobotLibrary/Math/QPSolver.h"                                                             // Convex optimisation methods
 
-#include <Eigen/Dense>                                                                              // Matrix decomposition                                                                       // Control optimisation
+#include <Eigen/Dense>                                                                              // Matrix decomposition
+#include <memory>                                                                                   // For std::shared_ptr
 
 namespace RobotLibrary { namespace Control {
+
+/**
+ * @brief A data structure for passing control parameters to the SerialLinkBase class in a single argument.
+ */
+struct Options
+{
+    // NOTE: These are for the control class itself:
+
+    double controlFrequency = 100.0;                                                                ///< Rate at which control loop operates.
+    double jointPositionGain = 10.0;                                                                ///< Scales the position error feedback  
+    double jointVelocityGain = 1.0;                                                                 ///< Scales the velocity error feedback
+    double minManipulability = 1e-04;                                                               ///< Threshold for singularity avoidance
+    double maxJointAcceleration = 10.0;                                                             ///< Limits joint acceleration
+    
+    Eigen::Matrix<double,6,6> cartesianStiffness = (Eigen::MatrixXd(6,6) << 10.0,  0.0,  0.0, 0.0, 0.0, 0.0,
+                                                                             0.0, 10.0,  0.0, 0.0, 0.0, 0.0,
+                                                                             0.0,  0.0, 10.0, 0.0, 0.0, 0.0, 
+                                                                             0.0,  0.0,  0.0, 2.0, 0.0, 0.0,
+                                                                             0.0,  0.0,  0.0, 0.0, 2.0, 0.0,
+                                                                             0.0,  0.0,  0.0, 0.0, 0.0, 2.0).finished(); ///< Scales pose error feedback
+                                                                             
+    Eigen::Matrix<double,6,6> cartesianDamping = (Eigen::MatrixXd(6,6) << 1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                                                                          0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
+                                                                          0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 
+                                                                          0.0, 0.0, 0.0, 0.2, 0.0, 0.0,
+                                                                          0.0, 0.0, 0.0, 0.0, 0.2, 0.0,
+                                                                          0.0, 0.0, 0.0, 0.0, 0.0, 0.2).finished(); ///< Scales twist error feedback                                                                                                                        
+                                                                          
+    SolverOptions<double> qpsolver = SolverOptions<double>();                                       ///< Parameters for the underlying QP solver
+};
 
 /**
  * @brief A class that provides a standard interface for all serial link robot arm controllers.
@@ -35,14 +66,15 @@ namespace RobotLibrary { namespace Control {
 class SerialLinkBase : public QPSolver<double>
 {
 	public:
+	
 		/**
 		 * @brief Constructor.
 		 * @param model A pointer to the KinematicTree object to be controlled.
 		 * @param endpointName The name of the endpoint on the KinematicTree to be controlled.
 		 */
-		SerialLinkBase(RobotLibrary::Model::KinematicTree *model,
+		SerialLinkBase(std::shared_ptr<RobotLibrary::Model::KinematicTree> model,
 		               const std::string &endpointName,
-		               const double &controlFrequency = 100.0);
+		               const Options &options = Options());
 		
 		/**
 		 * @brief Compute the required joint motion to achieve the specified endpoint motion.
@@ -207,7 +239,9 @@ class SerialLinkBase : public QPSolver<double>
 		double _minManipulability = 5e-03;                                                          ///< Used in singularity avoidance
 		
 		double _maxJointAcceleration = 0.5;                                                         ///< As it says.
-		
+
+		double _controlFrequency = 100.0;                                                           ///< Used in certain control calculations.
+				
 		Eigen::Matrix<double,6,6> _cartesianStiffness =
 		(Eigen::Matrix<double,6,6>(6,6) << 10.0,  0.0,  0.0, 0.0, 0.0, 0.0,
 		                                    0.0, 10.0,  0.0, 0.0, 0.0, 0.0,
@@ -228,13 +262,11 @@ class SerialLinkBase : public QPSolver<double>
 		
 		Eigen::VectorXd _redundantTask;                                                             ///< Used to control null space of redundant robots
 		
-		RobotLibrary::Model::KinematicTree* _model;                                                 ///< Pointer to the underlying robot model
+		std::shared_ptr<RobotLibrary::Model::KinematicTree> _model;                                 ///< Pointer to the underlying robot model
 		
 		RobotLibrary::Model::Pose _endpointPose;                                                    ///< Class denoting position and orientation of endpoint frame
 		
 		RobotLibrary::Model::ReferenceFrame *_endpointFrame;                                        ///< Pointer to frame controlled in underlying model
-		
-		double _controlFrequency = 100.0;                                                           ///< Used in certain control calculations.
 	
 		/**
 		 * @brief Computes the instantaneous limits on the joint control.

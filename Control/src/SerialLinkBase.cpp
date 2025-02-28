@@ -15,6 +15,7 @@
  * @license GNU General Public License V3
  * 
  * @see https://github.com/Woolfrey/software_robot_library for more information.
+ * @see https://github.com/Woolfrey/software_simple_qp for the optimisation algorithm used in the control.
  */
 
 #include "Control/SerialLinkBase.h"
@@ -24,22 +25,29 @@ namespace RobotLibrary { namespace Control {
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //                                           Constructor                                         //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-SerialLinkBase::SerialLinkBase(RobotLibrary::Model::KinematicTree *model,
+SerialLinkBase::SerialLinkBase(std::shared_ptr<RobotLibrary::Model::KinematicTree> model,
                                const std::string &endpointName,
-                               const double &controlFrequency)
-					           : _model(model),
-					             _controlFrequency(controlFrequency)
+                               const Options &options)
+					           : _model(model)
 {     
-     // Record pointer to the endpoint frame to be controlled so we don't need to search for it later.   
-     // NOTE: This will throw a runtime error if it doesn't exist.
+     // Transfer control options
+     _controlFrequency = options.controlFrequency;
+     _jointPositionGain = options.jointPositionGain;
+     _jointVelocityGain = options.jointVelocityGain;
+     _minManipulability = options.minManipulability;
+     _maxJointAcceleration = options.maxJointAcceleration;
      
-     _endpointFrame = _model->find_frame(endpointName);
+     _endpointFrame = _model->find_frame(endpointName);                                             // Record pointer to endpoint frame. Can throw an error!
      
      update();                                                                                      // Compute initial state
      
-     QPSolver::set_barrier_reduction_rate(0.9);
-     QPSolver::set_barrier_scalar(1000.0);
-
+     // Set up the QP solver
+     
+     QPSolver<double>::barrierReductionRate = options.qpsolver.barrierReductionRate;
+     QPSolver<double>::initialBarrierScalar = options.qpsolver.initialBarrierScalar;
+     QPSolver<double>::tol = options.qpsolver.tolerance;
+     QPSolver<double>::maxSteps = options.qpsolver.maxsteps;
+     
      // Resize dimensions of inequality constraints for the QP solver: B*qdot < z, where:
      //
      // B = [      I    ]   z = [    qdot_max  ]
@@ -51,12 +59,12 @@ SerialLinkBase::SerialLinkBase(RobotLibrary::Model::KinematicTree *model,
      _constraintMatrix.resize(2*n+1,n);
      _constraintMatrix.block(0,0,n,n).setIdentity();
      _constraintMatrix.block(n,0,n,n) = -_constraintMatrix.block(0,0,n,n);
-//   _constraintMatrix.row(2*n) = this->manipulability_gradient();                            <-- Needs to be set in the control loop
+//   _constraintMatrix.row(2*n) = this->manipulability_gradient();                                  <-- Needs to be set in the control loop
 
      _constraintVector.resize(2*n+1);
-//   _constraintVector.block(0,0,n,1) =  upperBound;                                          <-- Needs to be set in the control loop
-//   _constraintVector.block(n,0,n,1) = -lowerBound;                                          <-- Needs to be set in the control loop
-//   _constraintVector(2*n) = _manipulability - _minManipulability;               <-- Needs to be set in the control loop
+//   _constraintVector.block(0,0,n,1) =  upperBound;                                                <-- Needs to be set in the control loop
+//   _constraintVector.block(n,0,n,1) = -lowerBound;                                                <-- Needs to be set in the control loop
+//   _constraintVector(2*n) = _manipulability - _minManipulability;                                 <-- Needs to be set in the control loop
 
      std::cout << "[INFO] [SERIAL LINK CONTROL] Controlling the '" << endpointName << "' frame on the '" 
                << _model->name() << "' robot." << std::endl;

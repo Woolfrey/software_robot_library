@@ -15,10 +15,11 @@
  * @license GNU General Public License V3
  * 
  * @see https://github.com/Woolfrey/software_robot_library for more information.
+ * @see https://github.com/Woolfrey/software_simple_qp for the optimisation algorithm used in the control.
  */
 
-#ifndef SERIALKINEMATICCONTROL_H_
-#define SERIALKINEMATICCONTROL_H_
+#ifndef SERIAL_KINEMATIC_CONTROL_H_
+#define SERIAL_KINEMATIC_CONTROL_H_
 
 #include "RobotLibrary/Control/SerialLinkBase.h"
 
@@ -35,9 +36,9 @@ class SerialKinematicControl : public SerialLinkBase
 		 * @param model A pointer to a KinematicTree object.
 		 * @param endpointName The name of the reference frame in the KinematicTree to be controlled.
 		 */
-		SerialKinematicControl(RobotLibrary::Model::KinematicTree *model,
+		SerialKinematicControl(std::shared_ptr<RobotLibrary::Model::KinematicTree> model,
 		                       const std::string &endpointName,
-		                       const double &controlFrequency = 100.0)
+		                       const Options &options = Options())
 		                       : SerialLinkBase(model, endpointName, controlFrequency){}
 		
 		/**

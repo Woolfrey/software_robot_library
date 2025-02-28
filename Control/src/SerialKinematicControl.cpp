@@ -15,6 +15,7 @@
  * @license GNU General Public License V3
  * 
  * @see https://github.com/Woolfrey/software_robot_library for more information.
+ * @see https://github.com/Woolfrey/software_simple_qp for the optimisation algorithm used in the control.
  */
  
 #include "Control/SerialKinematicControl.h"
