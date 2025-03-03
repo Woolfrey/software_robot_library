@@ -21,9 +21,9 @@
 #ifndef SERIAL_LINK_BASE_H_
 #define SERIAL_LINK_BASE_H_
 
-#include "RobotLibrary/Model/KinematicTree.h"                                                       // Computes the kinematics and dynamics
-#include "RobotLibrary/Math/MathFunctions.h"                                        
-#include "RobotLibrary/Math/QPSolver.h"                                                             // Convex optimisation methods
+#include <Model/KinematicTree.h>                                                                    // Computes the kinematics and dynamics
+#include <Math/MathFunctions.h>                                       
+#include <Math/QPSolver.h>                                                                          // Convex optimisation methods
 
 #include <Eigen/Dense>                                                                              // Matrix decomposition
 #include <memory>                                                                                   // For std::shared_ptr
@@ -36,11 +36,11 @@ namespace RobotLibrary { namespace Control {
 struct Options
 {
     // NOTE: These are for the control class itself:
-
-    double controlFrequency = 100.0;                                                                ///< Rate at which control loop operates.
-    double jointPositionGain = 10.0;                                                                ///< Scales the position error feedback  
-    double jointVelocityGain = 1.0;                                                                 ///< Scales the velocity error feedback
-    double minManipulability = 1e-04;                                                               ///< Threshold for singularity avoidance
+    Options() = default;
+    double controlFrequency     = 100.0;                                                            ///< Rate at which control loop operates.
+    double jointPositionGain    = 10.0;                                                             ///< Scales the position error feedback  
+    double jointVelocityGain    = 1.0;                                                              ///< Scales the velocity error feedback
+    double minManipulability    = 1e-04;                                                            ///< Threshold for singularity avoidance
     double maxJointAcceleration = 10.0;                                                             ///< Limits joint acceleration
     
     Eigen::Matrix<double,6,6> cartesianStiffness = (Eigen::MatrixXd(6,6) << 10.0,  0.0,  0.0, 0.0, 0.0, 0.0,
@@ -217,7 +217,7 @@ class SerialLinkBase : public QPSolver<double>
 		/**
 		 * @brief Get a pointer to the model this controller uses.
 		 */
-		RobotLibrary::Model::KinematicTree*
+		std::shared_ptr<RobotLibrary::Model::KinematicTree>
 		model() const { return _model; }
 		
 	    /**
