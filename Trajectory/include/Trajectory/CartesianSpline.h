@@ -19,8 +19,8 @@
 #ifndef CARTESIANSPLINE_H_
 #define CARTESIANSPLINE_H_
 
-#include "RobotLibrary/Model/Pose.h"
-#include "RobotLibrary/Trajectory/SplineTrajectory.h"
+#include "Model/Pose.h"
+#include "Trajectory/SplineTrajectory.h"
 
 namespace RobotLibrary { namespace Trajectory {
 

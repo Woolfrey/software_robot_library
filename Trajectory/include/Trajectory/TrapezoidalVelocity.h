@@ -19,7 +19,7 @@
 #ifndef TRAPEZOIDAL_VELOCITY_H_
 #define TRAPEZOIDAL_VELOCITY_H_
 
-#include "RobotLibrary/Trajectory/TrajectoryBase.h"
+#include <Trajectory/TrajectoryBase.h>
 
 #include <Eigen/Geometry> 
 #include <vector>                                                                                   // Eigen::Vector, Eigen::Matrix, Eigen::Quaternion

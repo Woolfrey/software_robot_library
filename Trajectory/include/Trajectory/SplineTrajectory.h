@@ -19,9 +19,9 @@
 #ifndef SPLINETRAJECTORY_H_
 #define SPLINETRAJECTORY_H_
 
-#include "RobotLibrary/Math/MathFunctions.h"
-#include "RobotLibrary/Math/Spline.h"
-#include "RobotLibrary/Trajectory/TrajectoryBase.h"
+#include <Math/MathFunctions.h>
+#include <Math/Spline.h>
+#include <Trajectory/TrajectoryBase.h>
 
 namespace RobotLibrary { namespace Trajectory {
 /**
