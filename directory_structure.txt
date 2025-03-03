@@ -1,0 +1,60 @@
+software_robot_library/
+├── Control/
+|   ├── include/
+|   |   └── Control/
+|   |       ├── SerialKinematicControl.h
+|   |       └── SerialLinkBase.h
+|   ├── src/
+|   |   ├── SerialKinematicControl.cpp
+|   |   └── SerialLinkBase.cpp
+|   ├── CMakeLists.txt
+|   └── README.md
+├── Math/
+|   ├── include/
+|   |   └── Math/
+|   |       ├── MathFunctions.h
+|   |       ├── Polynomial.h
+|   |       ├── QPSolver.h
+|   |       ├── SkewSymmetric.h
+|   |       └── Spline.h
+|   ├── src/
+|   |   ├── MathFunctions.cpp
+|   |   ├── Polynomial.cpp
+|   |   ├── SkewSymmetric.cpp
+|   |   └── Spline.cpp
+|   ├── CMakeLists.txt
+|   └── README.md
+|   Model/
+|   ├── include/
+|   |   └── Model/
+|   |       ├── Joint.h
+|   |       ├── Link.h
+|   |       ├── KinematicTree.h
+|   |       ├── Pose.h
+|   |       ├── RigidBody.h
+|   ├── src/
+|   |   ├── Joint.cpp
+|   |   ├── Link.cpp
+|   |   ├── KinematicTree.cpp
+|   |   ├── Pose.cpp
+|   |   └── RigidBody.cpp
+|   ├── CMakeLists.txt
+|   └── README.md
+├── Trajectory/
+|   ├── include/
+|   |   └── Trajectory/
+|   |       ├── CartesianSpline.h
+|   |       ├── SplineTrajectory.h
+|   |       ├── TrajectoryBase.h
+|   |       └── TrapezoidalVelocity.h
+|   ├── src/
+|   |   ├── CartesianSpline.cpp
+|   |   ├── SplineTrajectory.cpp
+|   |   ├── TrajectoryBase.cpp
+|   |   └── TrapezoidalVelocity.cpp
+|   ├── CMakeLists.txt
+|   └── README.md
+├── CMakeLists.txt
+├── Config.cmake.in
+├── LICENSE
+└── README.md
