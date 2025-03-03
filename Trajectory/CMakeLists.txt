@@ -7,10 +7,10 @@ add_library(Trajectory src/CartesianSpline.cpp
 
 target_include_directories(Trajectory PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<INSTALL_INTERFACE:include>
+    $<INSTALL_INTERFACE:include/RobotLibrary>
 )
 
-target_link_libraries(Trajectory PRIVATE Math Model Eigen3::Eigen)
+target_link_libraries(Trajectory PUBLIC Math Model Eigen3::Eigen)
 
 install(TARGETS  Trajectory
         EXPORT   TrajectoryTargets

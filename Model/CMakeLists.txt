@@ -1,20 +1,21 @@
 
 # List the source files for this library
-add_library(Model src/Joint.cpp
-                  src/KinematicTree.cpp
-                  src/Link.cpp
-                  src/Pose.cpp
-                  src/RigidBody.cpp
-                  src/tinyxml2.cpp
+add_library(Model STATIC
+    src/Joint.cpp
+    src/KinematicTree.cpp
+    src/Link.cpp
+    src/Pose.cpp
+    src/RigidBody.cpp
+    src/tinyxml2.cpp
 )
 
 # Specify targets to be built
 target_include_directories(Model PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<INSTALL_INTERFACE:include>
+    $<INSTALL_INTERFACE:include/RobotLibrary>
 )
 
-target_link_libraries(Model PRIVATE Math Eigen3::Eigen)                                             # Other libraries needed to compile this one
+target_link_libraries(Model PUBLIC Math Eigen3::Eigen)                                             # Other libraries needed to compile this one
 
 # Installation instructions
 install(TARGETS  Model

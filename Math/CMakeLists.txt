@@ -7,10 +7,10 @@ add_library(Math src/MathFunctions.cpp
 
 target_include_directories(Math PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<INSTALL_INTERFACE:include>
+    $<INSTALL_INTERFACE:include/RobotLibrary>
 )
 
-target_link_libraries(Math PRIVATE Eigen3::Eigen)
+target_link_libraries(Math PUBLIC Eigen3::Eigen)
 
 install(TARGETS  Math
         EXPORT   MathTargets

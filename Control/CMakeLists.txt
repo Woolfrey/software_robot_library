@@ -7,10 +7,10 @@ add_library(Control src/SerialKinematicControl.cpp
 # Specify targets to be built
 target_include_directories(Control PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<INSTALL_INTERFACE:include>
+    $<INSTALL_INTERFACE:include/RobotLibrary>
 )
 
-target_link_libraries(Control PRIVATE Math Model Eigen3::Eigen)                                     # Other libraries needed to compile this one
+target_link_libraries(Control PUBLIC Math Model Eigen3::Eigen)                                      # Other libraries needed to compile this one
 
 # Installation instructions
 install(TARGETS  Control
