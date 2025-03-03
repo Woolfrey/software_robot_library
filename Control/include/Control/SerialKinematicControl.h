@@ -21,7 +21,9 @@
 #ifndef SERIAL_KINEMATIC_CONTROL_H_
 #define SERIAL_KINEMATIC_CONTROL_H_
 
-#include "RobotLibrary/Control/SerialLinkBase.h"
+#include <Control/SerialLinkBase.h>
+
+#include <memory>
 
 namespace RobotLibrary { namespace Control {
 
@@ -39,7 +41,7 @@ class SerialKinematicControl : public SerialLinkBase
 		SerialKinematicControl(std::shared_ptr<RobotLibrary::Model::KinematicTree> model,
 		                       const std::string &endpointName,
 		                       const Options &options = Options())
-		                       : SerialLinkBase(model, endpointName, controlFrequency){}
+		                       : SerialLinkBase(model, endpointName, options){}
 		
 		/**
 		 * @brief Solve the joint velocities required to move the endpoint at a given speed.
