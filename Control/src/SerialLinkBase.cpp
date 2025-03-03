@@ -28,8 +28,10 @@ namespace RobotLibrary { namespace Control {
 SerialLinkBase::SerialLinkBase(std::shared_ptr<RobotLibrary::Model::KinematicTree> model,
                                const std::string &endpointName,
                                const Options &options)
-					           : _model(model)
-{     
+                              : QPSolver<double>(options.qpsolver)
+{
+     _model = model;
+          
      // Transfer control options
      _controlFrequency = options.controlFrequency;
      _jointPositionGain = options.jointPositionGain;
@@ -42,11 +44,6 @@ SerialLinkBase::SerialLinkBase(std::shared_ptr<RobotLibrary::Model::KinematicTre
      update();                                                                                      // Compute initial state
      
      // Set up the QP solver
-     
-     QPSolver<double>::barrierReductionRate = options.qpsolver.barrierReductionRate;
-     QPSolver<double>::initialBarrierScalar = options.qpsolver.initialBarrierScalar;
-     QPSolver<double>::tol = options.qpsolver.tolerance;
-     QPSolver<double>::maxSteps = options.qpsolver.maxsteps;
      
      // Resize dimensions of inequality constraints for the QP solver: B*qdot < z, where:
      //
