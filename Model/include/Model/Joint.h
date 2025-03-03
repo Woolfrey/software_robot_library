@@ -19,7 +19,7 @@
 #ifndef JOINT_H_
 #define JOINT_H_
 
-#include "RobotLibrary/Model/Pose.h"
+#include <Model/Pose.h>
 
 #include <Eigen/Core>
 #include <string>

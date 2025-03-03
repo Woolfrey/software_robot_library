@@ -16,10 +16,10 @@
  * @see https://github.com/Woolfrey/software_robot_library for more information.
  */
 
-#ifndef RIGIDBODY_H_
-#define RIGIDBODY_H_
+#ifndef RIGID_BODY_H_
+#define RIGID_BODY_H_
 
-#include "RobotLibrary/Model/Pose.h"
+#include <Model/Pose.h>
 
 #include <Eigen/Core>
 #include <string>

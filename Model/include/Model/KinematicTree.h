@@ -21,9 +21,9 @@
 #ifndef KINEMATICTREE_H_
 #define KINEMATICTREE_H_
 
-#include "RobotLibrary/Model/Joint.h"                                                               // Custom class for describing a moveable connection between links
-#include "RobotLibrary/Model/Link.h"                                                                // Custom class combining a rigid body and joint
-#include "RobotLibrary/Math/SkewSymmetric.h"                                                        // Custom class
+#include <Model/Joint.h>                                                                            // Custom class for describing a moveable connection between links
+#include <Model/Link.h>                                                                             // Custom class combining a rigid body and joint
+#include <Math/SkewSymmetric.h>                                                                     // Custom class
 
 #include <fstream>                                                                                  // For loading files
 #include <map>                                                                                      // std::map

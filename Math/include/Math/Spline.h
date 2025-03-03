@@ -20,7 +20,7 @@
 #ifndef SPLINE_H_
 #define SPLINE_H_
 
-#include "RobotLibrary/Math/Polynomial.h" 
+#include <Math/Polynomial.h>
 
 #include <vector>                                                                                   // Using "" tells the compiler to look locally
 
