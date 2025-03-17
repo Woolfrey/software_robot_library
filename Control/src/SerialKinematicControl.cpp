@@ -101,7 +101,7 @@ SerialKinematicControl::resolve_endpoint_motion(const Eigen::Vector<double,6> &e
         {
             if (not _redundantTaskSet)
             {
-                _redundantTask = manipulabilityGradient * sqrt(_controlFrequency) / 5.0;   
+                _redundantTask = manipulabilityGradient * sqrt(_controlFrequency) / 10.0;   
                 _redundantTaskSet = false;                                                          // Set false for next control loop
             }
 
