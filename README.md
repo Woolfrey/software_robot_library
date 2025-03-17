@@ -19,11 +19,42 @@ It is an ongoing project and we hope to add more features as time goes on.
 
 ### Installing Eigen:
 
-RobotLibrary requires the Eigen libraries for linear algebra. If you're using Linux you can install it from the command line:
+RobotLibrary uses Eigen 3.4. Installation procedure depends on the version of Ubuntu. For detailed information on installation instructions you can visit Otherwise you can go to the [Eigen main page](https://eigen.tuxfamily.org/index.php?title=Main_Page).
+
+#### Ubuntu 20.04
+
+If you're still using Ubuntu 20.04, you need to manually install Eigen 3.4.
+
+First ensure prerequisites are installed:
+```
+sudo apt update
+sudo apt install -y build-essential cmake git
+```
+
+Download version 3.4 directly (or from the webpage):
+```
+wget https://gitlab.com/libeigen/eigen/-/archive/3.4.0/eigen-3.4.0.tar.gz
+```
+
+Extract the downloaded file:
+```
+tar -xvf eigen-3.4.0.tar.gz
+cd eigen-3.4.0
+```
+
+Now build and install:
+```
+mkdir build
+cd build
+cmake ..
+sudo make install
+```
+
+#### Ubuntu 22.04 and later
+
+Eigen 3.4 is automatically installed on later versions of Ubuntu. In the command line you can run:
 
   `sudo apt install libeigen3-dev`
-
-Otherwise you can go to the [Eigen main page](https://eigen.tuxfamily.org/index.php?title=Main_Page) to see how you can install it.
 
 [:arrow_backward: Go Back.](#contents)
 
@@ -66,7 +97,7 @@ In the `example.cpp` file we can include the `KinematicTree` header file under `
 ...
 int main(int argc, char **argv)
 {
-     KinematicTree model("path/to/robot.urdf");
+     RobotLibrary::KinematicTree model("path/to/robot.urdf");
 }
 ```
 Then, in the `CMakeLists.txt` file, we must:
