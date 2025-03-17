@@ -717,7 +717,7 @@ KinematicTree::char_to_vector(const char* character)
 
     numberAsVector.push_back(std::stof(numberAsString));
 
-    return Eigen::Vector3d(numberAsVector.data());                                                 // Return the extracted data
+    return Eigen::Vector3d(numberAsVector.data());                                                  // Return the extracted data
 }
 
 } }
