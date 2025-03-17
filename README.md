@@ -93,11 +93,11 @@ example_project/
 ```
 In the `example.cpp` file we can include the `KinematicTree` header file under `RobotLibrary`:
 ```
-#include <RobotLibrary/KinematicTree.h>
+#include <RobotLibrary/Model/KinematicTree.h>
 ...
 int main(int argc, char **argv)
 {
-     RobotLibrary::KinematicTree model("path/to/robot.urdf");
+     RobotLibrary::Model::KinematicTree model("path/to/robot.urdf");
 }
 ```
 Then, in the `CMakeLists.txt` file, we must:
