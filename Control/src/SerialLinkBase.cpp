@@ -27,21 +27,23 @@ namespace RobotLibrary { namespace Control {
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 SerialLinkBase::SerialLinkBase(std::shared_ptr<RobotLibrary::Model::KinematicTree> model,
                                const std::string &endpointName,
-                               const Options &options)
-                              : QPSolver<double>(options.qpsolver)
+                               const Parameters &parameters)
+                              : QPSolver<double>(parameters.qpsolver)
 {
-     _model = model;
-          
-     // Transfer control options
-     _controlFrequency = options.controlFrequency;
-     _jointPositionGain = options.jointPositionGain;
-     _jointVelocityGain = options.jointVelocityGain;
-     _minManipulability = options.minManipulability;
-     _maxJointAcceleration = options.maxJointAcceleration;
-     
+     _model = model;                                                                                // Save model internally so we can access it later
+
      _endpointFrame = _model->find_frame(endpointName);                                             // Record pointer to endpoint frame. Can throw an error!
-     
+
      update();                                                                                      // Compute initial state
+
+     unsigned int n = _model->number_of_joints();
+                         
+     // Transfer control options
+     _controlFrequency     = parameters.controlFrequency;
+     _jointPositionGain    = parameters.jointPositionGain;
+     _jointVelocityGain    = parameters.jointVelocityGain;
+     _minManipulability    = parameters.minManipulability;
+     _maxJointAcceleration = parameters.maxJointAcceleration;  
      
      // Set up the QP solver
      
@@ -51,7 +53,6 @@ SerialLinkBase::SerialLinkBase(std::shared_ptr<RobotLibrary::Model::KinematicTre
      //     [     -I    ]       [   -qdot_min  ]
      //     [  (dm/dq)' ]       [  (m - m_min) ]
      
-     unsigned int n = _model->number_of_joints();
      
      _constraintMatrix.resize(2*n+1,n);
      _constraintMatrix.block(0,0,n,n).setIdentity();
@@ -82,102 +83,7 @@ SerialLinkBase::update()
 	double temp = sqrt(_forceEllipsoid.determinant());                                              // Proximity to a singularity
 	
 	_manipulability = ( temp < 0 or std::isnan(temp)) ? 0.0 : temp;                                 // Rounding error can mean manipulability is negative or nan
-}
-
-  ///////////////////////////////////////////////////////////////////////////////////////////////////
- //                        Set the gains for Cartesian feedback control                           //
-///////////////////////////////////////////////////////////////////////////////////////////////////
-bool
-SerialLinkBase::set_cartesian_gains(Eigen::Matrix<double,6,6> &stiffness,
-                                    Eigen::Matrix<double,6,6> &damping)
-{
-     if(not RobotLibrary::Math::is_positive_definite(stiffness))
-     {
-          std::cerr << "[ERROR] [SERIAL LINK CONTROL] set_cartesian_gains(): "
-                    << "The stiffness matrix was not positive definite.\n";
-          
-          return false;
-     }
-     else if(not RobotLibrary::Math::is_positive_definite(damping))
-     {
-          std::cerr << "[ERROR] [SERIAL LINK CONTROL] set_cartesian_gains(): "
-                    << "The damping matrix was not positive definite.\n";
-          
-          return false;
-     }
-     else
-     {
-          _cartesianStiffness = stiffness;
-          _cartesianDamping   = damping;
-     
-          return true;
-     }
-}
-
-  ///////////////////////////////////////////////////////////////////////////////////////////////////
- //                       Set the gains for the joint feedback control                            //
-///////////////////////////////////////////////////////////////////////////////////////////////////      
-bool
-SerialLinkBase::set_joint_gains(const double &proportional,
-                                const double &derivative)
-{
-	if(proportional < 0 or derivative < 0)
-	{
-		std::cerr << "[ERROR] [SERIAL LINK CONTROL] set_cartesian_gain_format(): "
-		          << "Gains cannot be negative. Proportional gain was "
-		          << proportional << " and derivative was " << derivative << ".\n";
-		
-		return false;
-	}
-	else
-	{
-		_jointPositionGain = proportional;
-		_jointVelocityGain = derivative;
-		return true;
-	}
-}
-                    
-  ///////////////////////////////////////////////////////////////////////////////////////////////////
- //                     Set the maximum permissable joint acceleration                            //     
-///////////////////////////////////////////////////////////////////////////////////////////////////
-bool
-SerialLinkBase::set_max_joint_acceleration(const double &acceleration)
-{
-	if(acceleration <= 0)
-	{
-		std::cerr << "[ERROR] [SERIAL LINK CONTROL] set_max_joint_acceleration(): "
-		          << "Input was " << acceleration << " but it must be positive.\n";
-		
-		return false;
-	}
-	else
-	{
-		_maxJointAcceleration = acceleration;
-		
-		return true;
-	}
-}
-
-  ////////////////////////////////////////////////////////////////////////////////////////////////////
- //                         Set the threshold for singularity avoidance                            //
-////////////////////////////////////////////////////////////////////////////////////////////////////
-bool
-SerialLinkBase::set_manipulability_threshold(const double &threshold)
-{
-    if(threshold <= 0)
-    {
-        std::cerr << "[ERROR] [SERIAL LINK CONTROL] set_manipulability_threshold(): "
-                  << "Input was " << threshold << " but it must be positive.\n";
-        
-        return false;
-    }
-    else
-    {
-        _minManipulability = threshold;
-        
-        return true;
-    }
-}
+}     
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                  Set a secondary task to be executed by a redundant robot arm                  //
@@ -233,6 +139,27 @@ SerialLinkBase::manipulability_gradient()
     }
 
     return gradient;
+}
+
+  ////////////////////////////////////////////////////////////////////////////////////////////////////
+ //                        Set the control gains, frequency, QP solver params, etc.                //
+////////////////////////////////////////////////////////////////////////////////////////////////////
+void
+SerialLinkBase::set_control_parameters(const Parameters &parameters)
+{
+    // TO DO: Check parameters, throw error if invalid
+    
+    // Set properties specific to this class
+    _controlFrequency     = parameters.controlFrequency;
+    _jointPositionGain    = parameters.jointPositionGain;
+    _jointVelocityGain    = parameters.jointVelocityGain;
+    _minManipulability    = parameters.minManipulability;
+    _maxJointAcceleration = parameters.maxJointAcceleration;
+    _cartesianStiffness   = parameters.cartesianStiffness;
+    _cartesianDamping     = parameters.cartesianDamping;
+
+    // Set properties specific to the QPSolver class
+    QPSolver<double>set_solver_options(parameters.qpsolver);
 }
 
 } }
