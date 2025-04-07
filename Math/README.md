@@ -58,7 +58,7 @@ The method `evaluate_point` will return the value $y(x)$ for the given $x$.
 
 ## Spline
 
-This class interpolates a series of points with piece-wise `Polynomial`s connecting them. For any two points $(x_i, y_i)$ and $(x_{i+1}, y_{i+1}$, we can fit a polynomial between them:
+This class interpolates a series of points with piece-wise `Polynomial`s connecting them. For any two points $(x_i, y_i)$ and $(x_{i+1}, y_{i+1})$, we can fit a polynomial between them:
 
 ```math
 p_i(x) = c_0 \cdot x^0 + c_1 \cdot x_1^2 + c_2 \cdot x^2 + \dots + c_n \cdot x^n
@@ -80,7 +80,7 @@ p_i (x_i) = y_i, \text{ and } p_i(x_{i+1}) = y_{i+1}
 3. The polynomial order.
 
 > [!NOTE]
-> The polynomial order must be an _odd_ number, since $m$ points requires an $m-1$ polynomial to connect them.
+> The polynomial order must be an _odd_ number, since 2 points requires a _minimum_ $p = c_0\cdot x^0 + c_1\cdot x^1$, and to fit the 2 first derivatives requires $p = c_0\cdot x^0 + c_1\cdot x^1 + c_2\cdot x^2 + c_3\cdot x^3$, etc.
 
 ### Key Methods:
 
