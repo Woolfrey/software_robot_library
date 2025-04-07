@@ -140,7 +140,6 @@ where:
 > [!NOTE]
 > If the singularity avoidance fails and the manipulability $\mu$ is below $\mu_{min}$, then the algorithm automatically reverts to a damped-least-squares method to avoid numerical instability.
 
-[:top: Back to Top](#control_knobs-control)
 
 ### Class Diagram:
 
