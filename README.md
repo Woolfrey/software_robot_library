@@ -18,10 +18,10 @@ The modular design means you can utilize different components to develop your ow
 
 ## :classical_building: Sections of the Library
 
-- [Control](https://github.com/Woolfrey/software_robot_library/tree/master/Control): Classes for real-time, feedback control.
-- [Math](https://github.com/Woolfrey/software_robot_library/tree/master/Math): Supporting functions & classes for other parts of the library.
-- [Model](https://github.com/Woolfrey/software_robot_library/tree/master/Model): Classes for computing the kinematics & dynamics of rigid-body structures.
-- [Trajectory](https://github.com/Woolfrey/software_robot_library/tree/master/Trajectory): Classes for generating paths through space & time.
+- [Control](Control/README.md): Classes for real-time, feedback control.
+- [Math](Math/README.md): Supporting functions & classes for other parts of the library.
+- [Model](Model/README.md): Classes for computing the kinematics & dynamics of rigid-body structures.
+- [Trajectory](Trajectory/README.md): Classes for generating paths through space & time.
 
 [:top: Back to Top.](#robot-robotlibrary)
 
