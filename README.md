@@ -2,7 +2,7 @@
 
 RobotLibrary is a C++ package for modeling, trajectory generation, and control of robots. The [initial release](#package-release-notes---v100-april-2025) supports real-time velocity control of serial link robot arms (work on torque control is underway). The interfaces are designed to provide simple inputs and outputs, without needing to know anything about the algorithms underneath.
 
-The modular design means you can utilize different components to develop your own controllers. For example, you can inherit the `SerialLinkBase` class in the [Control sublibrary](Control/README.md) and implement your own algorithms for the joint and Cartesian control methods. Or, you can use the `KinematicTree` in the [Model sublibrary](Model/README.md) for the inverse dynamics and write your own controller from scratch.
+The modular design means you can utilize different components to develop your own controllers. For example, you can inherit the `SerialLinkBase` class in the [Control sub-library](Control/README.md) and implement your own algorithms for the joint and Cartesian control methods. Or, you can use the `KinematicTree` in the [Model sub-library](Model/README.md) for the inverse dynamics and write your own controller from scratch.
 
 - [Sections of the Library](#classical_building-sections-of-the-library)
 - [Installation](#clipboard-installation)
