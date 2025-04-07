@@ -179,7 +179,7 @@ A [URDF file](https://docs.ros.org/en/jazzy/Tutorials/Intermediate/URDF/Building
 - `time_derivative` gives $d\mathbf{J}/dt$.
 
 > [!NOTE]
-> There are also method for computing the dynamic coupling with the _base_ of the robot as well (useful for floating base systems).
+> There are also methods for computing the dynamic coupling with the _base_ of the robot as well (useful for floating base systems).
 
 ### Class Diagram:
 
