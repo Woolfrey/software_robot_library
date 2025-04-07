@@ -2,55 +2,84 @@
 
 [:back: Back to the Foyer](../README.md)
 
-This sublibrary contains control classes for robots.
+This sublibrary contains control classes for robots. At present, it contains the `SerialLinkBase` class, and the `SerialKinematicControl` class for real-time velocity control. A `SerialDynamicControl` class is in development.
 
+:sparkles: Key Features:
+- Joint feedback, and Cartesian feedback control.
+- Seemeless integration with the [Trajectory](https://github.com/Woolfrey/software_robot_library/tree/master/Trajectory) sub-library.
+- Optimisation using [Quadratic Programming (QP)](https://github.com/Woolfrey/software_simple_qp) to satisfy joint limits.
+- Automatic redundancy resolution for singularity avoidance.
+
+### :compass: Navigation:
+
+- [Data Structures](#data-structures)
 - [Serial Link Base](#serial-link-base)
 - [Serial Kinematic Control](#serial-kinematic-control)
 - [Release Notes](#package-release-notes---v100-april-2025)
 
-> [!NOTE]
-> The first release has velocity control for serial link robot arms. Torque control is coming soon.
+## Data Structures
+
+[:top: Back to Top](#control_knobs-control)
 
 ## Serial Link Base
 
-The purpose of this class is to provide a common structure to all serial link control classes, and polymorphism to implement different controllers for the same task.
+This class provides a standardised structure to all serial link control classes, and polymorphism to implement different controllers for the same task.
 
-The class requires a _pointer_ to a [Kinematic Tree](../Model/README.md) object, and the name of a valid reference frame (i.e. the endpoint of the robot) in said model:
-```
-SerialLinkBase(std::shared_ptr<RobotLibrary::Model::KinematicTree> model,
-               const std::string &endpointName,
-               const RobotLibrary::Control::Parameters &parameters = Parameters());
-```
+> [!NOTE]
+> `SerialLinkBase` inherits the `QPSolver` which can be used to optimise the Cartesian control. It is automatically downloaded by `RobotLibrary` from this [repository](https://github.com/Woolfrey/software_simple_qp).
+
+### Construction:
+
+1. A _pointer_ to a `KinematicTree` object,
+2. The name of a valid reference frame (i.e. the endpoint of the robot) in said model for Carteisan control purposes, and
+3. Optional control parameters (feedback gains, etc.).
+
 This is done deliberately so that:
 1. Two serial link controllers can control different endpoints on the same robot (e.g. a controller for each arm on a humanoid robot), and
 2. The model can update the kinematics & dynamics independently in a separate thread.
 
+### Key Methods:
 
-## Serial Kinematic Control
+> [!NOTE]
+> These are virtual methods and must be defined in any derived class.
 
-This class inherits the `SerialLinkBase` class. It provides methods for velocity-level feedback control on joint trajectories, real-time Cartesian control, and feedback control on Cartesian trajectories.
+- `resolve_endpoint_motion` : Computes the joint control required to achieve a given motion (velocity or acceleration) of the endpoint.
+- `resolve_endpoint_twist` : The same as above, but assumes the input is a twist (linear & angular velocity),
+- `track_endpoint_trajectory` : Computes the joint control needed to follow a Cartesian trajectory.
+- `track_joint_trajectory` : Computes the joint control needed to follow a joint trajectory.
+
+### Class Diagram:
+
+<p align="center">
+  <img src="doc/SerialLinkBase.png" width="600" height="auto"/>
+</p>
+
+[:top: Back to Top](#control_knobs-control)
+
+### Serial Kinematic Control
+
+This builds upon the `SerialLinkBase` class to implement algorithms for real-time velocity control.
 
 > [!TIP]
 > You can check out [my ROS2 action server](https:://github.com/Woolfrey/server_serial_link) to see this class in action.
 
-### Joint Velocity Control
+### Construction:
 
-The method:
-```
-Eigen::VectorXd
-track_joint_trajectory(const Eigen::VectorXd &desiredPosition,
-                       const Eigen::VectorXd &desiredVelocity,
-                       const Eigen::VectorXd desiredAcceleration);
-```
-computes the control equation:
-```math
-\dot{\mathbf{q}} = \dot{\mathbf{q}}_d + k_p\left(\mathbf{q}_d - \mathbf{q} \right)
-```
-where:
-- $\dot{\mathbf{q}}\in\mathbb{R}^n$ are the joint velocities to command the robot,
-- $\mathbf{q}_d,\dot{\mathbf{q}}_d\in\mathbb{R}^n$ is the desired joint position and joint velocity,
-- $\mathbf{q}\in\mathbb{R}^n$ is the current joint position, and
-- $k_p\in\mathbb{R}^+$ is the joint position gain.
+The same as [`SerialLinkBase`](#construction).
+
+### Key Methods:
+
+The same as [`SerialLinkBase`](#key-methods).
+
+- `track_joint_trajectory` computes:
+
+  $\dot{\mathbf{q}} = \dot{\mathbf{q}}_d + k_p\left(\mathbf{q}_d - \mathbf{q} \right)$
+  where:
+  - $\dot{\mathbf{q}}\in\mathbb{R}^n$ are the joint velocities to command the robot,
+  - $\mathbf{q}_d,\dot{\mathbf{q}}_d\in\mathbb{R}^n$ is the desired joint position and joint velocity,
+  - $\mathbf{q}\in\mathbb{R}^n$ is the current joint position, and
+  - $k_p\in\mathbb{R}^+$ is the joint position gain.
+
 
 ### Cartesian Velocity Control
 
