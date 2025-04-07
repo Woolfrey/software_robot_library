@@ -8,7 +8,7 @@ This sub-library contains control classes for robots. At present, it contains th
 - Joint feedback, and Cartesian feedback control.
 - Seemless integration with the [Trajectory](https://github.com/Woolfrey/software_robot_library/tree/master/Trajectory) sub-library.
 - Optimisation using [Quadratic Programming (QP)](https://github.com/Woolfrey/software_simple_qp) to satisfy joint limits.
-- Automatic redundancy resolution for singularity avoidance.
+- Automatic redundancy resolution for singularity avoidance, and energy minimisation.
 
 ### :compass: Navigation:
 
