@@ -174,7 +174,7 @@ A [URDF file](https://docs.ros.org/en/jazzy/Tutorials/Intermediate/URDF/Building
 - `joint_coriolis_matrix` gives $\mathbf{C}$,
 - `joint_gravity_vector` gives $\mathbf{g}$,
 - `joint_damping_vector` gives $\mathbf{d}$,
-- `jacobian` gives $\mathbf{J} = \partial\mathbf{f}/\partial\mathbf{q}$,
+- `jacobian` gives $\mathbf{J} = \partial\mathbf{k}/\partial\mathbf{q}$,
 - `partial_derivative` gives $\partial\mathbf{J}/\partial q_i$ for a given joint number $i$, and
 - `time_derivative` gives $d\mathbf{J}/dt$.
 
