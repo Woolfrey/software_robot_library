@@ -44,8 +44,9 @@ This is done deliberately so that:
 ### Key Methods:
 
 > [!NOTE]
-> These are virtual methods and must be defined in any derived class.
+> Many of these are virtual methods and must be defined in any derived class.
 
+- `update` : Computes a new Jacobian matrix to the specified endpoint.
 - `resolve_endpoint_motion` : Computes the joint control required to achieve a given motion (velocity or acceleration) of the endpoint.
 - `resolve_endpoint_twist` : The same as above, but assumes the input is a twist (linear & angular velocity),
 - `track_endpoint_trajectory` : Computes the joint control needed to follow a Cartesian trajectory.
