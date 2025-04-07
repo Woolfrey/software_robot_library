@@ -33,9 +33,9 @@ This class provides a standardised structure to all serial link control classes,
 
 ### Construction:
 
-1. A _pointer_ to a `KinematicTree` object,
-2. The name of a valid reference frame (i.e. the endpoint of the robot) in said model for Carteisan control purposes, and
-3. Optional control parameters (feedback gains, etc.).
+1. A _pointer_ to a `RobotLibrary::Model::KinematicTree` object,
+2. The name of a valid reference frame (i.e. the endpoint of the robot) in said model for Cartesian control purposes, and
+3. Optional `RobotLibrary::Control::Parameters` (feedback gains, etc.).
 
 This is done deliberately so that:
 1. Two serial link controllers can control different endpoints on the same robot (e.g. a controller for each arm on a humanoid robot), and
@@ -51,6 +51,9 @@ This is done deliberately so that:
 - `resolve_endpoint_twist` : The same as above, but assumes the input is a twist (linear & angular velocity),
 - `track_endpoint_trajectory` : Computes the joint control needed to follow a Cartesian trajectory.
 - `track_joint_trajectory` : Computes the joint control needed to follow a joint trajectory.
+
+> [!NOTE]
+> You should always call `update_state()` on the `RobotLibrary::Model::KinematicTree` object first, before calling `update()` on the controller.
 
 ### Class Diagram:
 
