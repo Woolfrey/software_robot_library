@@ -2,11 +2,11 @@
 
 [:back: Back to the Foyer](../README.md)
 
-This sublibrary contains control classes for robots. At present, it contains the `SerialLinkBase` class, and the `SerialKinematicControl` class for real-time velocity control. A `SerialDynamicControl` class is in development.
+This sub-library contains control classes for robots. At present, it contains the `SerialLinkBase` class, and the `SerialKinematicControl` class for real-time velocity control. A `SerialDynamicControl` class is in development.
 
 :sparkles: Key Features:
 - Joint feedback, and Cartesian feedback control.
-- Seemeless integration with the [Trajectory](https://github.com/Woolfrey/software_robot_library/tree/master/Trajectory) sub-library.
+- Seemless integration with the [Trajectory](https://github.com/Woolfrey/software_robot_library/tree/master/Trajectory) sub-library.
 - Optimisation using [Quadratic Programming (QP)](https://github.com/Woolfrey/software_simple_qp) to satisfy joint limits.
 - Automatic redundancy resolution for singularity avoidance.
 
@@ -15,7 +15,6 @@ This sublibrary contains control classes for robots. At present, it contains the
 - [Data Structures](#data-structures)
 - [Serial Link Base](#serial-link-base)
 - [Serial Kinematic Control](#serial-kinematic-control)
-- [Release Notes](#package-release-notes---v100-april-2025)
 
 ## Data Structures
 
@@ -71,26 +70,23 @@ The same as [`SerialLinkBase`](#construction).
 
 The same as [`SerialLinkBase`](#key-methods).
 
-- `track_joint_trajectory` computes:
+- `track_joint_trajectory`:
 
-  $\dot{\mathbf{q}} = \dot{\mathbf{q}}_d + k_p\left(\mathbf{q}_d - \mathbf{q} \right)$
-  where:
-  - $\dot{\mathbf{q}}\in\mathbb{R}^n$ are the joint velocities to command the robot,
-  - $\mathbf{q}_d,\dot{\mathbf{q}}_d\in\mathbb{R}^n$ is the desired joint position and joint velocity,
-  - $\mathbf{q}\in\mathbb{R}^n$ is the current joint position, and
-  - $k_p\in\mathbb{R}^+$ is the joint position gain.
-
-
-### Cartesian Velocity Control
-
-The method:
+This method computes:
+```math
+\dot{\mathbf{q}} = \dot{\mathbf{q}}_d + k_p\left(\mathbf{q}_d - \mathbf{q} \right)
 ```
-Eigen::VectorXd
-track_cartesian_trajectory(const RobotLibrary::Model::Pose &desiredPose,
-                           const Eigen::Vector<double,6> &desiredVelocity,
-                           const Eigen::Vector<double,6> &desiredAcceleration);
-```
-computes:
+where:
+- $\dot{\mathbf{q}}\in\mathbb{R}^n$ are the joint velocities to command the robot,
+- $\mathbf{q}_d,\dot{\mathbf{q}}_d\in\mathbb{R}^n$ is the desired joint position and joint velocity,
+- $\mathbf{q}\in\mathbb{R}^n$ is the current joint position, and
+- $k_p\in\mathbb{R}^+$ is the joint position gain.
+
+<br>
+
+- `track_cartesian_trajectory`:
+
+This method computes
 ```math
 \dot{\mathbf{x}} = \dot{\mathbf{x}}_d + \mathbf{K}\left(\mathbf{x}_d - \mathbf{x}\right)
 ```
@@ -100,17 +96,14 @@ where:
 - $\mathbf{x}\in\mathbb{SE}(3)$ is the current pose of the endpoint, and
 - $\mathbf{K}\in\mathbb{R}^{6\times 6}$ is the Cartesian stiffness matrix.
 
-It then immediately calls:
-```
-Eigen::VectorXd
-resolve_endpoint_motion(const Eigen::Vector<double,6> &endpointMotion)
-```
-which solves a different problem depending on if the robot is redundant or not.
+then immediately calls the method below.
 
-For a non-redundant robot the problem is:
+- `resolve_endpoint_motion`:
+
+For a non-redundant robot, this solves:
 ```math
 \begin{align}
-  \min_\dot{\mathbf{q}} \frac{1}{2}\|\dot{\mathbf{x}} - \mathbf{J}\dot{\mathbf{q}} \|^2 \\
+  \min_\dot{\mathbf{q}} \frac{1}{2}\left(\dot{\mathbf{x}} - \mathbf{J}\dot{\mathbf{q}}\right)^T \left(\dot{\mathbf{x}} - \mathbf{J}\dot{\mathbf{q}}\right) \\
   \text{subject to: } \dot{\mathbf{q}}_{min} \le \dot{\mathbf{q}} \le \dot{\mathbf{q}}_{max} \\
                       \dot{\mu} \ge \gamma \left(\mu - \mu_{min}\right)
 \end{align}
@@ -124,7 +117,7 @@ where:
 If the robot is redundant it solves,
 ```math
 \begin{align}
-  \min_\dot{\mathbf{q}} \frac{1}{2}\|\dot{\mathbf{q}}_{\varnothing} - \dot{\mathbf{q}} \|_M^2 \\
+  \min_\dot{\mathbf{q}} \frac{1}{2}\left(\dot{\mathbf{q}}_{\varnothing} - \dot{\mathbf{q}}\right)^T\mathbf{M}\left(\dot{\mathbf{q}}_{\varnothing} - \dot{\mathbf{q}}\right) \\
   \text{subject to: } \dot{\mathbf{x}} = \mathbf{J}\dot{\mathbf{q}} \\
                \dot{\mathbf{q}}_{min} \le \dot{\mathbf{q}} \le \dot{\mathbf{q}}_{max} \\
                       \dot{\mu} \ge -\gamma \left(\mu - \mu_{min}\right)
@@ -132,7 +125,10 @@ If the robot is redundant it solves,
 ```
 where:
 - $\dot{\mathbf{q}}_{\varnothing}\in\mathbb{R}^n$ is a redundant task, and
-- the solution is weighted by the inertia matrix $\mathbf{M}(\mathbf{q})\in\mathbb{R}^{n\times n}$.
+- $\mathbf{M}\in\mathbb{R}^{n\times n}$ is the joint inertia matrix.
+
+> [!NOTE]
+> Weighting the joint velocities by the inertia matrix instantaneously minimises the kinetic energy needed to move the robot.
 
 > [!TIP]
 > You can set the redundant task with the `set_redundant_task()` method. If none is provided, it automatically uses the gradient projection method to move away from singularities (where possible).
@@ -140,9 +136,12 @@ where:
 > [!NOTE]
 > If the singularity avoidance fails and the manipulability $\mu$ is below $\mu_{min}$, then the algorithm automatically reverts to a damped-least-squares method to avoid numerical instability.
 
-## :package: Release Notes - v1.0.0 (April 2025)
+[:top: Back to Top](#control_knobs-control)
 
-Tested and implemented:
-- `SerialLinkBase`
-- `SerialKinematicControl`
+### Class Diagram:
 
+<p align="center">
+  <img src="doc/SerialKinematicControl.png" width="600" height="auto"/>
+</p>
+
+[:top: Back to Top](#control_knobs-control)
