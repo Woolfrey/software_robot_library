@@ -15,23 +15,14 @@
  * @see https://github.com/Woolfrey/software_robot_library for more information.
  */
 
-#ifndef TRAJECTORYBASE_H_
-#define TRAJECTORYBASE_H_
+#ifndef TRAJECTORY_BASE_H
+#define TRAJECTORY_BASE_H
 
+#include <Trajectory/DataStructures.h>
 #include <Eigen/Core>                                                                               // Eigen::Vector
 #include <iostream>                                                                                 // std::cout
 
 namespace RobotLibrary { namespace Trajectory {
-
-/**
- * @brief A data structure for the state of a system.
- */
-struct State
-{
-     Eigen::VectorXd position;
-     Eigen::VectorXd velocity;
-     Eigen::VectorXd acceleration;
-};                                                                                                  // Semicolon needed after struct declaration
 
 /**
  * @brief A base class for providing common structure to all other trajectory classes.
@@ -61,7 +52,6 @@ class TrajectoryBase
          * @param time The point at which to evaluate the position.
          * @return The position as an Eigen::Vector object
          */
-        inline
         Eigen::VectorXd
         query_position(const double &time)
         {
@@ -78,21 +68,18 @@ class TrajectoryBase
          * @return Returns true if there were no problems.
          */
         virtual
-        inline
         State
         query_state(const double &time) = 0;
 
         /**
          * @brief The time at which this trajectory commences.
          */
-        inline
         double
         start_time() const { return this->_startTime; }
         
         /**
          * @brief The time at which this trajectory finishes.
          */
-        inline
         double
         end_time() const { return this->_endTime; }
 

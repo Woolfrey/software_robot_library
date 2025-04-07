@@ -40,8 +40,8 @@ class SerialKinematicControl : public SerialLinkBase
 		 */
 		SerialKinematicControl(std::shared_ptr<RobotLibrary::Model::KinematicTree> model,
 		                       const std::string &endpointName,
-		                       const Options &options = Options())
-		                       : SerialLinkBase(model, endpointName, options){}
+		                       const Parameters &parameters = Parameters())
+		                       : SerialLinkBase(model, endpointName, parameters){}
 		
 		/**
 		 * @brief Solve the joint velocities required to move the endpoint at a given speed.

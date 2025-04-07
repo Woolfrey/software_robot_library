@@ -22,7 +22,7 @@
 #define SERIAL_LINK_BASE_H_
 
 #include <Model/KinematicTree.h>                                                                    // Computes the kinematics and dynamics
-#include <Math/MathFunctions.h>                                       
+#include <Math/MathFunctions.h>                                                                     // Helper functions               
 #include <Math/QPSolver.h>                                                                          // Convex optimisation methods
 
 #include <Eigen/Dense>                                                                              // Matrix decomposition
@@ -33,10 +33,11 @@ namespace RobotLibrary { namespace Control {
 /**
  * @brief A data structure for passing control parameters to the SerialLinkBase class in a single argument.
  */
-struct Options
+struct Parameters
 {
     // NOTE: These are for the control class itself:
-    Options() = default;
+    Parameters() = default;                                                                         ///< This enables default options
+    
     double controlFrequency     = 100.0;                                                            ///< Rate at which control loop operates.
     double jointPositionGain    = 10.0;                                                             ///< Scales the position error feedback  
     double jointVelocityGain    = 1.0;                                                              ///< Scales the velocity error feedback
@@ -74,7 +75,7 @@ class SerialLinkBase : public QPSolver<double>
 		 */
 		SerialLinkBase(std::shared_ptr<RobotLibrary::Model::KinematicTree> model,
 		               const std::string &endpointName,
-		               const Options &options = Options());
+		               const Parameters &paramters = Parameters());
 		
 		/**
 		 * @brief Compute the required joint motion to achieve the specified endpoint motion.
@@ -121,40 +122,6 @@ class SerialLinkBase : public QPSolver<double>
 		track_joint_trajectory(const Eigen::VectorXd &desiredPosition,
 		                       const Eigen::VectorXd &desiredVelocity,
 		                       const Eigen::VectorXd &desiredAcceleration) = 0;
-		                                               
-		/**
-		 * @brief Set the gains for Cartesian feedback control.
-		 * @param stiffness Proportional gain on the pose error.
-		 * @param damping Derivative gain on the velocity error.
-		 * @return Returns false if there was a problem.
-		 */
-		bool
-		set_cartesian_gains(Eigen::Matrix<double,6,6> &stiffness,
-		                    Eigen::Matrix<double,6,6> &damping);
-
-		/**
-		 * @brief Set the feedback gains for joint control.
-		 * @param proportional Gain on position error.
-		 * @param derivative Gain on the velocity error.
-		 * @return Returns false if there was an issue.
-		 */
-		bool
-		set_joint_gains(const double &proportional,
-		                const double &derivative);
-		
-		/**
-		 * @brief Set the maximum permissable joint acceleration.
-		 * @param accel The maximum joint acceleration.
-		 * @return Returns false if there was a problem.
-		 */                 
-		bool
-		set_max_joint_acceleration(const double &accel);
-		
-		/**
-         * @brief Set the threshold for singularity avoidance.
-         */
-        bool
-        set_manipulability_threshold(const double &threshold);
 		
 		/**
 		 * @brief Get the measure of manipulability for the current state.
@@ -198,6 +165,14 @@ class SerialLinkBase : public QPSolver<double>
 		void
 		update();
 		
+	    /**
+	     * @brief Set parameters such as control gains, control frequency, etc.
+	     * @param options a RobotLibrary::Control::Options data structure. Contains things like control gains, frequency, etc.
+	     * @return False if there is something wrong with the arguments.
+	     */
+	    void
+	    set_control_parameters(const Parameters &parameters);
+	    
 		/**
 		 * @brief Assign the redundant task for use in the next control calculation.
 		 *        NOTE: In kinematic control, this is a joint velocity vector. In dyamic control, it is a joint torque vector.
@@ -276,7 +251,6 @@ class SerialLinkBase : public QPSolver<double>
 		virtual
 		RobotLibrary::Model::Limits
 		compute_control_limits(const unsigned int &jointNumber) = 0;
-	
 };                                                                                                  // Semicolon needed after a class declaration
 
 } }
