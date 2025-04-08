@@ -19,7 +19,7 @@ This sub-library contains control classes for robots. At present, it contains th
 ## Data Structures
 
 <p align="center">
-  <img src="doc/Parameters.png" width="200" height="auto"/>
+  <img src="doc/Parameters.png" width="250" height="auto"/>
 </p>
 
 [:top: Back to Top](#control_knobs-control)
@@ -58,7 +58,7 @@ This is done deliberately so that:
 ### Class Diagram:
 
 <p align="center">
-  <img src="doc/SerialLinkBase.png" width="700" height="auto"/>
+  <img src="doc/SerialLinkBase.png" width="800" height="auto"/>
 </p>
 
 [:top: Back to Top](#control_knobs-control)
@@ -148,7 +148,7 @@ where:
 ### Class Diagram:
 
 <p align="center">
-  <img src="doc/SerialKinematicControl.png" width="800" height="auto"/>
+  <img src="doc/SerialKinematicControl.png" width="900" height="auto"/>
 </p>
 
 [:top: Back to Top](#control_knobs-control)
