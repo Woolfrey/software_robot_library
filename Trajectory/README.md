@@ -21,7 +21,7 @@ This sub-library contains classes for generating trajectories; paths as function
 ## Data Structures
 
 <p align="center">
-  <img src="doc/image.png" width="300" height="auto"/>
+  <img src="doc/Structs.png" width="600" height="auto"/>
 </p>
 
 [:top: Back to Top](#stopwatch-trajectory)
@@ -45,7 +45,7 @@ The purpose of this class is to provide a standardised structure to all trajecto
 ### Class Diagram:
 
 <p align="center">
-  <img src="doc/image.png" width="300" height="auto"/>
+  <img src="doc/TrajectoryBase.png" width="700" height="auto"/>
 </p>
 
 [:top: Back to Top](#stopwatch-trajectory)
@@ -53,6 +53,10 @@ The purpose of this class is to provide a standardised structure to all trajecto
 ## Spline Trajectory:
 
 This class builds on the `RobotLibrary::Math::Spline` object to create a spline as a function of time, over multiple dimensions. This is useful for generating joint trajectories, for example.
+
+<p align="center">
+  <img src="doc/SplineOutput.png" width="400" height="auto"/>
+</p>
 
 ### Construction:
 
@@ -73,7 +77,7 @@ There is only 1 method: `query_state` returns the position, velocity, and accele
 ### Class Diagram:
 
 <p align="center">
-  <img src="doc/image.png" width="300" height="auto"/>
+  <img src="doc/SplineTrajectory.png" width="700" height="auto"/>
 </p>
 
 [:top: Back to Top](#stopwatch-trajectory)
@@ -101,7 +105,7 @@ The `query_state` method gives a `RobotLibrary::Trajectory::CartesianState` for 
 ### Class Diagram:
 
 <p align="center">
-  <img src="doc/image.png" width="300" height="auto"/>
+  <img src="doc/CartesianSpline.png" width="800" height="auto"/>
 </p>
 
 [:top: Back to Top](#stopwatch-trajectory)
@@ -109,6 +113,10 @@ The `query_state` method gives a `RobotLibrary::Trajectory::CartesianState` for 
 ## Trapezoidal Velocity:
 
 This class generates a trajectory where the velocity follows a trapezoid; ramping up at a constant acceleration, coasting at a constant velocity, then ramping down to a constant decelaration. It can also handle multiple waypoints.
+
+<p align="center">
+  <img src="doc/TrapezoidOutput.png" width="400" height="auto"/>
+</p>
 
 > [!NOTE]
 > Each waypoint starts and ends with zero velocity, due to the complexity of computation. For smooth transitions, it's better to use a spline.
@@ -130,7 +138,7 @@ Just one: the `query_state` method returns an `RobotLibrary::Trajectory::State` 
 ### Class Diagram:
 
 <p align="center">
-  <img src="doc/image.png" width="300" height="auto"/>
+  <img src="doc/Trapezoidal.png" width="800" height="auto"/>
 </p>
 
 [:top: Back to Top](#stopwatch-trajectory)
