@@ -20,7 +20,7 @@ This sub-library enables physical modeling of serial-link robot structures to co
 ## Data Structures
 
 <p align="center">
-     <img src="doc/Limits.png" width="300" height="auto"/>
+     <img src="doc/Structs.png" width="250" height="auto"/>
 </p>
 
 [:top: Back to Top](#building_construction-model)
@@ -44,7 +44,7 @@ This class represents position & orientation in 3D space (i.e. the Special Eucli
 ### Class Diagram:
 
 <p align="center">
-     <img src="doc/Pose.png" width="500" height="auto"/>
+     <img src="doc/Pose.png" width="400" height="auto"/>
 </p>
 
 
@@ -111,7 +111,7 @@ Honestly, it's not that interesting or useful outside the `Link` class. You can 
 ### Class Diagram:
 
 <p align="center">
-     <img src="doc/Joint.png" width="500" height="auto"/>
+     <img src="doc/Joint.png" width="1000" height="auto"/>
 </p>
 
 [:top: Back to Top](#building_construction-model)
@@ -163,6 +163,10 @@ where:
 - $\mathbf{g}(\mathbf{q})\in\mathbb{R}^n$ is the gravitational torque vector, and
 - $\mathbf{d}(\dot{\mathbf{q}})\in\mathbb{R}^n$ is the torque vector from viscous friction.
 
+<p align="center">
+     <img src="doc/InverseDynamics.png" width="700" height="auto"/>
+</p>
+
 ### Construction:
 
 A [URDF file](https://docs.ros.org/en/jazzy/Tutorials/Intermediate/URDF/Building-a-Visual-Robot-Model-with-URDF-from-Scratch.html). That's it! :sunglasses:
@@ -184,7 +188,7 @@ A [URDF file](https://docs.ros.org/en/jazzy/Tutorials/Intermediate/URDF/Building
 ### Class Diagram:
 
 <p align="center">
-     <img src="doc/KinematicTree.png" width="800" height="auto"/>
+     <img src="doc/KinematicTree.png" width="1000" height="auto"/>
 </p>
 
 [:top: Back to Top](#building_construction-model)
