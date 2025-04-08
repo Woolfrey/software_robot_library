@@ -147,8 +147,8 @@ make
 
 If you would like to see examples where `RobotLibrary` has been applied, you can check out:
 
-- The [testing_robot_library repository](https://github/com/Woolfrey/testing_robot_library) which I have used to validate the numerical output of the different algorithms, and
-- My [serial link action server](https://github.com/Woolfrey/server_serial_link) repository which implements the control in [ROS2](https://docs.ros.org/en/humble/index.html).
+- [Serial Link Action Server](https://github.com/Woolfrey/server_serial_link) : My own ROS2 action servers for control.
+- [TestingRobotLibrary](https://github.com/Woolfrey/testing_robot_library) : C++ executables I use for numerical validation of RobotLibrary.
 
 [:top: Back to Top.](#robot-robotlibrary)
 
