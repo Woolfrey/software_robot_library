@@ -20,7 +20,7 @@ This sub-library contains useful functions and classes to support the other sub-
 ## Data Structures:
 
 <p align="center">
-	<img src="doc/FunctionPoint.png" width="300" height="auto"/>
+	<img src="doc/Structs.png" width="500" height="auto"/>
 </p>
 
 [:top: Back to Top](#abacus-math)
@@ -51,7 +51,7 @@ The method `evaluate_point` will return the value $y(x)$ for the given $x$.
 ### Class Diagram:
 
 <p align="center">
-	<img src="doc/Polynomial.png" width="700" height="auto"/>
+	<img src="doc/Polynomial.png" width="800" height="auto"/>
 </p>
 
 [:top: Back to Top](#abacus-math)
@@ -89,7 +89,7 @@ The `evaluate_point` method returns the interpolated value $y = f(x)$ for the gi
 ### Class Diagram:
 
 <p align="center">
-	<img src="doc/Spline.png" width="700" height="auto"/>
+	<img src="doc/Spline.png" width="600" height="auto"/>
 </p>
 
 [:top: Back to Top](#abacus-math)
