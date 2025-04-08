@@ -2,7 +2,7 @@
  * @file    Polynomial.cpp
  * @author  Jon Woolfrey
  * @email   jonathan.woolfrey@gmail.com
- * @date    February 2025
+ * @date    April 2025
  * @version 1.0
  * @brief   Represents a polynomial function.
  * 
@@ -17,15 +17,15 @@
  */
  
 
-#include "Math/Polynomial.h"
+#include <Math/Polynomial.h>
 
 namespace RobotLibrary { namespace Math {
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                                      Constructor                                               //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-Polynomial::Polynomial(const FunctionPoint &startValues,
-                       const FunctionPoint &endValues,
+Polynomial::Polynomial(const RobotLibrary::Math::FunctionPoint &startValues,
+                       const RobotLibrary::Math::FunctionPoint &endValues,
                        const double        &startPoint,
                        const double        &endPoint,
                        const unsigned int  &order)
@@ -90,10 +90,10 @@ Polynomial::Polynomial(const FunctionPoint &startValues,
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                             Evaluate the polynomial at a given point.                          //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-FunctionPoint
+RobotLibrary::Math::FunctionPoint
 Polynomial::evaluate_point(const double &input)
 {
-    FunctionPoint output = {0.0, 0.0, 0.0};                                                         // Value to be returned
+    RobotLibrary::Math::FunctionPoint output = {0.0, 0.0, 0.0};                                                         // Value to be returned
 
     for(int i = 0; i <= this->_order; i++)
     {
@@ -105,4 +105,4 @@ Polynomial::evaluate_point(const double &input)
     return output;
 }
 
-} }
+} } // namespace

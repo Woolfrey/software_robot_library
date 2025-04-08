@@ -2,7 +2,7 @@
  * @file    KinematicTree.h
  * @author  Jon Woolfrey
  * @email   jonathan.woolfrey@gmail.com
- * @date    February 2025
+ * @date    April 2025
  * @version 1.0
  * @brief   A class for a multi rigid body system of branching serial link structures.
  * 
@@ -18,9 +18,10 @@
  * @see https://github.com/Woolfrey/software_robot_library for more information.
  */
  
-#ifndef KINEMATICTREE_H_
-#define KINEMATICTREE_H_
+#ifndef KINEMATIC_TREE_H_
+#define KINEMATIC_TREE_H_
 
+#include <Model/DataStructures.h>
 #include <Model/Joint.h>                                                                            // Custom class for describing a moveable connection between links
 #include <Model/Link.h>                                                                             // Custom class combining a rigid body and joint
 #include <Math/SkewSymmetric.h>                                                                     // Custom class
@@ -30,15 +31,6 @@
 #include <tinyxml2.h>                                                                               // For parsing urdf files
 
 namespace RobotLibrary { namespace Model {
-
-/**
- * @brief A structure containing necessary information for defining a reference frame on a kinematic tree.
- */
-struct ReferenceFrame
-{
-     Link *link = nullptr;                                                                          ///< The link it is attached to
-     Pose relativePose;                                                                             ///< Pose with respect to local link frame
-};
 
 /**
  * @brief A class that defines the kinematics and dynamics of branching, serial link structures.
@@ -69,14 +61,14 @@ class KinematicTree
            * @brief Updates the forward kinematics and inverse dynamics. Used for floating base structures.
            * @param jointPosition A vector of all the joint positions.
            * @param jointVelocity A vector of all the joint velocities.
-           * @param basePose The transform of the base relative to some global reference frame.
+           * @param Pose The transform of the base relative to some global reference frame.
            * @param baseTwist The velocity of the base relative to some global reference frame.
            */
           bool
-          update_state(const Eigen::VectorXd         &jointPosition,
-                       const Eigen::VectorXd         &jointVelocity,
-                       const Pose                    &basePose,
-                       const Eigen::Vector<double,6> &baseTwist);
+          update_state(const Eigen::VectorXd           &jointPosition,
+                       const Eigen::VectorXd           &jointVelocity,
+                       const RobotLibrary::Model::Pose &basePose,
+                       const Eigen::Vector<double,6>   &baseTwist);
 
           /**
            * @brief Query how many controllable joints there are in this model.
@@ -154,9 +146,9 @@ class KinematicTree
 
           /**
            * @brief Get the pose of a specified reference frame on the kinematic tree.
-           * @return Returns a RobotLibrary::Pose object.
+           * @return Returns a RobotLibrary::RobotLibrary::Model::Pose object.
            */
-          Pose
+          RobotLibrary::Model::Pose
           frame_pose(const std::string &frameName);
           
           /**
@@ -197,9 +189,9 @@ class KinematicTree
           /**
            * @brief Returns a pointer to a reference frame on this model.
            * @param name In the URDF, the name of the parent link attached to a fixed joint
-           * @return A ReferenceFrame data structure.
+           * @return A RobotLibrary::Model::ReferenceFrame data structure.
            */
-          ReferenceFrame*
+          RobotLibrary::Model::ReferenceFrame*
           find_frame(const std::string &frameName);
           
           /**
@@ -208,7 +200,7 @@ class KinematicTree
            * @return A 6xn Eigen::Matrix object.
            */
           Eigen::Matrix<double,6,Eigen::Dynamic>
-          jacobian(ReferenceFrame *frame);
+          jacobian(RobotLibrary::Model::ReferenceFrame *frame);
           
           /**
            * @brief Get the joint position vector in the underlying model.
@@ -220,9 +212,9 @@ class KinematicTree
           /**
            * @brief Return a pointer to a link on the structure.
            * @param The number of the link in the model.
-           * @return A RobotLibrary::Link object
+           * @return A RobotLibrary::RobotLibrary::Model::Link object
            */
-          Link*
+          RobotLibrary::Model::Link*
           link(const unsigned int &linkNumber);
           
           /**
@@ -255,13 +247,13 @@ class KinematicTree
 
           Eigen::Vector<double,Eigen::Dynamic> _jointGravityVector;                                 ///< A vector of all the gravitational joint torques.
            
-          std::map<std::string, ReferenceFrame> _frameList;                                         ///< A dictionary of reference frames on the kinematic tree.
+          std::map<std::string, RobotLibrary::Model::ReferenceFrame> _frameList;                    ///< A dictionary of reference frames on the kinematic tree.
           
-          std::vector<Link> _fullLinkList;                                                          ///< An array of all the links in the model, including fixed joints.
+          std::vector<RobotLibrary::Model::Link> _fullLinkList;                                     ///< An array of all the links in the model, including fixed joints.
           
-          std::vector<Link*> _link;                                                                 ///< An array of all the actuated links.
+          std::vector<RobotLibrary::Model::Link*> _link;                                            ///< An array of all the actuated links.
           
-          std::vector<Link*> _baseLinks;                                                            ///< Array of links attached directly to the base.
+          std::vector<RobotLibrary::Model::Link*> _baseLinks;                                       ///< Array of links attached directly to the base.
           
           std::string _name;                                                                        ///< A unique name for this model.
           
@@ -277,7 +269,7 @@ class KinematicTree
            * @return A 6xn Jacobian matrix.
            */
           Eigen::Matrix<double,6,Eigen::Dynamic>
-          jacobian(Link *link,
+          jacobian(RobotLibrary::Model::Link *link,
                    const Eigen::Vector3d &point,
                    const unsigned int &numberOfColumns);
 

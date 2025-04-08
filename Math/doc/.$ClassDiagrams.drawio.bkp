@@ -1,0 +1,150 @@
+<mxfile host="Electron" modified="2025-04-08T13:04:30.070Z" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/22.1.2 Chrome/114.0.5735.289 Electron/25.9.4 Safari/537.36" etag="eByiAyL1RQYxWR4vkXrv" version="22.1.2" type="device" pages="3">
+  <diagram name="FunctionPoint" id="EGqmlkjX7Aa7AHGY9aJe">
+    <mxGraphModel dx="884" dy="563" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="iIwv-3FWxQ0zoVeiwZRh-10" value="RobotLibrary::Math::FunctionPoint" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;" parent="1" vertex="1">
+          <mxGeometry x="50" y="190" width="250" height="138" as="geometry" />
+        </mxCell>
+        <mxCell id="iIwv-3FWxQ0zoVeiwZRh-12" value="-firstDerivative: double = 0.0" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" parent="iIwv-3FWxQ0zoVeiwZRh-10" vertex="1">
+          <mxGeometry y="26" width="250" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="iIwv-3FWxQ0zoVeiwZRh-13" value="-secondDerivative: double = 0.0" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" parent="iIwv-3FWxQ0zoVeiwZRh-10" vertex="1">
+          <mxGeometry y="52" width="250" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="iIwv-3FWxQ0zoVeiwZRh-11" value="-value: double = 0.0" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" parent="iIwv-3FWxQ0zoVeiwZRh-10" vertex="1">
+          <mxGeometry y="78" width="250" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="iIwv-3FWxQ0zoVeiwZRh-14" value="" style="line;strokeWidth=1;fillColor=none;align=left;verticalAlign=middle;spacingTop=-1;spacingLeft=3;spacingRight=3;rotatable=0;labelPosition=right;points=[];portConstraint=eastwest;" parent="iIwv-3FWxQ0zoVeiwZRh-10" vertex="1">
+          <mxGeometry y="104" width="250" height="8" as="geometry" />
+        </mxCell>
+        <mxCell id="iIwv-3FWxQ0zoVeiwZRh-15" value="+FunctionPoint(): void" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" parent="iIwv-3FWxQ0zoVeiwZRh-10" vertex="1">
+          <mxGeometry y="112" width="250" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="iIwv-3FWxQ0zoVeiwZRh-16" value="RobotLibrary::Math::QRDecomposition" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;" parent="1" vertex="1">
+          <mxGeometry x="320" y="190" width="280" height="112" as="geometry" />
+        </mxCell>
+        <mxCell id="iIwv-3FWxQ0zoVeiwZRh-17" value="-Q: Eigen::MatrixXd" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" parent="iIwv-3FWxQ0zoVeiwZRh-16" vertex="1">
+          <mxGeometry y="26" width="280" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="iIwv-3FWxQ0zoVeiwZRh-18" value="-R: Eigen::MatrixXd" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" parent="iIwv-3FWxQ0zoVeiwZRh-16" vertex="1">
+          <mxGeometry y="52" width="280" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="iIwv-3FWxQ0zoVeiwZRh-19" value="" style="line;strokeWidth=1;fillColor=none;align=left;verticalAlign=middle;spacingTop=-1;spacingLeft=3;spacingRight=3;rotatable=0;labelPosition=right;points=[];portConstraint=eastwest;" parent="iIwv-3FWxQ0zoVeiwZRh-16" vertex="1">
+          <mxGeometry y="78" width="280" height="8" as="geometry" />
+        </mxCell>
+        <mxCell id="iIwv-3FWxQ0zoVeiwZRh-20" value="+QRDecomposition(): void" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" parent="iIwv-3FWxQ0zoVeiwZRh-16" vertex="1">
+          <mxGeometry y="86" width="280" height="26" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="BDVxrf4nmsqxbB--TVsN" name="Polynomial">
+    <mxGraphModel dx="3037" dy="1408" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="akkvlqomJwX48Eijbpa5-1" value="RobotLibrary::Math::Polynomial" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;" parent="1" vertex="1">
+          <mxGeometry x="-800" y="80" width="930" height="164" as="geometry" />
+        </mxCell>
+        <mxCell id="akkvlqomJwX48Eijbpa5-2" value="-_order: unsigned int" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" parent="akkvlqomJwX48Eijbpa5-1" vertex="1">
+          <mxGeometry y="26" width="930" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="akkvlqomJwX48Eijbpa5-3" value="-_coefficients: Eigen::VectorXd" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" parent="akkvlqomJwX48Eijbpa5-1" vertex="1">
+          <mxGeometry y="52" width="930" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="akkvlqomJwX48Eijbpa5-4" value="" style="line;strokeWidth=1;fillColor=none;align=left;verticalAlign=middle;spacingTop=-1;spacingLeft=3;spacingRight=3;rotatable=0;labelPosition=right;points=[];portConstraint=eastwest;" parent="akkvlqomJwX48Eijbpa5-1" vertex="1">
+          <mxGeometry y="78" width="930" height="8" as="geometry" />
+        </mxCell>
+        <mxCell id="akkvlqomJwX48Eijbpa5-5" value="+Polynomial(): void" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" parent="akkvlqomJwX48Eijbpa5-1" vertex="1">
+          <mxGeometry y="86" width="930" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="akkvlqomJwX48Eijbpa5-6" value="+Polynomial(startValues: RobotLibrary::Math::FunctionPoint, endValues: RobotLibrary::Math::FunctionPoint, startPoint: double, endPoint: double, order: unsigned int): void" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" parent="akkvlqomJwX48Eijbpa5-1" vertex="1">
+          <mxGeometry y="112" width="930" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="akkvlqomJwX48Eijbpa5-7" value="+evaluate_point(input: double): RobotLibrary::Math::FunctionPoint" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" parent="akkvlqomJwX48Eijbpa5-1" vertex="1">
+          <mxGeometry y="138" width="930" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="UH7f-kgWw6auqieKq83S-7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="UH7f-kgWw6auqieKq83S-1" target="akkvlqomJwX48Eijbpa5-1" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="UH7f-kgWw6auqieKq83S-1" value="RobotLibrary::Math::FunctionPoint" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;" parent="1" vertex="1" collapsed="1">
+          <mxGeometry x="-455" y="10" width="240" height="30" as="geometry">
+            <mxRectangle x="50" y="190" width="250" height="138" as="alternateBounds" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="UH7f-kgWw6auqieKq83S-2" value="-firstDerivative: double = 0.0" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" parent="UH7f-kgWw6auqieKq83S-1" vertex="1">
+          <mxGeometry y="26" width="250" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="UH7f-kgWw6auqieKq83S-3" value="-secondDerivative: double = 0.0" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" parent="UH7f-kgWw6auqieKq83S-1" vertex="1">
+          <mxGeometry y="52" width="250" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="UH7f-kgWw6auqieKq83S-4" value="-value: double = 0.0" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" parent="UH7f-kgWw6auqieKq83S-1" vertex="1">
+          <mxGeometry y="78" width="250" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="UH7f-kgWw6auqieKq83S-5" value="" style="line;strokeWidth=1;fillColor=none;align=left;verticalAlign=middle;spacingTop=-1;spacingLeft=3;spacingRight=3;rotatable=0;labelPosition=right;points=[];portConstraint=eastwest;" parent="UH7f-kgWw6auqieKq83S-1" vertex="1">
+          <mxGeometry y="104" width="250" height="8" as="geometry" />
+        </mxCell>
+        <mxCell id="UH7f-kgWw6auqieKq83S-6" value="+FunctionPoint(): void" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" parent="UH7f-kgWw6auqieKq83S-1" vertex="1">
+          <mxGeometry y="112" width="250" height="26" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="RxBiS8Y7Rp5NpzpbcNV4" name="Spline">
+    <mxGraphModel dx="884" dy="563" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="KcbggqTKwuhICHYnpOU7-1" value="RobotLibrary::Math::Spline" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;" parent="1" vertex="1">
+          <mxGeometry x="80" y="210" width="670" height="164" as="geometry" />
+        </mxCell>
+        <mxCell id="KcbggqTKwuhICHYnpOU7-2" value="-_numberOfSplines: unsigned int" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" parent="KcbggqTKwuhICHYnpOU7-1" vertex="1">
+          <mxGeometry y="26" width="670" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="KcbggqTKwuhICHYnpOU7-3" value="-_polynomial: std::vector&lt;RobotLibrary::Math::Polynomial&gt;" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" parent="KcbggqTKwuhICHYnpOU7-1" vertex="1">
+          <mxGeometry y="52" width="670" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="KcbggqTKwuhICHYnpOU7-4" value="-_points: std::vector&lt;double&gt;" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" parent="KcbggqTKwuhICHYnpOU7-1" vertex="1">
+          <mxGeometry y="78" width="670" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="KcbggqTKwuhICHYnpOU7-5" value="" style="line;strokeWidth=1;fillColor=none;align=left;verticalAlign=middle;spacingTop=-1;spacingLeft=3;spacingRight=3;rotatable=0;labelPosition=right;points=[];portConstraint=eastwest;" parent="KcbggqTKwuhICHYnpOU7-1" vertex="1">
+          <mxGeometry y="104" width="670" height="8" as="geometry" />
+        </mxCell>
+        <mxCell id="KcbggqTKwuhICHYnpOU7-6" value="+Spline(values: std::vector&lt;RobotLibrary::Math::FunctionPoint&gt;, points: std::vector&lt;double&gt;, order: unsigned int = 3): void" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" parent="KcbggqTKwuhICHYnpOU7-1" vertex="1">
+          <mxGeometry y="112" width="670" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="KcbggqTKwuhICHYnpOU7-7" value="+evaluate_point(input: double): RobotLibrary::Math::FunctionPoint" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" parent="KcbggqTKwuhICHYnpOU7-1" vertex="1">
+          <mxGeometry y="138" width="670" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="W7neIfO14whhF8WeIhSZ-8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="W7neIfO14whhF8WeIhSZ-1" target="KcbggqTKwuhICHYnpOU7-1" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="W7neIfO14whhF8WeIhSZ-1" value="RobotLibrary::Math::Polynomial" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;" parent="1" vertex="1" collapsed="1">
+          <mxGeometry x="305" y="140" width="220" height="30" as="geometry">
+            <mxRectangle x="-51" y="40" width="930" height="164" as="alternateBounds" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="W7neIfO14whhF8WeIhSZ-2" value="-_order: unsigned int" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" parent="W7neIfO14whhF8WeIhSZ-1" vertex="1">
+          <mxGeometry y="26" width="930" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="W7neIfO14whhF8WeIhSZ-3" value="-_coefficients: Eigen::VectorXd" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" parent="W7neIfO14whhF8WeIhSZ-1" vertex="1">
+          <mxGeometry y="52" width="930" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="W7neIfO14whhF8WeIhSZ-4" value="" style="line;strokeWidth=1;fillColor=none;align=left;verticalAlign=middle;spacingTop=-1;spacingLeft=3;spacingRight=3;rotatable=0;labelPosition=right;points=[];portConstraint=eastwest;" parent="W7neIfO14whhF8WeIhSZ-1" vertex="1">
+          <mxGeometry y="78" width="930" height="8" as="geometry" />
+        </mxCell>
+        <mxCell id="W7neIfO14whhF8WeIhSZ-5" value="+Polynomial(): void" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" parent="W7neIfO14whhF8WeIhSZ-1" vertex="1">
+          <mxGeometry y="86" width="930" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="W7neIfO14whhF8WeIhSZ-6" value="+Polynomial(startValues: RobotLibrary::Math::FunctionPoint, endValues: RobotLibrary::Math::FunctionPoint, startPoint: double, endPoint: double, order: unsigned int): void" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" parent="W7neIfO14whhF8WeIhSZ-1" vertex="1">
+          <mxGeometry y="112" width="930" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="W7neIfO14whhF8WeIhSZ-7" value="+evaluate_point(input: double): RobotLibrary::Math::FunctionPoint" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" parent="W7neIfO14whhF8WeIhSZ-1" vertex="1">
+          <mxGeometry y="138" width="930" height="26" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -2,7 +2,7 @@
  * @file    RigidBody.h
  * @author  Jon Woolfrey
  * @email   jonathan.woolfrey@gmail.com
- * @date    February 2025
+ * @date    April 2025
  * @version 1.0
  * @brief   A class for describing the kinematics & dynamics of a single, ridid body.
  * 
@@ -16,8 +16,8 @@
  * @see https://github.com/Woolfrey/software_robot_library for more information.
  */
 
-#ifndef RIGID_BODY_H_
-#define RIGID_BODY_H_
+#ifndef RIGID_BODY_H
+#define RIGID_BODY_H
 
 #include <Model/Pose.h>
 
@@ -52,46 +52,53 @@ class RigidBody
           /**
            * @brief  Returns the mass of this object.
            */
-          double mass() const { return this->_mass; }
+          double
+          mass() const { return this->_mass; }
           
           /**
            * @brief  Returns the moment of inertia for this object.
            */
-          Eigen::Matrix3d inertia() const { return this->_inertia; }
+          Eigen::Matrix3d
+          inertia() const { return this->_inertia; }
           
           /**
            * @brief  Returns the time derivative of the moment of inertia.
            */
-          Eigen::Matrix3d inertia_derivative() const { return this->_inertiaDerivative; }
+          Eigen::Matrix3d
+          inertia_derivative() const { return this->_inertiaDerivative; }
           
           /**
            * @brief  The pose of this object in some global frame.
            */
-          Pose pose() const { return this->_pose; }
+          RobotLibrary::Model::Pose
+          pose() const { return this->_pose; }
           
           /**
            * @brief  The name of this object.
            */
-          std::string name() const { return this->_name; }
+          std::string
+          name() const { return this->_name; }
           
           /**
            * @brief  The center of mass for this object in its local reference frame.
            */
-          Eigen::Vector3d center_of_mass() const { return this->_centerOfMass; }                    // Get the center of mass
+          Eigen::Vector3d
+          center_of_mass() const { return this->_centerOfMass; }                    // Get the center of mass
           
           /**
            * @brief  The linear and angular velocity of this object.
            */
-          Eigen::Vector<double,6> twist() const { return this->_twist; }
+          Eigen::Vector<double,6>
+          twist() const { return this->_twist; }
           
           /**
            * @brief Combines the inertial properties of another rigid body with this one.
            * @param other The other rigid body object to be added to this one.
            * @param pose The pose of the other rigid body relative to this one.
            */
-            void
-            combine_inertia(const RigidBody &other,
-                            const Pose      &pose);
+           void
+           combine_inertia(const RigidBody &other,
+                           const RobotLibrary::Model::Pose &pose);
                             
           /**
            * @brief Updates the kinematic properties for this object.
@@ -99,7 +106,7 @@ class RigidBody
            * @param twist The linear and angular velocity of this object.
            */              
           void
-          update_state(const Pose &pose,
+          update_state(const RobotLibrary::Model::Pose &pose,
                        const Eigen::Vector<double,6> &twist);
           
      protected:
@@ -118,12 +125,12 @@ class RigidBody
           
           Eigen::Vector<double,6> _twist = Eigen::Vector<double,6>::Zero();                         ///< Linear and angular velocity of the object.
 
-          Pose _pose;                                                                               ///< Pose of the object in GLOBAL reference frame
+          RobotLibrary::Model::Pose _pose;                                                          ///< RobotLibrary::Model::Pose of the object in GLOBAL reference frame
           
           std::string _name = "unnamed";                                                            ///< Unique identifier for this object.
           
 };                                                                                                  // Semicolon needed after a class declaration
 
-} }
+} } // namespace
 
 #endif

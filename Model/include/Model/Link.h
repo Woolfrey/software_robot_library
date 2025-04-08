@@ -2,9 +2,9 @@
  * @file    Link.h
  * @author  Jon Woolfrey
  * @email   jonathan.woolfrey@gmail.com
- * @date    February 2025
+ * @date    April 2025
  * @version 1.0
- * @brief   A class that combines a RobotLibrary::Model::RigidyBody object with a RobotLibrary::Model::Joint object.
+ * @brief   A class that combines a RobotLibrary::Model::RigidyBody object with a RobotLibrary::Model::RobotLibrary::Model::Joint object.
  * 
  * @details This class describes a link as a part of a serial link chain. It contains both a joint
  *          and a rigid body to define the kinematic and dynamic properties.
@@ -16,8 +16,8 @@
  * @see https://github.com/Woolfrey/software_robot_library for more information.
  */
 
-#ifndef LINK_H_
-#define LINK_H_
+#ifndef LINK_H
+#define LINK_H
 
 #include <Model/Joint.h>
 #include <Model/Pose.h>
@@ -27,18 +27,18 @@
 
 namespace RobotLibrary { namespace Model {
 
-class Link : public RigidBody 
+class Link : public RobotLibrary::Model::RigidBody 
 {
      public:
      
           /**
            * @brief Constructor.
-           * @param rigidBody A RigidBody object that defines its dynamic properties.
-           * @param joint A Joint object that defines control properties for actuation.
+           * @param rigidBody A RobotLibrary::Model::RigidBody object that defines its dynamic properties.
+           * @param joint A RobotLibrary::Model::Joint object that defines control properties for actuation.
            */ 
-          Link(const RigidBody  &rigidBody,
-               const Joint      &joint)
-          : RigidBody (rigidBody),
+          Link(const RobotLibrary::Model::RigidBody &rigidBody,
+               const RobotLibrary::Model::Joint     &joint)
+          : RobotLibrary::Model::RigidBody (rigidBody),
             _joint(joint) {}
           
           /**
@@ -78,9 +78,9 @@ class Link : public RigidBody
                             const double                  &jointVelocity);
           
           /**
-           * @brief Returns the Joint object associated with this link.
+           * @brief Returns the RobotLibrary::Model::Joint object associated with this link.
            */
-          Joint  joint() const { return this->_joint; }
+          RobotLibrary::Model::Joint  joint() const { return this->_joint; }
           
           /**
            * @brief Returns a pointer to the previous joint in the kinematic chain.
@@ -123,7 +123,7 @@ class Link : public RigidBody
      
           Eigen::Vector3d _jointAxis = {0,0,1};                                                     ///< Axis of joint actuation in global frame
           
-          Joint  _joint;                                                                            ///< The joint attached to this link
+          RobotLibrary::Model::Joint  _joint;                                                       ///< The joint attached to this link
           
           Link * _parentLink = nullptr;                                                             ///< Pointer to previous link in chain (null = attached to base)
           
@@ -133,6 +133,6 @@ class Link : public RigidBody
           
 };                                                                                                  // Semicolon needed at the end of class declaration
 
-} } 
+} }  // namespace
 
 #endif

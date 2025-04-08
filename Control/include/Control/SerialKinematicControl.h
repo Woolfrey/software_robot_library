@@ -18,8 +18,8 @@
  * @see https://github.com/Woolfrey/software_simple_qp for the optimisation algorithm used in the control.
  */
 
-#ifndef SERIAL_KINEMATIC_CONTROL_H_
-#define SERIAL_KINEMATIC_CONTROL_H_
+#ifndef SERIAL_KINEMATIC_CONTROL_H
+#define SERIAL_KINEMATIC_CONTROL_H
 
 #include <Control/SerialLinkBase.h>
 
@@ -40,7 +40,7 @@ class SerialKinematicControl : public SerialLinkBase
 		 */
 		SerialKinematicControl(std::shared_ptr<RobotLibrary::Model::KinematicTree> model,
 		                       const std::string &endpointName,
-		                       const Parameters &parameters = Parameters())
+		                       const RobotLibrary::Control::Parameters &parameters = Parameters())
 		                       : SerialLinkBase(model, endpointName, parameters){}
 		
 		/**
@@ -97,6 +97,6 @@ class SerialKinematicControl : public SerialLinkBase
 	
 };                                                                                                  // Semicolon needed after a class declaration
 
-} }
+} } // namespace
 
 #endif

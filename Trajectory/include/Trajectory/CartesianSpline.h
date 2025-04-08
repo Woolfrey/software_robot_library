@@ -2,7 +2,7 @@
  * @file    CartesianSpline.h
  * @author  Jon Woolfrey
  * @email   jonathan.woolfrey@gmail.com
- * @date    February 2025
+ * @date    April 2025
  * @version 1.0
  * @brief   A class that defines trajectories for position & orientation in 3D space.
  * 
@@ -16,23 +16,14 @@
  * @see https://github.com/Woolfrey/software_robot_library for more information.
  */
 
-#ifndef CARTESIANSPLINE_H_
-#define CARTESIANSPLINE_H_
+#ifndef CARTESIAN_SPLINE_H_
+#define CARTESIAN_SPLINE_H_
 
-#include "Model/Pose.h"
-#include "Trajectory/SplineTrajectory.h"
+#include <Model/Pose.h>
+#include <Trajectory/DataStructures.h>
+#include <Trajectory/SplineTrajectory.h>
 
 namespace RobotLibrary { namespace Trajectory {
-
-/**
- * @brief A data structure for returning state information from functions.
- */
-struct CartesianState
-{
-     RobotLibrary::Model::Pose pose;                                                                ///< Does this really need an explanation?
-     Eigen::Vector<double,6>   twist;                                                               ///< Linear and angular velocity
-     Eigen::Vector<double,6>   acceleration;                                                        ///<  Linear and angular acceleration
-};                                                                                                  // Semicolon needed after declaration
 
 /**
  * A class that defines splines in 3D space (i.e. SE(3))
@@ -75,7 +66,7 @@ class CartesianSpline
         /**
          * @brief Get the state for the given time.
          */               
-        CartesianState
+        RobotLibrary::Trajectory::CartesianState
         query_state(const double &time);
         
         /**
@@ -86,9 +77,9 @@ class CartesianSpline
         
     private:
         
-        SplineTrajectory _spline;                                                                   ///< Underlying trajectory over real numbers
+        RobotLibrary::Trajectory::SplineTrajectory _spline;                                         ///< Underlying trajectory over real numbers
 };
 
-} }
+} } // namespace
 
 #endif

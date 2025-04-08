@@ -2,7 +2,7 @@
  * @file    SkewSymmetric.h
  * @author  Jon Woolfrey
  * @email   jonathan.woolfrey@gmail.com
- * @date    February 2025
+ * @date    April 2025
  * @version 1.0
  * @brief   Represents a 3D skew-symmetric matrix such that S^T = -S.
  * 
@@ -55,6 +55,6 @@ class SkewSymmetric
           
 };                                                                                                  // Semicolon needed after class declaration
 
-} }
+} } // namespace
 
 #endif

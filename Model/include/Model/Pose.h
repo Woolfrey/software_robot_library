@@ -2,7 +2,7 @@
  * @file    Pose.h
  * @author  Jon Woolfrey
  * @email   jonathan.woolfrey@gmail.com
- * @date    February 2025
+ * @date    April 2025
  * @version 1.0
  * @brief   A class that describes the position & orientation of an object in 3D space.
  * 
@@ -17,8 +17,8 @@
  * @see https://github.com/Woolfrey/software_robot_library for more information.
  */
 
-#ifndef POSE_H_
-#define POSE_H_
+#ifndef POSE_H
+#define POSE_H
 
 #include <Eigen/Geometry>                                                                           // Quaternion
 #include <iostream>                                                                                 // std::cout
@@ -39,7 +39,7 @@ class Pose
            * @param translation A 3x1 vector for the position/translation component.
            * @param quaternion A quaternion object defining the orientation.
            */
-          Pose(const Eigen::Vector3d   &translation,
+          Pose(const Eigen::Vector3d    &translation,
                const Eigen::Quaterniond &quaternion)
                :
                _translation(translation),
@@ -104,6 +104,6 @@ class Pose
      
 };                                                                                                  // Semicolon needed after class declaration
 
-} }
+} } // namespace
 
 #endif

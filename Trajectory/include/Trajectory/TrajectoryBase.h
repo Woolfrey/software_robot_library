@@ -2,7 +2,7 @@
  * @file    TrajectoryBase.h
  * @author  Jon Woolfrey
  * @email   jonathan.woolfrey@gmail.com
- * @date    February 2025
+ * @date    April 2025
  * @version 1.0
  * @brief   A class to standardise the structure of all other trajectory classes.
  * 
@@ -42,8 +42,8 @@ class TrajectoryBase
          * @param endTime The time that the trajectory finishes.
          * @param dimensions The spatial dimensions that the trajectory moves through.
          */
-        TrajectoryBase(const State  &startPoint,
-                       const State  &endPoint,
+        TrajectoryBase(const RobotLibrary::Trajectory::State &startPoint,
+                       const RobotLibrary::Trajectory::State &endPoint,
                        const double &startTime,
                        const double &endTime);
 
@@ -68,7 +68,7 @@ class TrajectoryBase
          * @return Returns true if there were no problems.
          */
         virtual
-        State
+        RobotLibrary::Trajectory::State
         query_state(const double &time) = 0;
 
         /**
@@ -89,14 +89,14 @@ class TrajectoryBase
 
     double _endTime;                                                                                ///< The end time for the trajectory
 
-    State _startPoint;                                                                              ///< The starting position, velocity, and acceleration
+    RobotLibrary::Trajectory::State _startPoint;                                                         ///< The starting position, velocity, and acceleration
 
-    State _endPoint;                                                                                ///< The final position, velocity, and acceleration
+    RobotLibrary::Trajectory::State _endPoint;                                                           ///< The final position, velocity, and acceleration
     
     unsigned int _dimensions;                                                                       ///< The number of dimensions this trajectory spans
     
 };                                                                                                  // Semicolon needed after class declaration
 
-} }
+} } // namespace
 
 #endif

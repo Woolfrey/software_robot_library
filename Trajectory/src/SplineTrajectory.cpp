@@ -2,7 +2,7 @@
  * @file    SplineTrajectory.cpp
  * @author  Jon Woolfrey
  * @email   jonathan.woolfrey@gmail.com
- * @date    February 2025
+ * @date    April 2025
  * @version 1.0
  * @brief   This class gives a spline as a function of time over a finite series of points.
  * 
@@ -15,20 +15,20 @@
  * 
  * @see https://github.com/Woolfrey/software_robot_library for more information.
  */
-#include "Trajectory/SplineTrajectory.h"
+#include <Trajectory/SplineTrajectory.h>
 
 namespace RobotLibrary { namespace Trajectory {
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                                     Constructor                                                //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-SplineTrajectory::SplineTrajectory(const std::vector<State>  &waypoints,
-                                           const std::vector<double> &times,
-                                           const unsigned int        &polynomialOrder)
-                                           : TrajectoryBase(waypoints.front(),
-                                                            waypoints.back(),
-                                                            times.front(),
-                                                            times.back())
+SplineTrajectory::SplineTrajectory(const std::vector<RobotLibrary::Trajectory::State> &waypoints,
+                                   const std::vector<double> &times,
+                                   const unsigned int        &polynomialOrder)
+: TrajectoryBase(waypoints.front(),
+                 waypoints.back(),
+                 times.front(),
+                 times.back())
 {
     if(waypoints.size() != times.size())
     {
@@ -84,9 +84,10 @@ SplineTrajectory::SplineTrajectory(const std::vector<State>  &waypoints,
 SplineTrajectory::SplineTrajectory(const std::vector<Eigen::VectorXd> &positions,
                                    const std::vector<double> &times,
                                    const Eigen::VectorXd &startVelocity)
-                                  : TrajectoryBase({positions.front(), startVelocity, Eigen::VectorXd::Zero(positions.front().size())},
-                                                   {positions.back(), Eigen::VectorXd::Zero(positions.front().size()), Eigen::VectorXd::Zero(positions.front().size())},
-                                                    times.front(), times.back())
+: TrajectoryBase({positions.front(), startVelocity, Eigen::VectorXd::Zero(positions.front().size())},
+                 {positions.back(), Eigen::VectorXd::Zero(positions.front().size()), Eigen::VectorXd::Zero(positions.front().size())},
+                 times.front(),
+                 times.back())
 {
     if(positions.size() < 2)
     {
@@ -139,7 +140,7 @@ SplineTrajectory::SplineTrajectory(const std::vector<Eigen::VectorXd> &positions
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                             Query the state for the given time                                 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-State
+RobotLibrary::Trajectory::State
 SplineTrajectory::query_state(const double &time)
 {
          if(time <= this->_startTime) return this->_startPoint;
@@ -148,9 +149,9 @@ SplineTrajectory::query_state(const double &time)
     {
         using namespace Eigen;
         
-        State state = { VectorXd::Zero(this->_dimensions),
-                        VectorXd::Zero(this->_dimensions),
-                        VectorXd::Zero(this->_dimensions) };
+        RobotLibrary::Trajectory::State state = { VectorXd::Zero(this->_dimensions),
+                                                  VectorXd::Zero(this->_dimensions),
+                                                  VectorXd::Zero(this->_dimensions) };
                                   
         for(int i = 0; i < this->_dimensions; i++)
         {
@@ -165,4 +166,4 @@ SplineTrajectory::query_state(const double &time)
     }
 }
 
-} }
+} } // namespace

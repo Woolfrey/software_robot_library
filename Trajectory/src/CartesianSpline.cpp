@@ -2,7 +2,7 @@
  * @file    CartesianSpline.cpp
  * @author  Jon Woolfrey
  * @email   jonathan.woolfrey@gmail.com
- * @date    February 2025
+ * @date    April 2025
  * @version 1.0
  * @brief   A class that defines trajectories for position & orientation in 3D space.
  * 
@@ -16,7 +16,7 @@
  * @see https://github.com/Woolfrey/software_robot_library for more information.
  */
  
-#include "Trajectory/CartesianSpline.h"
+#include <Trajectory/CartesianSpline.h>
 
 namespace RobotLibrary { namespace Trajectory {
 
@@ -62,10 +62,10 @@ CartesianSpline::CartesianSpline(const std::vector<RobotLibrary::Model::Pose> &p
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                            Get the desired state for the given time                            //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-CartesianState
+RobotLibrary::Trajectory::CartesianState
 CartesianSpline::query_state(const double &time)
 {
-    State state = this->_spline.query_state(time);                                                 // Get the state as a 6x1 vector over real numbers
+    RobotLibrary::Trajectory::State state = this->_spline.query_state(time);                        // Get the state as a 6x1 vector over real numbers
     
     // Now we need to convert the "position" vector to a pose
 
@@ -86,9 +86,9 @@ CartesianSpline::query_state(const double &time)
                                                           sin(0.5*angle)*axis(2)));
     }
 
-    CartesianState returnValue = {pose, state.velocity, state.acceleration};                        // Put them together in data structur
+    RobotLibrary::Trajectory::CartesianState returnValue = {pose, state.velocity, state.acceleration};   // Put them together in data structur
     
     return returnValue;
 }
 
-} }
+} } // namespace

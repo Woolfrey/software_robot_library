@@ -2,7 +2,7 @@
  * @file    TrapezoidalVelocity.h
  * @author  Jon Woolfrey
  * @email   jonathan.woolfrey@gmail.com
- * @date    February 2025
+ * @date    April 2025
  * @version 1.0
  * @brief   A class with a trapezoidal velocity profile.
  * 
@@ -16,8 +16,8 @@
  * @see https://github.com/Woolfrey/software_robot_library for more information.
  */
 
-#ifndef TRAPEZOIDAL_VELOCITY_H_
-#define TRAPEZOIDAL_VELOCITY_H_
+#ifndef TRAPEZOIDAL_VELOCITY_H
+#define TRAPEZOIDAL_VELOCITY_H
 
 #include <Trajectory/TrajectoryBase.h>
 
@@ -60,12 +60,14 @@ class TrapezoidalBase : public TrajectoryBase
         * @param time The time at which to compute the state.
         * @return Returns false if there are any issues.
         */
-        State query_state(const double &time);
+        RobotLibrary::Trajectory::State
+        query_state(const double &time);
           
         /**
          * @brief Query the total execution time for the trajectory.
          */
-        double duration() const { return this->_coastTime + 2*this->_rampTime; }
+        double
+        duration() const { return this->_coastTime + 2*this->_rampTime; }
           
      private:
      
@@ -119,8 +121,7 @@ class TrapezoidalVelocity : public TrajectoryBase
          * @param time The point at which to evaluate the state.
          * @return A State data structure containing the position, velocity, and acceleration.
          */
-        inline
-        State
+        RobotLibrary::Trajectory::State
         query_state(const double &time);
         
     private:
@@ -129,6 +130,6 @@ class TrapezoidalVelocity : public TrajectoryBase
         
 };                                                                                                  // Semicolon required after class declaration
 
-} }
+} } // namespace
 
 #endif

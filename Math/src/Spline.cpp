@@ -2,7 +2,7 @@
  * @file    Spline.cpp
  * @author  Jon Woolfrey
  * @email   jonathan.woolfrey@gmail.com
- * @date    February 2025
+ * @date    April 2025
  * @version 1.0
  * @brief   Represents a series of polynomials connecting several points.
  * 
@@ -17,7 +17,7 @@
  * @see https://github.com/Woolfrey/software_robot_library for more information.
  */
  
-#include "Math/Spline.h"
+#include <Math/Spline.h>
 
 namespace RobotLibrary { namespace Math {
 
@@ -86,4 +86,4 @@ Spline::evaluate_point(const double &input)
     return this->_polynomial.back().evaluate_point(this->_points.back());
 }
 
-} }
+} } // namespace

@@ -2,7 +2,7 @@
  * @file    KinematicTree.cpp
  * @author  Jon Woolfrey
  * @email   jonathan.woolfrey@gmail.com
- * @date    February 2025
+ * @date    April 2025
  * @version 1.0
  * @brief   A class for a multi rigid body system of branching serial link structures.
  * 
@@ -18,7 +18,7 @@
  * @see https://github.com/Woolfrey/software_robot_library for more information.
  */
  
-#include "Model/KinematicTree.h"
+#include <Model/KinematicTree.h>
 #include <deque>
 
 namespace RobotLibrary { namespace Model {
@@ -29,6 +29,7 @@ namespace RobotLibrary { namespace Model {
 KinematicTree::KinematicTree(const std::string &pathToURDF)
 {
      using namespace Eigen;                                                                         // Eigen::Matrix, Eigen::Vector
+     using namespace RobotLibrary::Model;                                                           // ReferenceFrame, Link, Pose
      using namespace std;                                                                           // std::string, std::map
      using namespace tinyxml2;                                                                      // tinyxml2::XMLDocument, tinyxml2::XMLElement
 
@@ -127,7 +128,7 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
                double damping       = 1.0;
                double effortLimit   = 10;
                double friction      = 0.0;
-               Limits positionLimit = {-M_PI, M_PI};                                                // Data structure in Joint.h
+               RobotLibrary::Model::Limits positionLimit = {-M_PI, M_PI};                                                // Data structure in Joint.h
                double velocityLimit = 100*2*M_PI/60;
                Vector3d axis        = {0,0,1};
                Pose origin(Vector3d::Zero(), Quaterniond(1,0,0,0));
@@ -320,9 +321,11 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 bool KinematicTree::update_state(const Eigen::VectorXd &jointPosition,
                                  const Eigen::VectorXd &jointVelocity,
-                                 const Pose &basePose,
+                                 const RobotLibrary::Model::Pose &basePose,
                                  const Eigen::Vector<double,6> &baseTwist)
 {
+    using namespace RobotLibrary::Model;
+    
     if(jointPosition.size() != this->_numberOfJoints || jointVelocity.size() != this->_numberOfJoints)
     {
         std::cerr << "[ERROR] [KINEMATIC TREE] update_state(): "
@@ -435,9 +438,9 @@ KinematicTree::jacobian(ReferenceFrame *frame)
  //                            Compute the Jacobian to a given point                              //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 Eigen::Matrix<double, 6, Eigen::Dynamic>
-KinematicTree::jacobian(Link *link,                                                                 // Starting point in the kinematic tree
+KinematicTree::jacobian(RobotLibrary::Model::Link *link,                                            // Starting point in the kinematic tree
                         const Eigen::Vector3d &point,                                               // A point in the given joint frame
-                        const unsigned int    &numberOfColumns)                                     // Must be less than or equal to number of joints in model
+                        const unsigned int &numberOfColumns)                                        // Must be less than or equal to number of joints in model
 {
      // Whitney, D. E. (1972)
      // "The mathematics of coordinated control of prosthetic arms and manipulators"
@@ -499,6 +502,7 @@ KinematicTree::time_derivative(const Eigen::Matrix<double,6,Eigen::Dynamic> &jac
      // Springer
      
      Eigen::Matrix<double,6,Eigen::Dynamic> Jdot(6,jacobianMatrix.cols());
+     
      Jdot.setZero();
 
      for(int i = 0; i < jacobianMatrix.cols(); ++i)
@@ -637,10 +641,10 @@ KinematicTree::jacobian(const std::string &frameName)
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                         Get the pose of a reference frame on the robot                         //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-Pose
+RobotLibrary::Model::Pose
 KinematicTree::frame_pose(const std::string &frameName)
 {
-     ReferenceFrame *frame = find_frame(frameName);                                                 // Search the model
+     RobotLibrary::Model::ReferenceFrame *frame = find_frame(frameName);                            // Search the model
      
      return frame->link->pose()*frame->relativePose;                                                // Return pose relative to base/global frame
 }
@@ -648,7 +652,7 @@ KinematicTree::frame_pose(const std::string &frameName)
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                                 Return a pointer to a link                                     //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-Link*
+RobotLibrary::Model::Link*
 KinematicTree::link(const unsigned int &linkNumber)
 {
    if(linkNumber >= this->_link.size())
@@ -663,7 +667,7 @@ KinematicTree::link(const unsigned int &linkNumber)
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                        Find a reference frame on the tree by name                              //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-ReferenceFrame*
+RobotLibrary::Model::ReferenceFrame*
 KinematicTree::find_frame(const std::string &frameName)
 {
    auto container = this->_frameList.find(frameName);                                               // Find the frame in the list
@@ -720,4 +724,4 @@ KinematicTree::char_to_vector(const char* character)
     return Eigen::Vector3d(numberAsVector.data());                                                  // Return the extracted data
 }
 
-} }
+} } // namespace

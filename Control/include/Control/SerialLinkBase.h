@@ -1,8 +1,8 @@
 /**
- * @file    SerialKinematicControl.h
+ * @file    SerialLinkBase.h
  * @author  Jon Woolfrey
  * @email   jonathan.woolfrey@gmail.com
- * @date    February 2025
+ * @date    April 2025
  * @version 1.0
  * @brief   A base class providing a standardised interface for all serial link robot arm controllers.
  * 
@@ -18,9 +18,10 @@
  * @see https://github.com/Woolfrey/software_simple_qp for the optimisation algorithm used in the control.
  */
 
-#ifndef SERIAL_LINK_BASE_H_
-#define SERIAL_LINK_BASE_H_
+#ifndef SERIAL_LINK_BASE_H
+#define SERIAL_LINK_BASE_H
 
+#include <Control/DataStructures.h>
 #include <Model/KinematicTree.h>                                                                    // Computes the kinematics and dynamics
 #include <Math/MathFunctions.h>                                                                     // Helper functions               
 #include <Math/QPSolver.h>                                                                          // Convex optimisation methods
@@ -29,37 +30,6 @@
 #include <memory>                                                                                   // For std::shared_ptr
 
 namespace RobotLibrary { namespace Control {
-
-/**
- * @brief A data structure for passing control parameters to the SerialLinkBase class in a single argument.
- */
-struct Parameters
-{
-    // NOTE: These are for the control class itself:
-    Parameters() = default;                                                                         ///< This enables default options
-    
-    double controlFrequency     = 100.0;                                                            ///< Rate at which control loop operates.
-    double jointPositionGain    = 10.0;                                                             ///< Scales the position error feedback  
-    double jointVelocityGain    = 1.0;                                                              ///< Scales the velocity error feedback
-    double minManipulability    = 1e-04;                                                            ///< Threshold for singularity avoidance
-    double maxJointAcceleration = 10.0;                                                             ///< Limits joint acceleration
-    
-    Eigen::Matrix<double,6,6> cartesianStiffness = (Eigen::MatrixXd(6,6) << 10.0,  0.0,  0.0, 0.0, 0.0, 0.0,
-                                                                             0.0, 10.0,  0.0, 0.0, 0.0, 0.0,
-                                                                             0.0,  0.0, 10.0, 0.0, 0.0, 0.0, 
-                                                                             0.0,  0.0,  0.0, 2.0, 0.0, 0.0,
-                                                                             0.0,  0.0,  0.0, 0.0, 2.0, 0.0,
-                                                                             0.0,  0.0,  0.0, 0.0, 0.0, 2.0).finished(); ///< Scales pose error feedback
-                                                                             
-    Eigen::Matrix<double,6,6> cartesianDamping = (Eigen::MatrixXd(6,6) << 1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                                                                          0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
-                                                                          0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 
-                                                                          0.0, 0.0, 0.0, 0.2, 0.0, 0.0,
-                                                                          0.0, 0.0, 0.0, 0.0, 0.2, 0.0,
-                                                                          0.0, 0.0, 0.0, 0.0, 0.0, 0.2).finished(); ///< Scales twist error feedback                                                                                                                        
-                                                                          
-    SolverOptions<double> qpsolver = SolverOptions<double>();                                       ///< Parameters for the underlying QP solver
-};
 
 /**
  * @brief A class that provides a standard interface for all serial link robot arm controllers.
@@ -75,7 +45,7 @@ class SerialLinkBase : public QPSolver<double>
 		 */
 		SerialLinkBase(std::shared_ptr<RobotLibrary::Model::KinematicTree> model,
 		               const std::string &endpointName,
-		               const Parameters &paramters = Parameters());
+		               const RobotLibrary::Control::Parameters &parameters = Parameters());
 		
 		/**
 		 * @brief Compute the required joint motion to achieve the specified endpoint motion.
@@ -253,6 +223,6 @@ class SerialLinkBase : public QPSolver<double>
 		compute_control_limits(const unsigned int &jointNumber) = 0;
 };                                                                                                  // Semicolon needed after a class declaration
 
-} }
+} } // namespace
 
 #endif

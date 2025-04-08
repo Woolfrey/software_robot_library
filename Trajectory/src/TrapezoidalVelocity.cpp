@@ -2,7 +2,7 @@
  * @file    TrapezoidalVelocity.h
  * @author  Jon Woolfrey
  * @email   jonathan.woolfrey@gmail.com
- * @date    February 2025
+ * @date    April 2025
  * @version 1.0
  * @brief   A class with a trapezoidal velocity profile.
  * 
@@ -16,7 +16,7 @@
  * @see https://github.com/Woolfrey/software_robot_library for more information.
  */
  
-#include "Trajectory/TrapezoidalVelocity.h"
+#include <Trajectory/TrapezoidalVelocity.h>
 #include <vector>
 
 namespace RobotLibrary { namespace Trajectory {
@@ -46,23 +46,23 @@ TrapezoidalBase::TrapezoidalBase(const Eigen::VectorXd &startPosition,
     }
      
     // Assign the initial values in the base class
-    this->_dimensions = startPosition.size();
+    _dimensions = startPosition.size();
 
-    this->_startPoint.position     = startPosition;
-    this->_startPoint.velocity     = Eigen::VectorXd::Zero(this->_dimensions);
-    this->_startPoint.acceleration = Eigen::VectorXd::Zero(this->_dimensions);
+    _startPoint.position     = startPosition;
+    _startPoint.velocity     = Eigen::VectorXd::Zero(_dimensions);
+    _startPoint.acceleration = Eigen::VectorXd::Zero(_dimensions);
 
-    this->_endPoint.position     = endPosition;
-    this->_endPoint.velocity     = Eigen::VectorXd::Zero(this->_dimensions);
-    this->_endPoint.acceleration = Eigen::VectorXd::Zero(this->_dimensions);
+    _endPoint.position     = endPosition;
+    _endPoint.velocity     = Eigen::VectorXd::Zero(_dimensions);
+    _endPoint.acceleration = Eigen::VectorXd::Zero(_dimensions);
 
-    this->_startTime = startTime;
+    _startTime = startTime;
 
-    double normaliser = -1;                                                               // Needed to scale velocity to be dimensionless
+    double normaliser = -1;                                                                         // Needed to scale velocity to be dimensionless
 
-    double vel = maxVel;                                                                  // Temporary placeholder
+    double vel = maxVel;                                                                            // Temporary placeholder
 
-    for(int i = 0; i < this->_dimensions; i++)
+    for(int i = 0; i < _dimensions; i++)
     {
         double distance = abs(startPosition(i) - endPosition(i));                                   // Magnitude of distance between points
       
@@ -73,64 +73,63 @@ TrapezoidalBase::TrapezoidalBase(const Eigen::VectorXd &startPosition,
         vel = (vel > temp) ? temp : vel;                                                            // Ensure max velocity does not exceed acceleration, distance constraints
     }
 
-    this->_normalisedVel = vel/normaliser;                                                          // Need to normalise so we can scale between 0 and 1
+    _normalisedVel = vel/normaliser;                                                                // Need to normalise so we can scale between 0 and 1
 
-    this->_normalisedAcc = maxAccel/normaliser;                                                     // Scale the acceleration to match the velocity
+    _normalisedAcc = maxAccel/normaliser;                                                           // Scale the acceleration to match the velocity
 
-    this->_rampTime = vel/maxAccel;                                                                 // Length of time to accelerate to max speed
+    _rampTime = vel/maxAccel;                                                                       // Length of time to accelerate to max speed
 
-    this->_rampDistance = 0.5*this->_normalisedAcc*this->_rampTime*this->_rampTime;                 // s = 0.5*a*t^2
+    _rampDistance = 0.5*_normalisedAcc*_rampTime*_rampTime;                                         // s = 0.5*a*t^2
 
-    this->_coastTime = (1.0 - 2*this->_rampDistance)/this->_normalisedVel;                          // Time spent moving at max speed
+    _coastTime = (1.0 - 2*_rampDistance)/_normalisedVel;                          // Time spent moving at max speed
 
-    this->_coastDistance = this->_normalisedVel*this->_coastTime;                                   // Distance travelled moving at max speed
+    _coastDistance = _normalisedVel*_coastTime;                                   // Distance travelled moving at max speed
 
-    this->_endTime = this->_startTime + 2*this->_rampTime + this->_coastTime;                       // Total time passed
+    _endTime = _startTime + 2*_rampTime + _coastTime;                       // Total time passed
 }
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                            Get the desired state for the given time                            //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-inline
-State 
+RobotLibrary::Trajectory::State 
 TrapezoidalBase::query_state(const double &time)
 {
-         if(time <= this->_startTime) return this->_startPoint;
-    else if(time >= this->_endTime)   return this->_endPoint;
+         if(time <= _startTime) return _startPoint;
+    else if(time >= _endTime)   return _endPoint;
     else
     {
-        State state;                                                                                // Value to be returned
+        RobotLibrary::Trajectory::State state;                                                      // Value to be returned
         
-        double elapsedTime = time - this->_startTime;                                               // As it says
+        double elapsedTime = time - _startTime;                                                     // As it says
 
         double s, sd, sdd;                                                                          // Interpolating scalars
 
-        if(elapsedTime < this->_rampTime)
+        if(elapsedTime < _rampTime)
         {
-              s = this->_normalisedAcc*elapsedTime*elapsedTime/2.0;
-             sd = this->_normalisedAcc*elapsedTime;
-            sdd = this->_normalisedAcc;
+              s = _normalisedAcc*elapsedTime*elapsedTime/2.0;
+             sd = _normalisedAcc*elapsedTime;
+            sdd = _normalisedAcc;
         }
-        else if(elapsedTime < this->_rampTime + this->_coastTime)
+        else if(elapsedTime < _rampTime + _coastTime)
         {
-              s = this->_rampDistance + this->_normalisedVel*(elapsedTime - this->_rampTime);
-             sd = this->_normalisedVel;
+              s = _rampDistance + _normalisedVel*(elapsedTime - _rampTime);
+             sd = _normalisedVel;
             sdd = 0.0;
         }
         else
         {
-            double t = elapsedTime - this->_coastTime - this->_rampTime;
+            double t = elapsedTime - _coastTime - _rampTime;
            
-              s =  this->_rampDistance  + this->_coastDistance + this->_normalisedVel*t - this->_normalisedAcc*t*t/2.0;
-             sd =  this->_normalisedVel - this->_normalisedAcc*t;
-            sdd = -this->_normalisedAcc;
+              s =  _rampDistance  + _coastDistance + _normalisedVel*t - _normalisedAcc*t*t/2.0;
+             sd =  _normalisedVel - _normalisedAcc*t;
+            sdd = -_normalisedAcc;
         }
 
         // Interpolate the state
 
-        state.position     = (1.0 - s)*this->_startPoint.position + s*this->_endPoint.position;
-        state.velocity     =  sd*(this->_endPoint.position - this->_startPoint.position);
-        state.acceleration = sdd*(this->_endPoint.position - this->_startPoint.position);
+        state.position     = (1.0 - s)*_startPoint.position + s*_endPoint.position;
+        state.velocity     =  sd*(_endPoint.position - _startPoint.position);
+        state.acceleration = sdd*(_endPoint.position - _startPoint.position);
         
         return state;
     }
@@ -154,34 +153,33 @@ TrapezoidalVelocity::TrapezoidalVelocity(const std::vector<Eigen::VectorXd> &way
     
     for(int i = 0; i < waypoints.size()-1; i++)                                                     // There are n-1 trajectories for n waypoints
     {
-        this->_trajectories.emplace_back(waypoints[i], waypoints[i+1],
+        _trajectories.emplace_back(waypoints[i], waypoints[i+1],
                                          maxVelocity, maxAcceleration, start);
         
-        start = this->_trajectories.back().end_time();                                              // Start of next trajectory is the end of this one
+        start = _trajectories.back().end_time();                                              // Start of next trajectory is the end of this one
 
     }
     
-    this->_startTime = startTime;
-    this->_endTime = start;
+    _startTime = startTime;
+    _endTime = start;
 }
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                            Get the desired state for the given time                            //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-inline
-State
+RobotLibrary::Trajectory::State
 TrapezoidalVelocity::query_state(const double &time)
 {
-    for(int i = 0; i < this->_trajectories.size()-1; i++)
+    for(int i = 0; i < _trajectories.size()-1; i++)
     {
-        if(time < this->_trajectories[i].end_time())
+        if(time < _trajectories[i].end_time())
         {
-            return this->_trajectories[i].query_state(time);                                        // Must be on the ith trajectory
+            return _trajectories[i].query_state(time);                                        // Must be on the ith trajectory
         }
     }
     
     // else
-    return this->_trajectories.back().query_state(time);                                            // Final trajectory
+    return _trajectories.back().query_state(time);                                            // Final trajectory
 }
 
 } }

@@ -2,7 +2,7 @@
  * @file    RigidBody.cpp
  * @author  Jon Woolfrey
  * @email   jonathan.woolfrey@gmail.com
- * @date    February 2025
+ * @date    April 2025
  * @version 1.0
  * @brief   A class for describing the kinematics & dynamics of a single, ridid body.
  * 
@@ -16,7 +16,7 @@
  * @see https://github.com/Woolfrey/software_robot_library for more information.
  */
  
-#include "Model/RigidBody.h"
+#include <Model/RigidBody.h>
 
 namespace RobotLibrary { namespace Model {
  
@@ -48,22 +48,22 @@ RigidBody::RigidBody(const std::string     &name,
  //                     Update the pose and velocity of this rigid body                           //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 void
-RigidBody::update_state(const Pose &pose,
+RigidBody::update_state(const RobotLibrary::Model::Pose &pose,
                         const Eigen::Vector<double,6> &twist)
 {
-     this->_pose = pose;                                                                            // Update the pose of this object
+     _pose = pose;                                                                                  // Update the pose of this object
      
-     this->_centerOfMass = this->_pose*this->_localCenterOfMass;                                    // Point transformation to global frame
+     _centerOfMass = _pose*_localCenterOfMass;                                                      // Point transformation to global frame
      
      Eigen::Matrix3d R = pose.rotation();                                                           // Get the rotation component as SE(3)
      
-     this->_inertia = R*this->_localInertia*R.transpose();                                          // Rotate inertia to global reference frame
+     _inertia = R*_localInertia*R.transpose();                                                      // Rotate inertia to global reference frame
      
-     this->_twist = twist;                                                                          // Update the linear & angular velocity
+     _twist = twist;                                                                                // Update the linear & angular velocity
      
-     Eigen::Vector3d w = this->_twist.tail(3);                                                      // Needed so we can do cross product
+     Eigen::Vector3d w = _twist.tail(3);                                                            // Needed so we can do cross product
      
-     for(int i = 0; i < 3; i++) this->_inertiaDerivative.col(i) = w.cross(this->_inertia.col(i));   // Perform cross product on every column
+     for(int i = 0; i < 3; i++) _inertiaDerivative.col(i) = w.cross(_inertia.col(i));               // Perform cross product on every column
      
 }
 
@@ -72,9 +72,9 @@ RigidBody::update_state(const Pose &pose,
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 void
 RigidBody::combine_inertia(const RigidBody &other,
-                           const Pose      &pose)
+                           const RobotLibrary::Model::Pose &pose)
 {
-     this->_mass += other.mass();                                                                   // Add the masses together
+     _mass += other.mass();                                                                         // Add the masses together
 
      Eigen::Matrix3d R = pose.rotation();                                                           // Get the rotation matrix
      
@@ -84,7 +84,7 @@ RigidBody::combine_inertia(const RigidBody &other,
                              t(2),    0 , -t(0),
                             -t(1),  t(0),    0;                                                     // As a skew-symmetric matrix
      
-     this->_localInertia += R*other.inertia()*R.transpose() - other.mass()*S*S;                     // From the parallel axis theorem
+     _localInertia += R*other.inertia()*R.transpose() - other.mass()*S*S;                           // From the parallel axis theorem
 }
 
-} }
+} } // namespace

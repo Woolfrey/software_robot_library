@@ -2,7 +2,7 @@
  * @file    Joint.h
  * @author  Jon Woolfrey
  * @email   jonathan.woolfrey@gmail.com
- * @date    February 2025
+ * @date    April 2025
  * @version 1.0
  * @brief   A class that describes an actuated joint on a robot.
  * 
@@ -16,9 +16,10 @@
  * @see https://github.com/Woolfrey/software_robot_library for more information.
  */
 
-#ifndef JOINT_H_
-#define JOINT_H_
+#ifndef JOINT_H
+#define JOINT_H
 
+#include <Model/DataStructures.h>
 #include <Model/Pose.h>
 
 #include <Eigen/Core>
@@ -26,16 +27,6 @@
 #include <vector>
 
 namespace RobotLibrary { namespace Model {
-
-/**
- * @brief A data structure for joint limits.
- *        It could represent position, velocity, acceleration, or torque depending on the context.
- */
-struct Limits
-{
-     double lower;                                                                                  ///< Upper limit
-     double upper;                                                                                  ///< Lower limit
-};                                                                                                  // Semicolon needed after declaring a data structure
 
 /**
  * @brief A class representing an actuated joint on a mechanism.
@@ -50,12 +41,12 @@ class Joint
            * @param axis A unit vector defining the axis of actuation.
            * @param positionLimit A 2D array specifying the upper and lower limits for the joint.
            */
-          Joint(const std::string             &name,
-                const std::string             &type,
-                const Eigen::Vector<double,3> &axis,
-                const Limits                  &positionLimit)
+          Joint(const std::string                 &name,
+                const std::string                 &type,
+                const Eigen::Vector<double,3>     &axis,
+                const RobotLibrary::Model::Limits &positionLimit)
           :
-          Joint(name, type, axis, Pose(), positionLimit, 100*2*M_PI/60, 10.0, 1.0, 0.0) {}
+          Joint(name, type, axis, RobotLibrary::Model::Pose(), positionLimit, 100*2*M_PI/60, 10.0, 1.0, 0.0) {}
           
           /**
            * @brief Full constructor for a Joint object.
@@ -69,15 +60,15 @@ class Joint
            * @param damping Viscous friction for the joint (N*s/m^2 or Nm*s/rad^2).
            * @param friction The static friction of the joint.
            */
-          Joint(const std::string             &name,
-                const std::string             &type,
-                const Eigen::Vector<double,3> &axis,
-                const Pose                    &origin,
-                const Limits                  &positionLimit,
-                const double                  &speedLimit,
-                const double                  &effortLimit,
-                const double                  &damping,
-                const double                  &friction);
+          Joint(const std::string                 &name,
+                const std::string                 &type,
+                const Eigen::Vector<double,3>     &axis,
+                const RobotLibrary::Model::Pose   &origin,
+                const RobotLibrary::Model::Limits &positionLimit,
+                const double                      &speedLimit,
+                const double                      &effortLimit,
+                const double                      &damping,
+                const double                      &friction);
           
           /**
            * @brief Determine if a joint is defined as "fixed" in the URDF
@@ -108,13 +99,13 @@ class Joint
            * @param position The joint position (radians or metres)
            * @return The local pose origin.
            */
-          Pose position_offset(const double &position);
+          RobotLibrary::Model::Pose position_offset(const double &position);
           
           /**
            * @brief Returns the pose of this joint relative to its parent link.
-           * @return A RobotLibrary::Model::Pose object
+           * @return A RobotLibrary::Model::RobotLibrary::Model::Pose object
            */
-          Pose origin() const { return this->_origin; }
+          RobotLibrary::Model::Pose origin() const { return this->_origin; }
           
           /**
            * @brief Find out what type of joint this is (revolute, prismatic, fixed)
@@ -132,18 +123,17 @@ class Joint
            * @brief Extends the pose of this joint relative to its parent link in a kinematic chain.
            * @param other The additional transformation before this one.
            */
-          void extend_origin(const Pose &other)
+          void extend_origin(const RobotLibrary::Model::Pose &other)
           { 
-               Pose temp = other;
+               RobotLibrary::Model::Pose temp = other;
                this->_origin = temp*this->_origin;
           } 
           
           /**
            * @brief Get the position limits for this joint.
-           * @param lower Argument in which the lower limit will be stored.
-           * @param upper Argument in which the upper limit will be stored.
+           * @return A data structure with the lower & upper limits.
            */
-          Limits position_limits() const { return this->_positionLimit; }
+          RobotLibrary::Model::Limits position_limits() const { return this->_positionLimit; }
           
           /**
            * @brief Get the maximum speed for this joint.
@@ -179,9 +169,9 @@ class Joint
           
           double _speedLimit;                                                                       ///< The maximum velocity of the joint actuator.s
 
-          Limits _positionLimit;                                                                    ///< Lower and upper limits on the joint position
+          RobotLibrary::Model::Limits _positionLimit;                                               ///< Lower and upper limits on the joint position
                     
-          Pose _origin;                                                                             ///< Pose with respect to joint of parent link
+          RobotLibrary::Model::Pose _origin;                                                        ///< Pose with respect to joint of parent link
            
           std::string _type = "unknown";                                                            ///< Joint type as a string
           
@@ -189,6 +179,6 @@ class Joint
           
 };                                                                                                  // Semicolon needed after a class declaration
 
-}}                                                                                                  // End namespace
+} }                                                                                                 // End namespace
 
 #endif                                                                                              //
