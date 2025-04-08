@@ -2,7 +2,7 @@
  * @file    SplineTrajectory.h
  * @author  Jon Woolfrey
  * @email   jonathan.woolfrey@gmail.com
- * @date    February 2025
+ * @date    April 2025
  * @version 1.0
  * @brief   This class gives a spline as a function of time over a finite series of points.
  * 
@@ -16,8 +16,8 @@
  * @see https://github.com/Woolfrey/software_robot_library for more information.
  */
  
-#ifndef SPLINETRAJECTORY_H_
-#define SPLINETRAJECTORY_H_
+#ifndef SPLINE_TRAJECTORY_H_
+#define SPLINE_TRAJECTORY_H_
 
 #include <Math/MathFunctions.h>
 #include <Math/Spline.h>
@@ -27,7 +27,7 @@ namespace RobotLibrary { namespace Trajectory {
 /**
  * @brief This class gives a spline as a function of time over a finite series of points.
  */
-class SplineTrajectory : public TrajectoryBase
+class SplineTrajectory : public RobotLibrary::Trajectory::TrajectoryBase
 {
     public:
         
@@ -42,9 +42,9 @@ class SplineTrajectory : public TrajectoryBase
          * @param times The time at which to pass through each waypoint.
          * @param polynomialOrder The type of polynomial interpolation to use.
          */
-        SplineTrajectory(const std::vector<State>  &waypoints,
+        SplineTrajectory(const std::vector<RobotLibrary::Trajectory::State> &waypoints,
                          const std::vector<double> &times,
-                         const unsigned int        &polynomialOrder);
+                         const unsigned int &polynomialOrder);
         
         /**
          * @brief A basic constructor for a cubic spline where the waypoints and start velocity are given.
@@ -63,7 +63,7 @@ class SplineTrajectory : public TrajectoryBase
          * @param time The point at which to evaluate the trajectory.
          * @return The position, velocity, acceleration as a State data structure.
          */
-        State
+        RobotLibrary::Trajectory::State
         query_state(const double &time);
     
     private:
@@ -72,6 +72,6 @@ class SplineTrajectory : public TrajectoryBase
         
 };                                                                                                  // Semicolon needed after a class declarationS
 
-} }
+} } // namespace
 
 #endif

@@ -16,24 +16,16 @@
  * @see https://github.com/Woolfrey/software_robot_library for more information.
  */
 
-#ifndef MATHFUNCTIONS_H_
-#define MATHFUNCTIONS_H_
+#ifndef MATH_FUNCTIONS_H
+#define MATH_FUNCTIONS_H
+
+#include <Math/DataStructures.h>
 
 #include <Eigen/Dense>                                                                               // Eigen::Vector, Eigen::Matrix etc
 #include <iostream>
 #include <vector>
 
 namespace RobotLibrary { namespace Math {
-
-/**
- * A data structure for holding the results of the QR decomposition.
- */
-struct QRDecomposition
-{
-     Eigen::MatrixXd Q;                                                                             ///< An orthogonal matrix such that Q'*Q = I
-     Eigen::MatrixXd R;                                                                             ///< An upper-triangular matrix 
-                                                                 
-};   
 
 /**
  * It's obvious what this function does.

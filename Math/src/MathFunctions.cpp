@@ -2,7 +2,7 @@
  * @file    MathFunctions.cpp
  * @author  Jon Woolfrey
  * @email   jonathan.woolfrey@gmail.com
- * @date    February 2025
+ * @date    April 2025
  * @version 1.0
  * @brief   Useful math functions for robot kinematics & control.
  * 

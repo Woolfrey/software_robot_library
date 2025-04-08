@@ -2,7 +2,7 @@
  * @file    Joint.cpp
  * @author  Jon Woolfrey
  * @email   jonathan.woolfrey@gmail.com
- * @date    February 2025
+ * @date    April 2025
  * @version 1.0
  * @brief   A class that describes an actuated joint on a robot.
  * 
@@ -16,23 +16,22 @@
  * @see https://github.com/Woolfrey/software_robot_library for more information.
  */
 
-
-#include "Model/Joint.h"
+#include <Model/Joint.h>
 
 namespace RobotLibrary { namespace Model {
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                                          Constructor                                           //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-Joint::Joint(const std::string             &name,
-             const std::string             &type,
-             const Eigen::Vector<double,3> &axis,
-             const Pose                    &origin,
-             const Limits                  &positionLimit,
-             const double                  &speedLimit,
-             const double                  &effortLimit,
-             const double                  &damping,
-             const double                  &friction)
+Joint::Joint(const std::string                  &name,
+             const std::string                  &type,
+             const Eigen::Vector<double,3>      &axis,
+             const RobotLibrary::Model::Pose    &origin,
+             const RobotLibrary::Model::Limits  &positionLimit,
+             const double                       &speedLimit,
+             const double                       &effortLimit,
+             const double                       &damping,
+             const double                       &friction)
              :
              _name(name),
              _type(type),
@@ -93,7 +92,7 @@ Joint::Joint(const std::string             &name,
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //                       Get the local transform due to the joint position                       //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-Pose
+RobotLibrary::Model::Pose
 Joint::position_offset(const double &position)
 {
      // Make sure the values are within the limits
@@ -115,13 +114,13 @@ Joint::position_offset(const double &position)
      // Compute the transform based on the type of joint
      if(this->_isRevolute)
      {
-          return Pose(Eigen::Vector3d::Zero(),
-                      Eigen::Quaterniond(cos(0.5*position),
-                                         sin(0.5*position)*this->_axis(0),
-                                         sin(0.5*position)*this->_axis(1),
-                                         sin(0.5*position)*this->_axis(2)));
+          return RobotLibrary::Model::Pose(Eigen::Vector3d::Zero(),
+                                           Eigen::Quaterniond(cos(0.5*position),
+                                                              sin(0.5*position)*this->_axis(0),
+                                                              sin(0.5*position)*this->_axis(1),
+                                                              sin(0.5*position)*this->_axis(2)));
      }
-     else     return Pose(position*this->_axis, Eigen::Quaterniond(1, 0, 0, 0));
+     else     return RobotLibrary::Model::Pose(position*this->_axis, Eigen::Quaterniond(1, 0, 0, 0));
 }
 
-} }
+} } // namespace

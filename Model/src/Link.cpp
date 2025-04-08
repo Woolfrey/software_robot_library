@@ -2,7 +2,7 @@
  * @file    Link.cpp
  * @author  Jon Woolfrey
  * @email   jonathan.woolfrey@gmail.com
- * @date    February 2025
+ * @date    April 2025
  * @version 1.0
  * @brief   A class that combines a RobotLibrary::Model::RigidyBody object with a RobotLibrary::Model::Joint object.
  * 
@@ -16,7 +16,7 @@
  * @see https://github.com/Woolfrey/software_robot_library for more information.
  */
  
-#include "Model/Link.h"
+#include <Model/Link.h>
 
 namespace RobotLibrary { namespace Model {
 
@@ -33,7 +33,7 @@ Link::add_child_link(Link *child)
           return false;
      }
      
-     this->_childLinks.push_back(child);
+     _childLinks.push_back(child);
      
      return true;
 }
@@ -51,7 +51,7 @@ Link::set_parent_link(Link *parent)
           return false;
      }
 
-     this->_parentLink = parent;                                                                    // Set pointer to parent link
+     _parentLink = parent;                                                                          // Set pointer to parent link
      
      return parent->add_child_link(this);                                                           // Add this link as child to the parent
 }
@@ -62,7 +62,7 @@ Link::set_parent_link(Link *parent)
 void
 Link::merge(const Link &otherLink)
 {
-     RigidBody ::combine_inertia(otherLink, otherLink.joint().origin());                   // Add the inertia of the other link to this one
+     RobotLibrary::Model::RigidBody::combine_inertia(otherLink, otherLink.joint().origin());        // Add the inertia of the other link to this one
      
      for(auto currentLink : otherLink.child_links())                                                // Cycle through all links attached to other
      {
@@ -72,11 +72,11 @@ Link::merge(const Link &otherLink)
      }
      
      // Delete the merged link from the list of child links
-     for(int i = 0; i < this->_childLinks.size(); i++)
+     for(int i = 0; i < _childLinks.size(); i++)
      {
-          if(this->_childLinks[i]->name() == otherLink.name())
+          if(_childLinks[i]->name() == otherLink.name())
           {
-               this->_childLinks.erase(this->_childLinks.begin()+i);    
+               _childLinks.erase(_childLinks.begin()+i);    
                break;
           }
      }
@@ -88,62 +88,62 @@ Link::merge(const Link &otherLink)
 bool
 Link::update_state(const double &jointPosition, const double &jointVelocity)
 {
-     if(this->_parentLink == nullptr)
+     if(_parentLink == nullptr)
      {
-          std::cerr << "[ERROR] [LINK] update_state(): The '" << this->_name << "' link has no parent link. "
+          std::cerr << "[ERROR] [LINK] update_state(): The '" << _name << "' link has no parent link. "
                     << "You need to call the update_state() method that specifies the "
                     << "relative pose and twist as arguments." << std::endl;
           
           return false;
      }
-     else return update_state(this->_parentLink->pose(), this->_parentLink->twist(), jointPosition, jointVelocity);
+     else return update_state(_parentLink->pose(), _parentLink->twist(), jointPosition, jointVelocity);
 }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //                             Update the kinematics of this link                                //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 bool
-Link::update_state(const Pose                    &previousPose,
-                   const Eigen::Vector<double,6> &previousTwist,
-                   const double                  &jointPosition,
-                   const double                  &jointVelocity)                            
+Link::update_state(const RobotLibrary::Model::Pose &previousPose,
+                   const Eigen::Vector<double,6>   &previousTwist,
+                   const double                    &jointPosition,
+                   const double                    &jointVelocity)                            
 {
-     if(not this->_joint.is_revolute() and not this->_joint.is_prismatic())
+     if(not _joint.is_revolute() and not _joint.is_prismatic())
      {
           std::cerr << "[ERROR] [LINK] update_state(): "
-                    << "The '" << this->_joint.name() << "' was " << this->_joint.type() << " "
+                    << "The '" << _joint.name() << "' was " << _joint.type() << " "
                     << "but expected revolute or prismatic." << std::endl;
           
           return false;
      }
      else
      {
-          this->_pose = previousPose * this->_joint.origin();                                       // Update pose of link in base frame
+          _pose = previousPose * _joint.origin();                                                   // Update pose of link in base frame
           
-          this->_jointAxis = (this->_pose.rotation()*this->_joint.axis()).normalized();             // Update axis of actuation in base frame
+          _jointAxis = (_pose.rotation()*_joint.axis()).normalized();                               // Update axis of actuation in base frame
 
           // NOTE: This can throw an error!
-          this->_pose *= this->_joint.position_offset(jointPosition);                               // Shouldn't this be on line 222? Did I write this???
+          _pose *= _joint.position_offset(jointPosition);                                           // Shouldn't this be on line 222? Did I write this???
  
-          this->_twist = previousTwist;                                                             // Propagate linear, angular velocity
+          _twist = previousTwist;                                                                   // Propagate linear, angular velocity
           
-          this->_twist.head(3) += Eigen::Vector3d(previousTwist.tail(3)).cross(this->_pose.translation() - previousPose.translation()); // Added linear velocity due to angular velocity
+          _twist.head(3) += Eigen::Vector3d(previousTwist.tail(3)).cross(_pose.translation() - previousPose.translation()); // Added linear velocity due to angular velocity
 
-               if(this->_joint.is_revolute())  this->_twist.tail(3) += jointVelocity * this->_jointAxis; // Add effect of joint motion
-          else if(this->_joint.is_prismatic()) this->_twist.head(3) += jointVelocity * this->_jointAxis;
+               if(_joint.is_revolute())  _twist.tail(3) += jointVelocity * _jointAxis;              // Add effect of joint motion
+          else if(_joint.is_prismatic()) _twist.head(3) += jointVelocity * _jointAxis;
 
-          this->_centerOfMass = this->_pose*this->_localCenterOfMass;                               // Update center of mass in base frame
+          _centerOfMass = _pose*_localCenterOfMass;                                                 // Update center of mass in base frame
 
-          Eigen::Matrix3d R = this->_pose.rotation();                                               // Get rotation as SO(3)
+          Eigen::Matrix3d R = _pose.rotation();                                                     // Get rotation as SO(3)
           
-          this->_inertia = R*this->_localInertia*R.transpose();                                     // Rotate moment of inertia to base frame
+          _inertia = R*_localInertia*R.transpose();                                                 // Rotate moment of inertia to base frame
           
-          Eigen::Vector3d w = this->_twist.tail(3);                                                 // Need to do this so we can call the cross() method below
+          Eigen::Vector3d w = _twist.tail(3);                                                       // Need to do this so we can call the cross() method below
           
-          for(int i = 0; i < 3; i++) this->_inertiaDerivative.col(i) = w.cross(this->_inertia.col(i)); // Compute time derivative of moment of inertia
+          for(int i = 0; i < 3; i++) _inertiaDerivative.col(i) = w.cross(_inertia.col(i));          // Compute time derivative of moment of inertia
           
           return true;
      }
 }
 
-} }
+} } // namespace

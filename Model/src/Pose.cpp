@@ -2,7 +2,7 @@
  * @file    Pose.cpp
  * @author  Jon Woolfrey
  * @email   jonathan.woolfrey@gmail.com
- * @date    February 2025
+ * @date    April 2025
  * @version 1.0
  * @brief   A class that describes the position & orientation of an object in 3D space.
  * 
@@ -17,7 +17,7 @@
  * @see https://github.com/Woolfrey/software_robot_library for more information.
  */
  
-#include "Model/Pose.h"
+#include <Model/Pose.h>
 
 namespace RobotLibrary { namespace Model {
 
@@ -97,4 +97,4 @@ Pose::operator* (const Eigen::Vector<double,3> &other)
      return this->_translation + this->_quaternion.toRotationMatrix()*other;
 }
 
-} }
+} } // namespace

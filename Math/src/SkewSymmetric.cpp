@@ -2,7 +2,7 @@
  * @file    SkewSymmetric.cpp
  * @author  Jon Woolfrey
  * @email   jonathan.woolfrey@gmail.com
- * @date    February 2025
+ * @date    April 2025
  * @version 1.0
  * @brief   Represents a 3D skew-symmetric matrix such that S^T = -S.
  * 
@@ -17,7 +17,7 @@
  * @see https://github.com/Woolfrey/software_robot_library for more information.
  */
 
-#include "Math/SkewSymmetric.h"
+#include <Math/SkewSymmetric.h>
 
 namespace RobotLibrary { namespace Math {
 

@@ -10,8 +10,8 @@
  * @see https://github.com/Woolfrey/software_simple_qp
  */
 
-#ifndef QPSOLVER_H_
-#define QPSOLVER_H_
+#ifndef QP_SOLVER_H
+#define QP_SOLVER_H
 
 #include <Eigen/Dense>                                                                              // Linear algebra and matrix decomposition
 #include <iostream>                                                                                 // cerr, cout
@@ -20,14 +20,26 @@
 /**
  * @brief A data structure for passing options to the QP solver in a single argument.
  */
- template <typename DataType = float>
- struct SolverOptions
- {
+template <typename DataType = float>
+struct SolverOptions
+{
     DataType barrierReductionRate = 1e-02;                                                          ///< Multiplier on the barrier size each step
     DataType initialBarrierScalar = 100;                                                            ///< For the log barrier function
-    DataType tolerance = 5e-03;                                                                     ///< Terminates solver when step size is below this value.
+    DataType stepSizeTolerance = 5e-03;                                                                     ///< Terminates solver when step size is below this value.
     unsigned int maxSteps = 20;                                                                     ///< Maximum number of iterations before terminating the algorithm
- };
+};
+
+/**
+ * @brief A data structure containing results of the optimisation.
+ */
+template <typename DataType = float>
+struct SolverResults
+{
+    unsigned int numberOfSteps = 1;                                                                 ///< Number of steps it took to find a solution
+    DataType finalStepSize     = std::numeric_limits<float>::max();                                 ///< The final step size at which the algorithm terminated
+    DataType objectiveFunction = std::numeric_limits<float>::max();                                 ///< The magnitude of the error for the problem
+    Eigen::Vector<DataType,Eigen::Dynamic> solution;                                                ///< The final / last solution when the solver was run
+};
 
 /**
  * @brief A class for solving convex optimisation problems.
@@ -38,22 +50,10 @@ class QPSolver
      public:
      
           /**
-<<<<<<< HEAD
-           * @brief Empty constructor.
-           */
-          QPSolver() {}
-=======
            * @brief Constructor.
            * @param options Parameters for the interior point algorithm.
            */
-          QPSolver(const SolverOptions<DataType> &options = SolverOptions<DataType>())
-          {
-            barrierReductionRate = options.barrierReductionRate;
-            initialBarrierScalar = options.initialBarrierScalar;
-            tol = options.tolerance;
-            maxSteps = options.maxSteps;
-          }
->>>>>>> devel
+          QPSolver(const SolverOptions<DataType> &options = SolverOptions<DataType>());
                
           /**
            * @brief Minimize 0.5*x'*H*x + x'*f, where x is the decision variable.
@@ -61,7 +61,8 @@ class QPSolver
            * @param f A vector.
            * @return The optimal solution for x.
            */
-          static Eigen::Vector<DataType,Eigen::Dynamic>
+          static
+          Eigen::Vector<DataType,Eigen::Dynamic>
           solve(const Eigen::Matrix<DataType, Eigen::Dynamic, Eigen::Dynamic> &H,
                 const Eigen::Vector<DataType, Eigen::Dynamic> &f);
      
@@ -72,39 +73,32 @@ class QPSolver
            * @param W A positive-definite weighting on the y values.
            * @return The vector x which returns the minimum norm || y - A*x ||
            */             
-          static Eigen::Vector<DataType, Eigen::Dynamic>
+          static
+          Eigen::Vector<DataType, Eigen::Dynamic>
           least_squares(const Eigen::Vector<DataType, Eigen::Dynamic> &y,
                         const Eigen::Matrix<DataType, Eigen::Dynamic, Eigen::Dynamic> &A,
                         const Eigen::Matrix<DataType, Eigen::Dynamic, Eigen::Dynamic> &W);
 
-          /**
-           * @brief Solve a least squares problem where the decision variable has more elements than the output.
-           *        The problem is of the form: min 0.5*(xd - x)'*W*(xd - x) subject to: A*x = y
-           * @param xd A desired value for the solution.
-           * @param W A weighting on the desired values / solution
-           * @param A The matrix for the linear equality constraint
-           * @param y Equality constraint vector
-           * @return The optimal solution for x.
-           */
-          static Eigen::Vector<DataType, Eigen::Dynamic>
+          static
+          Eigen::Vector<DataType, Eigen::Dynamic>
           redundant_least_squares(const Eigen::Vector<DataType, Eigen::Dynamic> &xd,
                                   const Eigen::Matrix<DataType, Eigen::Dynamic, Eigen::Dynamic> &W,
                                   const Eigen::Matrix<DataType, Eigen::Dynamic, Eigen::Dynamic> &A,
                                   const Eigen::Vector<DataType, Eigen::Dynamic> &y);
-                                                                   
           /**
-           * @brief Solve linear least squares with upper and lower bounds on the solution.
+           * @brief Solve an under-determined least squares poblem with lower and upper bounds on the solution.
            * @details The problem is of the form:
-           *          min 0.5*(y - A*x)'*W*(y - A*x)
-           *          subject to: xMin <= x <= x
-           *          This method uses an interior point algorithm to satisfy inequality constraints and thus requires a start point as an argument.
-           * @param y The vector component of the linear equation.
-           * @param A The matrix that maps x to y.
-           * @param xMin The lower bound on the decision variable
-           * @param xMax The upper bound on the decision variable.
-           * @param x0 A start point for the algorithm.
-           * @return The optimal solution within the constraints.
+           *          min 0.5*(y - A*x)^T*W*(y - A*x)
+           *          subject to: xMin <= x <= xMax
+           *          It uses an interior point solver and therefore requires an initial guess.
+           * @param y The image of x, or output of the system of equations.
+           * @param A The linear map from the input x to the output y.
+           * @param W A positive-definite weighting matrix on the error.
+           * @param xMin A lower bound for values for the solution.
+           * @param xMax An upper bound for values for the solution.
+           * @param x0 An initial guess for the feasible solution.
            */
+               
           Eigen::Vector<DataType, Eigen::Dynamic>
           constrained_least_squares(const Eigen::Vector<DataType, Eigen::Dynamic> &y,
                                     const Eigen::Matrix<DataType, Eigen::Dynamic, Eigen::Dynamic> &A,
@@ -112,7 +106,7 @@ class QPSolver
                                     const Eigen::Vector<DataType, Eigen::Dynamic> &xMin,
                                     const Eigen::Vector<DataType, Eigen::Dynamic> &xMax,
                                     const Eigen::Vector<DataType, Eigen::Dynamic> &x0);
-                       
+                      
           /**
            * @brief Solve a redundant least squares problem with upper and lower bounds on the solution.
            * @details The problem is of the form:
@@ -162,7 +156,7 @@ class QPSolver
                                     const Eigen::Vector<DataType, Eigen::Dynamic> &x0);
           
           /**
-           * @biref Solve a generic quadratic programming problem with inequality constraints.
+           * @brief Solve a generic quadratic programming problem with inequality constraints.
            * @details The problem is of the form:
            *          min 0.5*x'*H*x + x'*f
            *          subject to: B*x < z
@@ -180,58 +174,25 @@ class QPSolver
                 const Eigen::Matrix<DataType, Eigen::Dynamic, Eigen::Dynamic> &B,
                 const Eigen::Vector<DataType, Eigen::Dynamic> &z,
                 const Eigen::Vector<DataType, Eigen::Dynamic> &x0);
-          
+                
           /**
-           * @brief Set the tolerance for the step size in the interior point aglorithm.
-           * @details The algorithm terminates if alpha*dx < tolerance, where dx is the step and alpha is a scalar.
-           * @param tolerance As it says.
-           * @return Returns false if the input argument is invalid.
+           * @brief Apply options for the QP solver.
+           * @param options A custom data structure.
            */
-          bool set_tolerance(const DataType &tolerance);
-          
+           void
+           set_solver_options(const SolverOptions<DataType> &options);
+           
           /**
-           * @brief Set the maximum number of steps in the interior point algorithm before terminating.
-           * @param number As it says.
-           * @return Returns false if the input argument is invalid.
+           * @brief Obtain results for the last solved QP problem of the interior point method.
+           * @return A SolverResults stucture, with:
+           *         - Number of steps taken to find a solution
+           *         - Final step size
+           *         - Objective function
+           *         - Solution
            */
-          bool set_max_steps(const unsigned int &number);
-          
-          /**
-           * @brief Set the scalar for the constraint barriers in the interior point aglorithm.
-           * @details Inequality constraints are converted to a log barrier function. The scalar determines how steep the initial barriers are.
-           * @param scalar The initial scalar value when starting the interior point algorithm.
-           * @return Returns false if the argument was invalid.
-           */
-          bool set_barrier_scalar(const DataType &scalar);
-          
-          /**
-           * @brief Set the rate at which the constraint barriers are reduced in the interior point aglorithm.
-           * @details The barrier is reduced at a given rate / scale every step in the algorithm to safely approach constraints.
-           * @param rate A scalar < 1 which the barrier scalar is reduced by every step.
-           * @return Returns false if the argument is invalid.
-           */
-          bool set_barrier_reduction_rate(const DataType &rate);
-          
-          /**
-           * @brief Returns the step size alpha*||dx|| for the final iteration in the interior point algorithm.
-           */
-          DataType step_size() const { return this->stepSize; }
-          
-          /**
-           * @brief Returns the number of iterations it took to solve the interior point algorithm.
-           */
-          unsigned int num_steps() const { return this->numSteps; }
-          
-          /**
-           * @brief Returns the last solution from when the interior point algorithm was previously called.
-           */
-          Eigen::Vector<DataType, Eigen::Dynamic> last_solution() const { return this->lastSolution; }
-          
-          /**
-           * @brief Clears the last solution such that last_solution().size() == 0.
-           */
-          void clear_last_solution() { this->lastSolution.resize(0); }
-          
+          SolverResults<DataType>
+          results() const { return _results; }
+
           /**
            * @brief The interior point algorithm will use the dual method to solve a redundant QP problem.
            */
@@ -243,35 +204,13 @@ class QPSolver
           void use_primal();
           
      private:
-<<<<<<< HEAD
-          
-          DataType tol = 1e-02;                                                                     ///< Minimum value for the step size before terminating the interior point algorithm.
-         
-          DataType stepSize;                                                                        ///< Step size on the final iteration of the interior point algorithm.
-         
-          DataType barrierReductionRate = 1e-02;                                                    ///< Constraint barrier scalar is multiplied by this value every step in the interior point algorithm.
-         
-          DataType initialBarrierScalar = 100;                                                      ///< Starting value for the constraint barrier scalar in the interior point algorithm.
-          
-=======
 
-          DataType barrierReductionRate = 1e-02;                                                    ///< Constraint barrier scalar is multiplied by this value every step in the interior point algorithm.
-
-          DataType initialBarrierScalar = 100;                                                      ///< Starting value for the constraint barrier scalar in the interior point algorithm.
-                    
-          DataType tol = 1e-02;                                                                     ///< Minimum value for the step size before terminating the interior point algorithm.
-         
-          DataType stepSize;                                                                        ///< Step size on the final iteration of the interior point algorithm.
-                 
->>>>>>> devel
+          SolverResults<DataType> _results;                                                         ///< Performance data on the interior point algorithm
+          
+          SolverOptions<DataType> _options;                                                         ///< For the interior point algorithm
+            
           enum Method {dual, primal} method = primal;                                               ///< Used to select which method to solve for with redundant least squares problems.                                               
-          
-          unsigned int maxSteps = 20;                                                               ///< Maximum number of iterations to run interior point method before terminating.
-          
-          unsigned int numSteps = 0;                                                                ///< Records the number of steps it took to solve a problem with the interior point algorithm.
-          
-          Eigen::Vector<DataType, Eigen::Dynamic> lastSolution;                                     ///< Final solution returned by interior point algorithm. Can be used as a starting point for future calls to the method.
-          
+         
           /**
            * @brief The std::min function doesn't like floats, so I had to write my own ಠ_ಠ
            * @return Returns the minimum between to values 'a' and 'b'.
@@ -281,13 +220,22 @@ class QPSolver
                DataType minimum = (a < b) ? a : b;
                return minimum;
           }
-          
 };                                                                                                  // Required after class declaration
 
+
+  ////////////////////////////////////////////////////////////////////////////////////////////////////
+ //                                            Constructor                                         //
+////////////////////////////////////////////////////////////////////////////////////////////////////
+template <class DataType>
+QPSolver<DataType>::QPSolver(const SolverOptions<DataType> &options)
+{
+    set_solver_options(options);
+}
+          
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //              Solve a standard QP problem of the form min 0.5*x'*H*x + x'*f                     //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-template <class DataType> inline
+template <class DataType> 
 Eigen::Vector<DataType,Eigen::Dynamic>
 QPSolver<DataType>::solve(const Eigen::Matrix<DataType, Eigen::Dynamic, Eigen::Dynamic> &H,
                           const Eigen::Vector<DataType, Eigen::Dynamic> &f)
@@ -305,46 +253,49 @@ QPSolver<DataType>::solve(const Eigen::Matrix<DataType, Eigen::Dynamic, Eigen::D
                                       "The Hessian H was " + std::to_string(H.rows()) + "x" + std::to_string(H.cols()) +
                                       " and the f vector was " + std::to_string(f.size()) + "x1.");
      }
-     else      return H.ldlt().solve(-f);                                                          // Too easy lol ᕙ(▀̿̿ĺ̯̿̿▀̿ ̿) ᕗ
+     else return H.ldlt().solve(-f);                                                                // Too easy lol ᕙ(▀̿̿ĺ̯̿̿▀̿ ̿) ᕗ
 }
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //           Solve an unconstrained least squares problem: min 0.5(y-A*x)'*W*(y-A*x)              //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-template <class DataType> inline
+template <class DataType> 
 Eigen::Vector<DataType,Eigen::Dynamic>
 QPSolver<DataType>::least_squares(const Eigen::Vector<DataType, Eigen::Dynamic> &y,
                                   const Eigen::Matrix<DataType, Eigen::Dynamic, Eigen::Dynamic> &A,
                                   const Eigen::Matrix<DataType, Eigen::Dynamic, Eigen::Dynamic> &W)
 {
-     if(A.rows() < A.cols())                                                                        // Redundant system, use other function
-     {
-          throw std::invalid_argument("[ERROR] [QP SOLVER] least_squares(): "
-                                      "The A matrix has more rows than columns ("
-                                      + std::to_string(A.rows()) + "x" + std::to_string(A.cols()) + "). "
-                                      "Did you mean to call redundant_least_squares()?");                                                      
-     }
-     if(W.rows() != W.cols())
-     {
-          throw std::invalid_argument("[ERROR] [QP SOLVER] least_squares(): "
-                                      "Expected a square weighting matrix W but it was "
-                                      + std::to_string(W.rows()) + "x" + std::to_string(W.cols()) + ".");
-     }
-     else if(y.rows() != W.rows() and W.cols() != A.rows())
-     {
-          throw std::invalid_argument("[ERROR] [QP SOLVER] least_squares(): "
-                                      "Dimensions of input arguments do not match. "
-                                      "The y vector was " + std::to_string(y.size()) + "x1, "
-                                      "the A matrix had " + std::to_string(A.rows()) + " rows, and "
-                                      "the weighting matrix W was " + std::to_string(W.rows()) + "x" + std::to_string(W.cols()) + ".");
-     }
-     else     return (A.transpose()*W*A).ldlt().solve(A.transpose()*W*y);                               // x = (A'*W*A)^-1*A'*W*y
+    if(A.rows() < A.cols())                                                                         // Redundant system, use other function
+    {
+        throw std::invalid_argument("[ERROR] [QP SOLVER] least_squares(): "
+                                    "The A matrix has more rows than columns (" + std::to_string(A.rows()) + "x" + std::to_string(A.cols()) + "). "
+                                    "Did you mean to call redundant_least_squares()?");                                                      
+    }
+    
+    if(W.rows() != W.cols())
+    {
+        throw std::invalid_argument("[ERROR] [QP SOLVER] least_squares(): "
+                                    "Expected a square weighting matrix W but it was "
+                                    + std::to_string(W.rows()) + "x" + std::to_string(W.cols()) + ".");
+    }
+    else if(y.rows() != W.rows() and W.cols() != A.rows())
+    {
+        throw std::invalid_argument("[ERROR] [QP SOLVER] least_squares(): "
+                                    "Dimensions of input arguments do not match. "
+                                    "The y vector was " + std::to_string(y.size()) + "x1, "
+                                    "the A matrix had " + std::to_string(A.rows()) + " rows, and "
+                                    "the weighting matrix W was " + std::to_string(W.rows()) + "x" + std::to_string(W.cols()) + ".");
+    }
+    else
+    {
+        return (A.transpose()*W*A).ldlt().solve(A.transpose()*W*y);                                 // x = (A'*W*A)^-1*A'*W*y
+    }
 }
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //    Solve least squares problem of the form min 0.5*(xd - x)'*W*(xd - x) subject to: A*x = y    //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-template <class DataType> inline
+template <class DataType> 
 Eigen::Vector<DataType,Eigen::Dynamic>
 QPSolver<DataType>::redundant_least_squares(const Eigen::Vector<DataType, Eigen::Dynamic> &xd,
                                             const Eigen::Matrix<DataType, Eigen::Dynamic, Eigen::Dynamic> &W,
@@ -390,7 +341,7 @@ QPSolver<DataType>::redundant_least_squares(const Eigen::Vector<DataType, Eigen:
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //      Solve a constrained problem: min 0.5*(y - A*x)'*W*(y - A*x) s.t. xMin <= x <= xMax        //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-template <class DataType> inline
+template <class DataType> 
 Eigen::Vector<DataType,Eigen::Dynamic>
 QPSolver<DataType>::constrained_least_squares(const Eigen::Vector<DataType, Eigen::Dynamic> &y,
                                               const Eigen::Matrix<DataType, Eigen::Dynamic, Eigen::Dynamic> &A,
@@ -447,7 +398,7 @@ QPSolver<DataType>::constrained_least_squares(const Eigen::Vector<DataType, Eige
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //    Solve a constrained problem min 0.5*(xd - x)'*W*(xd - x) s.t. A*x = y, xMin <= x <= xMax    //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-template <class DataType> inline
+template <class DataType> 
 Eigen::Vector<DataType,Eigen::Dynamic>
 QPSolver<DataType>::constrained_least_squares(const Eigen::Vector<DataType, Eigen::Dynamic> &xd,
                                               const Eigen::Matrix<DataType, Eigen::Dynamic, Eigen::Dynamic> &W,
@@ -486,7 +437,7 @@ QPSolver<DataType>::constrained_least_squares(const Eigen::Vector<DataType, Eige
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //        Solve a constrained problem min 0.5*(xd - x)'*W*(xd - x) s.t. A*x = y, B*x < z          //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-template <class DataType> inline
+template <class DataType> 
 Eigen::Vector<DataType,Eigen::Dynamic>
 QPSolver<DataType>::constrained_least_squares(const Eigen::Vector<DataType, Eigen::Dynamic> &xd,
                                               const Eigen::Matrix<DataType, Eigen::Dynamic, Eigen::Dynamic> &W,
@@ -559,9 +510,9 @@ QPSolver<DataType>::constrained_least_squares(const Eigen::Vector<DataType, Eige
           newB.block(0,0,c,m).setZero();
           newB.block(0,m,c,n) = B;
           
-          this->lastSolution = solve(H,f,newB,z,new_x0).tail(n);                                    // We don't need the Lagrange multipliers
+          _results.solution = solve(H,f,newB,z,new_x0).tail(n);                                     // We don't need the Lagrange multipliers
           
-          return this->lastSolution;                                                                // Return decision variable x
+          return _results.solution;                                                                 // Return decision variable x
      }
      else if(this->method == dual) // STILL UNDERGOING TESTING; FAST BUT NOT 100% RELIABLE
      {
@@ -591,9 +542,9 @@ QPSolver<DataType>::constrained_least_squares(const Eigen::Vector<DataType, Eige
                if(dist <= 0) alpha = min(alpha, 0.99*abs((dist - a)/b));
           }
           
-          this->lastSolution = xr + alpha*xn;
-          
-          return this->lastSolution;
+          _results.solution = xr + alpha*xn;
+  
+          return _results.solution;
      }
      else
      {
@@ -606,7 +557,7 @@ QPSolver<DataType>::constrained_least_squares(const Eigen::Vector<DataType, Eige
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //          Solve a problem of the form: min 0.5*x'*H*x + x'*f subject to: B*x <= z              //        
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-template <class DataType> inline
+template <class DataType> 
 Eigen::Vector<DataType,Eigen::Dynamic>
 QPSolver<DataType>::solve(const Eigen::Matrix<DataType, Eigen::Dynamic, Eigen::Dynamic> &H,
                           const Eigen::Vector<DataType,Eigen::Dynamic> &f,
@@ -637,13 +588,14 @@ QPSolver<DataType>::solve(const Eigen::Matrix<DataType, Eigen::Dynamic, Eigen::D
                                       "The inequality constraint matrix B had " + std::to_string(B.rows()) + " rows, and "
                                       "the inequality constraint vector z had " + std::to_string(z.size()) + " elements.");
      }
-     
+    
      // h = 0.5*x'*H*x + x'*f - sum log(d_i),   d_i = z_i - b_i'*x
      // g = H*x + f + sum (1/d_i)*b_i
      // I = H + sum (1/d_i^2)*b_i*b_i'
      
      // Variables used in this scope
-     DataType u = this->initialBarrierScalar;                                                       // As it says
+     DataType stepSize = std::numeric_limits<DataType>::max();                                      // Check for termination
+     DataType u = _options.initialBarrierScalar;                                                    // As it says
      unsigned int dim = x0.size();                                                                  // Dimensions of the decision variaBL   e
      unsigned int numConstraints = z.size();                                                        // As it says
      Eigen::Matrix<DataType,Eigen::Dynamic,Eigen::Dynamic> I(dim,dim);                              // Hessian matrix
@@ -678,9 +630,9 @@ QPSolver<DataType>::solve(const Eigen::Matrix<DataType, Eigen::Dynamic, Eigen::D
      else x = x0;                                                                                   // Given start point
      
      // Run the interior point algorithm
-     for(int i = 0; i < this->maxSteps; i++)
+     for(int i = 0; i < _options.maxSteps; i++)
      {
-          this->numSteps = i+1;                                                                     // Increment the counter
+          _results.numberOfSteps = i+1;                                                             // Increment the counter
           
           // (Re)set values for new loop
           g = H*x + f;                                                                              // Gradient vector
@@ -709,118 +661,46 @@ QPSolver<DataType>::solve(const Eigen::Matrix<DataType, Eigen::Dynamic, Eigen::D
           DataType alpha = 1.0;
           for(int j = 0; j < numConstraints; j++)
           {
-               DataType dotProd = b[j].dot(dx);                                                     // Makes calcs a little easier
+               DataType dotProduct = b[j].dot(dx);                                                  // Makes calcs a little easier
                
-               if(d[j] - dotProd <= 0) alpha = min(alpha,0.9*d[j]/dotProd);                         // Shrink scalar if constraint violated
+               if(d[j] - dotProduct <= 0) alpha = min(alpha,0.9*d[j]/dotProduct);                   // Shrink scalar if constraint violated
           }
           
           dx *= alpha;                                                                              // Scale the step
+                    
+          stepSize = dx.norm();                                                                     // Magnitude of the step size
           
-          this->stepSize = dx.norm();                                                               // Magnitude of the step size
-          
-          if(this->stepSize <= this->tol) break;                                                    // If smaller than tolerance, break
+          if(stepSize <= _options.stepSizeTolerance) break;                                         // If smaller than tolerance, break
           
           // Increment values for next loop
           x += dx;                                                                                  // Increment state
-          u *= this->barrierReductionRate;                                                          // Reduce barrier
+          u *= _options.barrierReductionRate;                                                       // Reduce barrier
      }
      
-     this->lastSolution = x;                                                                        // Save the value
+     _results.finalStepSize     = stepSize;
+     _results.objectiveFunction = x.transpose()*(0.5*H*x + f);
+     _results.solution          = x;
      
      return x;
 }
 
-  ///////////////////////////////////////////////////////////////////////////////////////////////////
- //                  Set the rate at which the barrier scalar reduces: u *= beta                  //
-///////////////////////////////////////////////////////////////////////////////////////////////////
+  ////////////////////////////////////////////////////////////////////////////////////////////////////
+ //                                   Set the QP solver options                                    //
+////////////////////////////////////////////////////////////////////////////////////////////////////
 template <class DataType>
-bool QPSolver<DataType>::set_barrier_reduction_rate(const DataType &rate)
+void
+QPSolver<DataType>::set_solver_options(const SolverOptions<DataType>&options)
 {
-     if(rate <= 0 or rate >= 1)
-     {
-          std::cerr << "[ERROR] [QP SOLVER] set_barrier_reduction_rate(): "
-                       "Input argument was " << std::to_string(rate) << " "
-                       "but it must be between 0 and 1." << std::endl;
-                       
-          return false;
-     }
-     else
-     {
-          this->barrierReductionRate = rate;
-          
-          return true;
-     }
-}
-
-  ///////////////////////////////////////////////////////////////////////////////////////////////////
- //       Set the magnitude of the step size for which the interior point method terminates       //
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template <class DataType>
-bool QPSolver<DataType>::set_tolerance(const DataType &tolerance)
-{
-     if(tolerance <= 0)
-     {
-          std::cerr << "[ERROR] [QP SOLVER] set_tolerance(): "
-                    << "Input argument was " << std::to_string(tolerance) << " "
-                    << "but it must be positive." << std::endl;
-            
-          return false;
-     }
-     else
-     {
-          this->tol = tolerance;
-          
-          return true;
-     }
-}
-
-  ///////////////////////////////////////////////////////////////////////////////////////////////////
- //            Set the number of steps in the interior point method before terminating            //
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template <class DataType>
-bool QPSolver<DataType>::set_max_steps(const unsigned int &number)
-{
-     if(number == 0)
-     {
-          std::cerr << "[ERROR] [QP SOLVER] set_num_steps(): "
-                    << "Input argument was 0 but it must be greater than zero." << std::endl;
-          
-          return false;
-     }
-     else
-     {
-          this->maxSteps = number;
-          
-          return true;
-     }
-}
-
-  ///////////////////////////////////////////////////////////////////////////////////////////////////
- //               Set the scalar on the barrier function for inequality constraints               //
-///////////////////////////////////////////////////////////////////////////////////////////////////
-template <class DataType>
-bool QPSolver<DataType>::set_barrier_scalar(const DataType &scalar)
-{
-     if(scalar <= 0)
-     {
-          std::cerr << "[ERROR] [QP SOLVER] set_barrier_scalar(): "
-                    << "Input argument was " << std::to_string(scalar) << " "
-                    << "but it must be positive." << std::endl;
-          
-          return false;
-     }
-     else
-     {
-          this->initialBarrierScalar = scalar;
-          
-          return true;
-     }
+    _options.barrierReductionRate = options.barrierReductionRate;
+    _options.initialBarrierScalar = options.initialBarrierScalar;
+    _options.stepSizeTolerance    = options.stepSizeTolerance;
+    _options.maxSteps             = options.maxSteps;
 }
   
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                           Use the dual method to solve the QP problem                          //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-template<class DataType>
+template <class DataType>
 void QPSolver<DataType>::use_dual()
 {
      this->method = dual;
@@ -831,7 +711,7 @@ void QPSolver<DataType>::use_dual()
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                         Use the primal method to solve the QP problem                          //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-template<class DataType>
+template <class DataType>
 void QPSolver<DataType>::use_primal()
 {
      this->method = primal;

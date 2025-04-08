@@ -2,13 +2,13 @@
  * @file    Spline.h
  * @author  Jon Woolfrey
  * @email   jonathan.woolfrey@gmail.com
- * @date    February 2025
+ * @date    April 2025
  * @version 1.0
- * @brief   Represents a series of polynomials connecting several points.
+ * @brief   Represents a series of RobotLibrary::Math::Polynomials connecting several points.
  * 
- * @details This class will interpolate across multiple points using piecewise polynomials.
+ * @details This class will interpolate across multiple points using piecewise RobotLibrary::Math::Polynomials.
  *          It currently supports cubic splines, and ensures continuity down to the second derivative.
- *          Higher order polynomials are possible, but continuity of derivatives is not yet supported (please help!)
+ *          Higher order RobotLibrary::Math::Polynomials are possible, but continuity of derivatives is not yet supported (please help!)
  * 
  * @copyright Copyright (c) 2025 Jon Woolfrey
  * 
@@ -17,41 +17,44 @@
  * @see https://github.com/Woolfrey/software_robot_library for more information.
  */
 
-#ifndef SPLINE_H_
-#define SPLINE_H_
+#ifndef SPLINE_H
+#define SPLINE_H
 
 #include <Math/Polynomial.h>
 
-#include <vector>                                                                                   // Using "" tells the compiler to look locally
+#include <vector>                                                                                   // std::vector
 
 namespace RobotLibrary { namespace Math {
 
+/**
+ * @brief A class that interpolates over multiple points using piece-wise polynomials.
+ */
 class Spline
 {
     public:
         
         /**
          * @brief Constructor.
-         * @param values The polynomial value, and its first and second derivatives at the given points.
+         * @param values The RobotLibrary::Math::Polynomial value, and its first and second derivatives at the given points.
          * @param points The corresponding independent variable for the spline values.
          */
-        Spline(const std::vector<FunctionPoint> &values,
+        Spline(const std::vector<RobotLibrary::Math::FunctionPoint> &values,
                const std::vector<double>        &points,
                const unsigned int               &order = 3);
                
         /**
          * @brief Query the spline values & derivatives for the given point.
          * @param input The independent variable for evaluating the spline.
-         * @return A FunctionPoint data structure containing the value and derivatives.
+         * @return A RobotLibrary::Math::FunctionPoint data structure containing the value and derivatives.
          */
-        FunctionPoint
+        RobotLibrary::Math::FunctionPoint
         evaluate_point(const double &input);
     
     private:
     
     unsigned int _numberOfSplines;                                                                  ///< As it says.
     
-    std::vector<Polynomial> _polynomial;                                                            ///< The individual sections of the spline.
+    std::vector<RobotLibrary::Math::Polynomial> _polynomial;                                        ///< The individual sections of the spline.
     
     std::vector<double> _points;                                                                    ///< The support points on the spline
      
