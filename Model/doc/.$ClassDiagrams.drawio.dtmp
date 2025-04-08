@@ -1,0 +1,27 @@
+<mxfile host="Electron" modified="2025-04-07T13:04:01.486Z" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/22.1.2 Chrome/114.0.5735.289 Electron/25.9.4 Safari/537.36" etag="hLdwS6hNNPy0wQ2r4azb" version="22.1.2" type="device" pages="2">
+  <diagram id="N4nTIxYtnL6g-0dvj29q" name="Limits">
+    <mxGraphModel dx="1263" dy="804" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="frRB1QznqBMKksRVB19d-1" value="Limits" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=26.571428571428573;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=0;marginBottom=0;" vertex="1" parent="1">
+          <mxGeometry x="30" y="20" width="118" height="80.57142857142857" as="geometry" />
+        </mxCell>
+        <mxCell id="frRB1QznqBMKksRVB19d-2" value="+double lower" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="frRB1QznqBMKksRVB19d-1">
+          <mxGeometry y="26.571428571428573" width="118" height="27" as="geometry" />
+        </mxCell>
+        <mxCell id="frRB1QznqBMKksRVB19d-3" value="+double upper" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="frRB1QznqBMKksRVB19d-1">
+          <mxGeometry y="53.57142857142857" width="118" height="27" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="L8KJZ0-RlDxMW9yIeoFF" name="Pose">
+    <mxGraphModel dx="884" dy="563" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
