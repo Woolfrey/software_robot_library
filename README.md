@@ -147,7 +147,8 @@ make
 
 If you would like to see examples where `RobotLibrary` has been applied, you can check out:
 
-- [Serial Link Action Server](https://github.com/Woolfrey/server_serial_link) : My own ROS2 action servers for control.
+- [Serial Link Action Server](https://github.com/Woolfrey/server_serial_link) : My own ROS2 action servers for control,
+- [Kuka iiwa14 velocity control](https://github.com/Woolfrey/control_kuka_velocity) : which implements the aforementioned action server, and
 - [TestingRobotLibrary](https://github.com/Woolfrey/testing_robot_library) : C++ executables I use for numerical validation of RobotLibrary.
 
 [:top: Back to Top.](#robot-robotlibrary)
