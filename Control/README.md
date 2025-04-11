@@ -68,7 +68,7 @@ This is done deliberately so that:
 This builds upon the `SerialLinkBase` class to implement algorithms for real-time velocity control.
 
 > [!TIP]
-> You can check out [my ROS2 action server](https:://github.com/Woolfrey/server_serial_link) to see this class in action.
+> You can check out [my ROS2 action server](https://github.com/Woolfrey/server_serial_link) to see this class in action.
 
 ### Construction:
 

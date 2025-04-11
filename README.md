@@ -14,7 +14,7 @@ Robot Library is a C++ package for modeling, trajectory generation, and control 
 #### :compass: Navigation:
 
 - [Sections of the Library](#classical_building-sections-of-the-library)
-- [Installation](#clipboard-installation)
+- [Installation](#floppy_disk-installation)
     - [Requirements](#requirements)
     - [Installing Eigen](#installing-eigen)
     - [Installing RobotLibrary](#installing-robotlibrary)
@@ -41,7 +41,7 @@ The diagram below shows how the different libraries interact:
 
 [:top: Back to Top.](#robot-robot-library-open_book)
 
-## :clipboard: Installation
+## :floppy_disk: Installation
 
 ### Requirements:
 
@@ -163,7 +163,8 @@ make
 
 If you would like to see examples where `RobotLibrary` has been applied, you can check out:
 
-- [Serial Link Action Server](https://github.com/Woolfrey/server_serial_link) : My own ROS2 action servers for control.
+- [Serial Link Action Server](https://github.com/Woolfrey/server_serial_link) : My own ROS2 action servers for control,
+- [Kuka iiwa14 velocity control](https://github.com/Woolfrey/control_kuka_velocity) : a ROS2 package which implements the former action server, and
 - [TestingRobotLibrary](https://github.com/Woolfrey/testing_robot_library) : C++ executables I use for numerical validation of RobotLibrary.
 
 [:top: Back to Top.](#robot-robot-library-open_book)
