@@ -1,0 +1,55 @@
+name: 🐞 Bug Report
+description: Report a problem.
+title: "[BUG] <short description>"
+labels: [bug]
+body:
+
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug!
+        
+  - type: input
+    id: os
+    attributes:
+      label: What operating system are you using?
+      placeholder: e.g. Ubuntu 22.04
+    validations:
+      required: true
+      
+  - type: input
+    id: ros
+    attributes:
+      label: What version of Eigen are use using?
+      placeholder: e.g. v3.4
+    validations:
+      required: true
+      
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: List the sequence of events that led to the problem.
+      placeholder: |
+        1. The Big Bang happened, then
+        2. I was born.
+    validations:
+      required: true
+      
+  - type: textarea
+    id: why
+    attributes:
+      label: What might be causing the problem?
+      description: Provide information on why it might be happening.
+      placeholder: I asked ChatGPT and this is what it said.
+    validations:
+      required: false
+      
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Supporting Evidence
+      description: Provide screenshots, compilation or runtime errors, etc.
+      placeholder: (┛ಠДಠ)┛彡┻━┻
+    validations:
+      required: true

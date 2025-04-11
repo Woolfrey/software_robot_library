@@ -1,0 +1,58 @@
+############################################################
+#                       Required Fields                    #
+############################################################
+name: ✨ Feature Request
+description: Suggest a new feature or enhancement.
+
+############################################################
+#                       Optional Fields                    #
+############################################################
+assignees: []
+labels: [enhancement]
+projects: []
+title: "[REQUEST] <Short description>"
+
+############################################################
+#                          Layout                          #
+############################################################
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Ideas are always weclome!
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: How important is this feature to you?
+      options:
+        - Nice to have
+        - Important
+        - Blocking my work
+    validations:
+      required: true
+
+  - type: textarea
+    id: feature
+    attributes:
+      label: What would you like to see?
+      description: A concise description, with pictures if possible.
+    validations:
+      required: true
+
+  - type: textarea
+    id: benefit
+    attributes:
+      label: What is the immediate benefit?
+      description: How this feature will be useful.
+    validations:
+      required: true
+
+  - type: textarea
+    id: implication
+    attributes:
+      label: What implications will it have?
+      description: The long-term benefit or impact.
+    validations:
+      required: false

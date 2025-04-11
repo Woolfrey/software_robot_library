@@ -1,0 +1,57 @@
+############################################################
+#                       Required Fields                    #
+############################################################
+name: 🙋 Open Task
+description: This template is intended for internal use only.
+
+############################################################
+#                       Optional Fields                    #
+############################################################
+assignees: []
+labels: [enhancement]
+projects: []
+title: "🙋 [OPEN] This template is intended for internal use only."
+
+############################################################
+#                          Layout                          #
+############################################################
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Open tasks that the public can contribute to.
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: What is the priority?
+      options:
+        - Low (Nice to have, but not critical).
+        - Medium (Useful, but can live without it).
+        - High (I would do this myself, but don't have time).
+    validations:
+      required: true
+    
+  - type: textarea
+    id: feature
+    attributes:
+      label: What would we like to have?
+      description: A concise description, with pictures if possible.
+    validations:
+      required: true
+
+  - type: textarea
+    id: benefit
+    attributes:
+      label: What is the immediate benefit?
+      description: How this feature will be useful.
+    validations:
+      required: true
+
+  - type: textarea
+    id: implication
+    attributes:
+      label: What implications will it have?
+      description: The long-term benefit or impact.
+    validations:
+      required: false
