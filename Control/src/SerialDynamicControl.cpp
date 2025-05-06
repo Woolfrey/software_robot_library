@@ -1,14 +1,13 @@
 /**
- * @file    SerialKinematicControl.cpp
+ * @file    SerialDynamicControl.cpp
  * @author  Jon Woolfrey
  * @email   jonathan.woolfrey@gmail.com
- * @date    February 2025
+ * @date    May 2025
  * @version 1.0
- * @brief   Computes velocity (position) feedback control for a serial link robot arm.
+ * @brief   Computes joint torques required to perform Cartesian, or joint feedback control for a serial link robot arm.
  * 
- * @details This class contains methods for performing velocity control of a serial link robot arm
- *          in both Cartesian and joint space. The fundamental feedforward + feedback control is given by:
- *          control velocity = desired velocity + gain * (desired position - actual position).
+ * @details This class contains methods for performing torque control of a serial link robot arm
+ *          in both Cartesian and joint space.
  * 
  * @copyright Copyright (c) 2025 Jon Woolfrey
  * 
@@ -18,47 +17,60 @@
  * @see https://github.com/Woolfrey/software_simple_qp for the optimisation algorithm used in the control.
  */
 
-#include <Control/SerialKinematicControl.h>
+#include <Control/SerialDynamicControl.h>
 
 namespace RobotLibrary { namespace Control {
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
- //               Compute the endpoint velocity needed to track a given trajectory                //
+ //               Compute the endpoint acceleration needed to track a given trajectory            //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 Eigen::VectorXd
-SerialKinematicControl::track_endpoint_trajectory(const RobotLibrary::Model::Pose &desiredPose,
-                                                  const Eigen::Vector<double,6>   &desiredVelocity,
-                                                  const Eigen::Vector<double,6>   &desiredAcceleration)
+SerialDynamicControl::track_endpoint_trajectory(const RobotLibrary::Model::Pose &desiredPose,
+                                                const Eigen::Vector<double,6>   &desiredVelocity,
+                                                const Eigen::Vector<double,6>   &desiredAcceleration)
 {
-     (void)desiredAcceleration;                                                                     // Not needed in velocity control
-     
-	return resolve_endpoint_motion(desiredVelocity                                                  // Feedforward term
-	                             + _cartesianStiffness * _endpointPose.error(desiredPose));         // Feedback term
+    return resolve_endpoint_motion(desiredAcceleration                                              // Feedforward acceleration
+                                 + _cartesianDamping * (desiredVelocity - endpoint_velocity())      // Velocity feedback
+                                 + _cartesianStiffness * _endpointPose.error(desiredPose));         // Pose feedback
 }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //                                       This doesn't do much...!                                //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 Eigen::VectorXd
-SerialKinematicControl::resolve_endpoint_twist(const Eigen::Vector<double,6> &twist)
+SerialDynamicControl::resolve_endpoint_twist(const Eigen::Vector<double,6> &twist)
 {
-    return resolve_endpoint_motion(twist);
+    return resolve_endpoint_motion(_cartesianDamping*(twist - endpoint_velocity()));
 }
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //              Solve the endpoint motion required to achieve a given endpoint motion             //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 Eigen::VectorXd
-SerialKinematicControl::resolve_endpoint_motion(const Eigen::Vector<double,6> &endpointMotion)
+SerialDynamicControl::resolve_endpoint_motion(const Eigen::Vector<double,6> &endpointMotion)
 {
+    // See:
+    // Bruyninckx, H., & Khatib, O. (2000, April).
+    // Gauss' principle and the dynamics of redundant and constrained manipulators.
+    // In Proceedings 2000 ICRA. Millennium Conference. IEEE International Conference on Robotics and Automation.
+    // Symposia Proceedings (Cat. No. 00CH37065) (Vol. 3, pp. 2563-2568). IEEE.
+    // 
+    // Ferraguti, F., Landi, C. T., Singletary, A., Lin, H. C., Ames, A., Secchi, C., & Bonfe, M. (2022).
+    // Safety and efficiency in robotics: The control barrier functions approach.
+    // IEEE Robotics & Automation Magazine, 29(3), 139-151.
+
     using namespace Eigen;                                                                          // Improves readability
     
     // Variables used in this scope
-    unsigned int numJoints = _model->number_of_joints();                                            // Makes referencing easier       
-    VectorXd startPoint = _model->joint_velocities();                                               // Needed for the QP solver
+    unsigned int numJoints = _model->number_of_joints();                                            // Makes referencing easier   
+        
     VectorXd lowerBound(numJoints), upperBound(numJoints);                                          // Limits on joint control
 
-    // Compute joint velocity limits and ensure the starting point is within bounds
+    VectorXd startPoint = (QPSolver<double>::results().solution.size() == 0)
+                        ? VectorXd::Zero(numJoints)
+                        : QPSolver<double>::results().solution;
+
+    // Compute joint acceleration limits and ensure the starting point is within bounds
     for (unsigned int i = 0; i < numJoints; ++i)
     {
         // NOTE: Size of bounds is not known at compile time,
@@ -72,16 +84,21 @@ SerialKinematicControl::resolve_endpoint_motion(const Eigen::Vector<double,6> &e
 
     // Compute manipulability gradient once and update constraints
     const VectorXd manipulabilityGradient = manipulability_gradient();                              // Used in a few places, so compute it once here
-    _constraintMatrix.row(2 * numJoints) = -manipulabilityGradient.transpose();                     // Part of the control barrier function
+    const VectorXd jointVelocities        = _model->joint_velocities();
+    const VectorXd coriolisTorques         = _model->coriolis_matrix() * jointVelocities;    
+    const MatrixXd inertiaMatrix          = _model->joint_inertia_matrix();
+    _constraintMatrix.row(2 * numJoints) = (inertiaMatrix * jointVelocities).transpose();           // Part of the dynamic control barrier function
+    
     _constraintVector.head(numJoints) = upperBound;
     _constraintVector.segment(numJoints, numJoints) = -lowerBound;
-    _constraintVector(2 * numJoints) = (_manipulability - _minManipulability) * 100 * sqrt(_controlFrequency);
+    _constraintVector(2 * numJoints) = (_manipulability - _minManipulability) * 100 * sqrt(_controlFrequency)
+                                     + (manipulabilityGradient - coriolisTorques).dot(jointVelocities);
 
-    VectorXd controlVelocity = VectorXd::Zero(numJoints);                                           // We need to compute this
-
+    VectorXd controlAcceleration = VectorXd::Zero(numJoints);
+    
     if (not is_singular())
     {
-        if (numJoints <= 6)                                                                         // Fully actuated or underactuated robots
+        if (numJoints <= 6)
         {
             // Solve a problem of the form:
             // min 0.5*x'*H*x + x'*f
@@ -89,12 +106,12 @@ SerialKinematicControl::resolve_endpoint_motion(const Eigen::Vector<double,6> &e
 
             // See: github.com/Woolfrey/software_simple_qp
             
-            controlVelocity = QPSolver<double>::solve(
-                _jacobianMatrix.transpose() * _jacobianMatrix,                                      // H
-               -_jacobianMatrix.transpose() * endpointMotion,                                       // f
-                _constraintMatrix,                                                                  // B
-                _constraintVector,                                                                  // z
-                startPoint                                                                          // Initial guess
+            controlAcceleration = QPSolver<double>::solve(
+                _jacobianMatrix.transpose() * _jacobianMatrix,                                                // H
+               -_jacobianMatrix.transpose() * (endpointMotion - _model.time_derivative(J) * jointVelocities), // f
+                _constraintMatrix,                                                                            // B
+                _constraintVector,                                                                            // z
+                startPoint                                                                                    // Initial guess
             );
         }
         else                                                                                        // Redundant robot
@@ -112,11 +129,11 @@ SerialKinematicControl::resolve_endpoint_motion(const Eigen::Vector<double,6> &e
 
             // See: github.com/Woolfrey/software_simple_qp
             
-            controlVelocity = QPSolver<double>::constrained_least_squares(
+            controlAcceleration = QPSolver<double>::constrained_least_squares(
                 _redundantTask,                                                                     // x_d
-                _model->joint_inertia_matrix(),                                                     // W
+                inertiaMatrix,                                                                      // W
                 _jacobianMatrix,                                                                    // A
-                endpointMotion,                                                                     // y
+                endpointMotion - _model.time_derivative(J) * jointVelocities,                       // y
                 _constraintMatrix,                                                                  // B
                 _constraintVector,                                                                  // z
                 startPoint                                                                          // Initial guess
@@ -141,58 +158,61 @@ SerialKinematicControl::resolve_endpoint_motion(const Eigen::Vector<double,6> &e
         
         H.diagonal().array() += dampingFactor;
         
-        controlVelocity = QPSolver<double>::solve(
+        controlAcceleration = QPSolver<double>::solve(
             H,
-           -_jacobianMatrix.transpose() * endpointMotion,
+           -_jacobianMatrix.transpose() * (endpointMotion - _model->time_derivative(_jacobianMatrix)) ,
             _constraintMatrix.block(0, 0, 2 * numJoints, numJoints),                                // Use only first 2*numJoints rows
             _constraintVector.head(2 * numJoints),                                                  // Use only first 2*numJoints elements
             startPoint
         );
     }
 
-    return controlVelocity;
+    return inertiaMatrix * controlAcceleration + coriolisTorques;
 }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
- //                  Compute the joint velocities needed to track a given trajectory              //
+ //                  Compute the joint torques needed to track a given joint trajectory           //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 Eigen::VectorXd
-SerialKinematicControl::track_joint_trajectory(const Eigen::VectorXd &desiredPosition,
-                                               const Eigen::VectorXd &desiredVelocity,
-						                       const Eigen::VectorXd &desiredAcceleration)
+SerialDynamicControl::track_joint_trajectory(const Eigen::VectorXd &desiredPosition,
+                                             const Eigen::VectorXd &desiredVelocity,
+						                     const Eigen::VectorXd &desiredAcceleration)
 {
 	unsigned int numJoints = _model->number_of_joints();                                            // Makes things easier
 	
-	if(desiredPosition.size() != numJoints or desiredVelocity.size() != numJoints)
+	if(desiredPosition.size()     != numJoints
+	or desiredVelocity.size()     != numJoints
+	or desiredAcceleration.size() != numJoints)
 	{
 		throw std::invalid_argument("[ERROR] [SERIAL LINK] track_joint_trajectory(): "
 		                            "Incorrect size for input arguments. This robot has "
 		                            + std::to_string(numJoints) + " joints, but "
-		                            "the position argument had " + std::to_string(desiredPosition.size()) + " elements, and"
-		                            "the velocity argument had " + std::to_string(desiredVelocity.size()) + " elements.");
+		                            "the position argument had " + std::to_string(desiredPosition.size()) + " elements,"
+		                            "the velocity argument had " + std::to_string(desiredVelocity.size()) + " elements, and "
+		                            "the acceleration argument had " + std::to_string(desiredAcceleration.size()) + " elements.");
 	}
 	
-	Eigen::VectorXd velocityControl(numJoints);                                                     // Value to be returned
+	VectorXd controlAcceleration = VectorXd::Zero(numJoints);                                       // We want to compute this
 	
-	for(int i = 0; i < numJoints; ++i)
+	for (int i = 0; i < numJoints; ++i)
 	{
-		velocityControl(i) = desiredVelocity(i)                                                      // Feedforward control
-		                   + _jointPositionGain*(desiredPosition(i) - _model->joint_positions()[i]); // Feedback control
-		
-		RobotLibrary::Model::Limits controlLimits = compute_control_limits(i);                      // Get the instantaneous limits on the joint speed
-		                   
-		     if(velocityControl(i) <= controlLimits.lower) velocityControl(i) = controlLimits.lower + 1e-03; // Just above the limit
-		else if(velocityControl(i) >= controlLimits.upper) velocityControl(i) = controlLimits.upper - 1e-03; // Just below the limit
-	}
+	    controlAcceleration(i) = desiredAcceleration(i)                                                    // Feedforward term
+	                           + _jointVelocityGain * (desiredVelocity(i) - _model->joint_velocities()[i]) // Velocity feedback
+	                           + _jointPositionGain * (desiredPosition(i) - _model->joint_positions()[i]); // Position feedback
+	                           
+        const auto &[upper, lower] = compute_control_limits(i);                                     // Get instantaneous limits on the joint acceleration
+        
+        controlAcceleration(i) = std::clamp(controlAcceleration(i), lower + 1e-03, upper - 1e-03);  // Ensure within limits
+    }
 	
-	return velocityControl;
+	return _model->joint_inertia_matrix() * controlAcceleration + _model->joint_coriolis_matrix() * _model->joint_velocities();
 }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //                   Compute the instantaneous limits on the joint velocities                    //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 RobotLibrary::Model::Limits
-SerialKinematicControl::compute_control_limits(const unsigned int &jointNumber)
+SerialDynamicControl::compute_control_limits(const unsigned int &jointNumber)
 {
 	// Flacco, F., De Luca, A., & Khatib, O. (2015).
 	// "Control of redundant robots under hard joint constraints: Saturation in the null space."

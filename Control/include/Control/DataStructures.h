@@ -5,12 +5,11 @@
  * @date    April 2025
  * @version 1.0
  * @brief   Contains custom structs used in Control classes.
- * 
- * 
+ *
  * @copyright Copyright (c) 2025 Jon Woolfrey
- * 
- * @license GNU General Public License V3
- * 
+ *
+ * @license Open Source / Commercial Use License (OSCL)
+ *
  * @see https://github.com/Woolfrey/software_robot_library for more information.
  * @see https://github.com/Woolfrey/software_simple_qp for the optimisation algorithm used in the control.
  */
