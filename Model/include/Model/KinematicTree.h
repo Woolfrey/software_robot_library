@@ -3,7 +3,7 @@
  * @author  Jon Woolfrey
  * @email   jonathan.woolfrey@gmail.com
  * @date    April 2025
- * @version 1.0
+ * @version 2.0
  * @brief   A class for a multi rigid body system of branching serial link structures.
  * 
  * @details This class is used to compute the kinematics and dynamics of branching, serial link structures.
@@ -45,12 +45,11 @@ class KinematicTree
           KinematicTree(const std::string &pathToURDF);                                             // Constructor from URDF
           
           /**
-           * @brief Updates the forward kinematics and inverse dynamics. Used for fixed base structures.
+           * @brief Updates the forward kinematics and inverse dynamics. Used for fixed base structures. It will throw an error if it encounters a problem.
            * @param jointPosition A vector of the joint positions.
            * @param jointVelocity A vector of the joint velocities.
-           * @return Returns false if there is a problem.
            */
-          bool
+          void
           update_state(const Eigen::VectorXd &jointPosition,
                        const Eigen::VectorXd &jointVelocity)
           {
@@ -58,13 +57,13 @@ class KinematicTree
           }
           
           /**
-           * @brief Updates the forward kinematics and inverse dynamics. Used for floating base structures.
+           * @brief Updates the forward kinematics and inverse dynamics. Used for floating base structures. It will throw an error if it encounters a problem.
            * @param jointPosition A vector of all the joint positions.
            * @param jointVelocity A vector of all the joint velocities.
            * @param Pose The transform of the base relative to some global reference frame.
            * @param baseTwist The velocity of the base relative to some global reference frame.
            */
-          bool
+          void
           update_state(const Eigen::VectorXd           &jointPosition,
                        const Eigen::VectorXd           &jointVelocity,
                        const RobotLibrary::Model::Pose &basePose,
@@ -278,7 +277,8 @@ class KinematicTree
            * @param character A char array
            * @return Returns a 3x1 Eigen vector object.
            */
-          Eigen::Vector3d char_to_vector(const char* character);                      
+          Eigen::Vector3d
+          char_to_vector(const char* character);                      
 };                                                                                                  // Semicolon needed after class declarations
 
 } }                                                                                                 // End namespace

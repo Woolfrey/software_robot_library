@@ -364,11 +364,8 @@ KinematicTree::update_state(const Eigen::VectorXd &jointPosition,
         
         if(not success)
         {
-            std::cerr << "[ERROR] [KINEMATIC TREE] update_state(): "
-                      << "Unable to update the state for the '" << currentLink->name()
-                      << "' link (" << currentLink->joint().name() << " joint).\n";
-                      
-            return false;
+            throw std::runtime_error("[ERROR] [KINEMATIC TREE] update_state(): "
+                                     "Unable to update the state for the '" + currentLink->name() + "' link (" + currentLink->joint().name() + " joint).");
         }
         
         Matrix<double,6,Dynamic>        J  = jacobian(currentLink, currentLink->center_of_mass(), k+1);
@@ -409,8 +406,6 @@ KinematicTree::update_state(const Eigen::VectorXd &jointPosition,
     {
         for(int j = 0; j < i; ++j) _jointInertiaMatrix(i,j) = _jointInertiaMatrix(j,i);
     }
-    
-    return true;
 }
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////

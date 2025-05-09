@@ -35,7 +35,7 @@ SerialDynamicControl::track_endpoint_trajectory(const RobotLibrary::Model::Pose 
 }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
- //                                       This doesn't do much...!                                //
+ //                                        Velocity feedback                                      //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 Eigen::VectorXd
 SerialDynamicControl::resolve_endpoint_twist(const Eigen::Vector<double,6> &twist)
@@ -85,10 +85,10 @@ SerialDynamicControl::resolve_endpoint_motion(const Eigen::Vector<double,6> &end
     // Compute manipulability gradient once and update constraints
     const VectorXd manipulabilityGradient = manipulability_gradient();                              // Used in a few places, so compute it once here
     const VectorXd jointVelocities        = _model->joint_velocities();
-    const VectorXd coriolisTorques         = _model->coriolis_matrix() * jointVelocities;    
+    const VectorXd coriolisTorques        = _model->joint_coriolis_matrix() * jointVelocities;    
     const MatrixXd inertiaMatrix          = _model->joint_inertia_matrix();
-    _constraintMatrix.row(2 * numJoints) = (inertiaMatrix * jointVelocities).transpose();           // Part of the dynamic control barrier function
     
+    _constraintMatrix.row(2 * numJoints) = (inertiaMatrix * jointVelocities).transpose();           // Part of the dynamic control barrier function
     _constraintVector.head(numJoints) = upperBound;
     _constraintVector.segment(numJoints, numJoints) = -lowerBound;
     _constraintVector(2 * numJoints) = (_manipulability - _minManipulability) * 100 * sqrt(_controlFrequency)
@@ -107,18 +107,21 @@ SerialDynamicControl::resolve_endpoint_motion(const Eigen::Vector<double,6> &end
             // See: github.com/Woolfrey/software_simple_qp
             
             controlAcceleration = QPSolver<double>::solve(
-                _jacobianMatrix.transpose() * _jacobianMatrix,                                                // H
-               -_jacobianMatrix.transpose() * (endpointMotion - _model.time_derivative(J) * jointVelocities), // f
-                _constraintMatrix,                                                                            // B
-                _constraintVector,                                                                            // z
-                startPoint                                                                                    // Initial guess
+                _jacobianMatrix.transpose() * _jacobianMatrix,                                      // H
+               -_jacobianMatrix.transpose() * (endpointMotion - _model->time_derivative(_jacobianMatrix) * jointVelocities), // f
+                _constraintMatrix,                                                                  // B
+                _constraintVector,                                                                  // z
+                startPoint                                                                          // Initial guess
             );
         }
         else                                                                                        // Redundant robot
         {
             if (not _redundantTaskSet)
             {
-                _redundantTask = manipulabilityGradient * sqrt(_controlFrequency) / 10.0;   
+                _redundantTask = manipulabilityGradient * sqrt(_controlFrequency) / 10.0            // This term moves away from a singularity
+                               - coriolisTorques                                                    // This term minimises kinetic energy
+                               - _model->joint_damping_vector();                                    // This term ensures stability
+                               
                 _redundantTaskSet = false;                                                          // Set false for next control loop
             }
 
@@ -133,7 +136,7 @@ SerialDynamicControl::resolve_endpoint_motion(const Eigen::Vector<double,6> &end
                 _redundantTask,                                                                     // x_d
                 inertiaMatrix,                                                                      // W
                 _jacobianMatrix,                                                                    // A
-                endpointMotion - _model.time_derivative(J) * jointVelocities,                       // y
+                endpointMotion - _model->time_derivative(_jacobianMatrix) * jointVelocities,        // y
                 _constraintMatrix,                                                                  // B
                 _constraintVector,                                                                  // z
                 startPoint                                                                          // Initial guess
@@ -160,7 +163,7 @@ SerialDynamicControl::resolve_endpoint_motion(const Eigen::Vector<double,6> &end
         
         controlAcceleration = QPSolver<double>::solve(
             H,
-           -_jacobianMatrix.transpose() * (endpointMotion - _model->time_derivative(_jacobianMatrix)) ,
+           -_jacobianMatrix.transpose() * (endpointMotion - _model->time_derivative(_jacobianMatrix) * _model->joint_velocities()) ,
             _constraintMatrix.block(0, 0, 2 * numJoints, numJoints),                                // Use only first 2*numJoints rows
             _constraintVector.head(2 * numJoints),                                                  // Use only first 2*numJoints elements
             startPoint
@@ -184,7 +187,7 @@ SerialDynamicControl::track_joint_trajectory(const Eigen::VectorXd &desiredPosit
 	or desiredVelocity.size()     != numJoints
 	or desiredAcceleration.size() != numJoints)
 	{
-		throw std::invalid_argument("[ERROR] [SERIAL LINK] track_joint_trajectory(): "
+		throw std::invalid_argument("[ERROR] [SERIAL DYNAMIC CONTROL] track_joint_trajectory(): "
 		                            "Incorrect size for input arguments. This robot has "
 		                            + std::to_string(numJoints) + " joints, but "
 		                            "the position argument had " + std::to_string(desiredPosition.size()) + " elements,"
@@ -192,16 +195,17 @@ SerialDynamicControl::track_joint_trajectory(const Eigen::VectorXd &desiredPosit
 		                            "the acceleration argument had " + std::to_string(desiredAcceleration.size()) + " elements.");
 	}
 	
-	VectorXd controlAcceleration = VectorXd::Zero(numJoints);                                       // We want to compute this
+	Eigen::VectorXd controlAcceleration = Eigen::VectorXd::Zero(numJoints);                         // We want to compute this
 	
 	for (int i = 0; i < numJoints; ++i)
 	{
+	    
 	    controlAcceleration(i) = desiredAcceleration(i)                                                    // Feedforward term
 	                           + _jointVelocityGain * (desiredVelocity(i) - _model->joint_velocities()[i]) // Velocity feedback
 	                           + _jointPositionGain * (desiredPosition(i) - _model->joint_positions()[i]); // Position feedback
-	                           
-        const auto &[upper, lower] = compute_control_limits(i);                                     // Get instantaneous limits on the joint acceleration
         
+        const auto &[lower, upper] = compute_control_limits(i);                                     // Get instantaneous limits on the joint acceleration
+         
         controlAcceleration(i) = std::clamp(controlAcceleration(i), lower + 1e-03, upper - 1e-03);  // Ensure within limits
     }
 	
@@ -217,33 +221,26 @@ SerialDynamicControl::compute_control_limits(const unsigned int &jointNumber)
 	// Flacco, F., De Luca, A., & Khatib, O. (2015).
 	// "Control of redundant robots under hard joint constraints: Saturation in the null space."
 	// IEEE Transactions on Robotics, 31(3), 637-654.
-	
-	RobotLibrary::Model::Limits limits;                                                             // Value to be returned
 
-	double delta = _model->joint_positions()[jointNumber]
-	             - _model->link(jointNumber)->joint().position_limits().lower;                      // Distance from lower limit
+	RobotLibrary::Model::Limits limits;                                                             // Value to be returned
 	
-	limits.lower = std::max(-delta*_controlFrequency,
-	               std::max(-_model->link(jointNumber)->joint().speed_limit(),
-	                        -2*sqrt(_maxJointAcceleration*delta)));
-	                        
-	delta = _model->link(jointNumber)->joint().position_limits().upper
-	      - _model->joint_positions()[jointNumber];                                                 // Distance to upper limit
-	
-	limits.upper = std::min(delta*_controlFrequency,
-	               std::min(_model->link(jointNumber)->joint().speed_limit(),
-	                        2*sqrt(_maxJointAcceleration*delta)));
+	limits.lower = std::max(2 * _controlFrequency * _controlFrequency * ( _model->link(jointNumber)->joint().position_limits().lower - _model->joint_positions()[jointNumber] - _model->joint_velocities()[jointNumber] / _controlFrequency ),
+	               std::max(-_controlFrequency * (_model->link(jointNumber)->joint().speed_limit() + _model->joint_velocities()[jointNumber]),
+	                        -_maxJointAcceleration ));
+	                           
+	limits.upper = std::min(2 * _controlFrequency * _controlFrequency * (_model->link(jointNumber)->joint().position_limits().upper - _model->joint_positions()[jointNumber] - _model->joint_velocities()[jointNumber] / _controlFrequency),
+	               std::min(_controlFrequency * (_model->link(jointNumber)->joint().speed_limit() - _model->joint_velocities()[jointNumber]),
+	                        _maxJointAcceleration ));	
 	                        
 	if(limits.lower > limits.upper)
 	{
-	    throw std::runtime_error(
-	        "[ERROR] [SERIAL KINEMATIC CONTROL] compute_control_limits():"
-	        "Lower limit for the '" + _model->link(jointNumber)->joint().name() + "' joint is greater than "
-	        "upper limit (" + std::to_string(limits.lower) + " > " + std::to_string(limits.upper) + "). "
-	        "How did that happen???");
+	    throw std::logic_error("[ERROR] [SERIAL DYNAMIC CONTROL] compute_control_limits(): "
+	                           "Lower limit for the '" + _model->link(jointNumber)->joint().name() + "' joint is greater than "
+	                           "upper limit (" + std::to_string(limits.lower) + " > " + std::to_string(limits.upper) + "). "
+	                           "How did that happen???");
     }
 	                        
 	return limits;
 }
 
-} }
+} } // namespace
