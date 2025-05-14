@@ -56,7 +56,7 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
                               "There does not appear to be a 'robot' element in the URDF.");
      }
 
-     _name = robot->Attribute("name");                                                        // Assign the name
+     _name = robot->Attribute("name");                                                              // Assign the name
 
      // Search through every 'link' in the urdf file and convert it to a RigidBody object
      for(auto iterator = robot->FirstChildElement("link"); iterator; iterator = iterator->NextSiblingElement("link"))
@@ -112,7 +112,7 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
 
      // Search through every joint and create a RobotLibrary::Joint object
      unsigned int linkNumber = 0;
-     for(auto iterator = robot->FirstChildElement("joint"); iterator; iterator = iterator->NextSiblingElement("joint"))
+     for (auto iterator = robot->FirstChildElement("joint"); iterator; iterator = iterator->NextSiblingElement("joint"))
      {
           string jointName = iterator->Attribute("name");
           string jointType = iterator->Attribute("type");
@@ -224,11 +224,11 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
      }
 
      // Form the connections between all the links
-     for(auto &currentLink : _fullLinkList)
+     for (auto &currentLink : _fullLinkList)
      {
           std::string parentLinkName = connectionList.find(currentLink.name())->second;             // Get the name of the parent link
           
-          if(parentLinkName != this->base.name())                                                   // Not directly attached to the base
+          if (parentLinkName != this->base.name())                                                  // Not directly attached to the base
           {
                unsigned int parentLinkNum = linkList.find(parentLinkName)->second;                  // Get the number of the parent link
                
@@ -239,17 +239,17 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
      unsigned int activeJointCount = 0;
      
      // Merge the dynamic properties of all the links connected by fixed joints     
-     for(auto &currentLink : _fullLinkList)
+     for (auto &currentLink : _fullLinkList)
      {
-          if(currentLink.joint().is_fixed())                                                        // Joint is fixed, so merge with parent link
+          if (currentLink.joint().is_fixed())                                                       // Joint is fixed, so merge with parent link
           {
                Link *parentLink = currentLink.parent_link();                                        // Pointer to the parent link
           
-               if(parentLink == nullptr)                                                            // No parent link, must be attached to the base!
+               if (parentLink == nullptr)                                                           // No parent link, must be attached to the base!
                {
                     this->base.combine_inertia(currentLink,currentLink.joint().origin());           // Combine inertia of this link with the base
                     
-                    for(auto childLink : currentLink.child_links())                                 // Cycle through all the child links
+                    for (auto childLink : currentLink.child_links())                                // Cycle through all the child links
                     {
                          childLink->clear_parent_link();                                            // Link has been merged, so sever the connection
                     }
@@ -262,7 +262,7 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
           }
           else
           {
-               if(currentLink.parent_link() == nullptr) _baseLinks.push_back(&currentLink);         // This link is attached directly to the base
+               if (currentLink.parent_link() == nullptr) _baseLinks.push_back(&currentLink);        // This link is attached directly to the base
                currentLink.set_number(activeJointCount);                                            // Set the number in the kinematic tree
                _link.push_back(&currentLink);                                                       // Add this link to the active list
                activeJointCount++;                                                                  // Increment the counter of active links
@@ -358,18 +358,8 @@ KinematicTree::update_state(const Eigen::VectorXd &jointPosition,
         unsigned int k = currentLink->number();
         Link *parentLink = currentLink->parent_link();
         
-        bool success = parentLink == nullptr 
-                     ? currentLink->update_state(this->base.pose(), this->base.twist(), jointPosition(k), jointVelocity(k))
-                     : currentLink->update_state(jointPosition(k), jointVelocity(k));
-        
-        if(not success)
-        {
-            std::cerr << "[ERROR] [KINEMATIC TREE] update_state(): "
-                      << "Unable to update the state for the '" << currentLink->name()
-                      << "' link (" << currentLink->joint().name() << " joint).\n";
-                      
-            return false;
-        }
+        if (parentLink == nullptr) currentLink->update_state(this->base.pose(), this->base.twist(), jointPosition(k), jointVelocity(k));
+        else                       currentLink->update_state(jointPosition(k), jointVelocity(k));    
         
         Matrix<double,6,Dynamic>        J  = jacobian(currentLink, currentLink->center_of_mass(), k+1);
         Block<Matrix<double,6,Dynamic>> Jv = J.block(0,0,3,k+1);
@@ -409,8 +399,6 @@ KinematicTree::update_state(const Eigen::VectorXd &jointPosition,
     {
         for(int j = 0; j < i; ++j) _jointInertiaMatrix(i,j) = _jointInertiaMatrix(j,i);
     }
-    
-    return true;
 }
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////

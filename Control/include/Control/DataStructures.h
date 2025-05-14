@@ -31,9 +31,9 @@ struct Parameters
     Parameters() = default;                                                                         ///< This enables default options
     
     double controlFrequency     = 100.0;                                                            ///< Rate at which control loop operates.
-    double jointPositionGain    = 10.0;                                                             ///< Scales the position error feedback  
-    double jointVelocityGain    = 1.0;                                                              ///< Scales the velocity error feedback
-    double maxJointAcceleration = 10.0;                                                             ///< Limits joint acceleration
+    double jointPositionGain    = 100.0;                                                            ///< Scales the position error feedback  
+    double jointVelocityGain    = 20.0;                                                             ///< Scales the velocity error feedback
+    double maxJointAcceleration = 5.0;                                                              ///< Limits joint acceleration
     double minManipulability    = 1e-04;                                                            ///< Threshold for singularity avoidance
     
     Eigen::Matrix<double,6,6> cartesianStiffness = (Eigen::MatrixXd(6,6) << 10.0,  0.0,  0.0, 0.0, 0.0, 0.0,

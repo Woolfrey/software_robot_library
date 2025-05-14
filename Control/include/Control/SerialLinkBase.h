@@ -177,13 +177,13 @@ class SerialLinkBase : public QPSolver<double>
 		
 		double _jointPositionGain = 100.0;                                                          ///< On position tracking error
 		
-		double _jointVelocityGain = 10.0;                                                           ///< On velocity tracking error
+		double _jointVelocityGain = 20.0;                                                           ///< On velocity tracking error
 		
 		double _manipulability;                                                                     ///< Proximity to a singularity
 		
 		double _minManipulability = 5e-03;                                                          ///< Used in singularity avoidance
 		
-		double _maxJointAcceleration = 0.5;                                                         ///< As it says.
+		double _maxJointAcceleration = 5.0;                                                         ///< As it says.
 
 		double _controlFrequency = 100.0;                                                           ///< Used in certain control calculations.
 				
