@@ -3,7 +3,7 @@
  * @author  Jon Woolfrey
  * @email   jonathan.woolfrey@gmail.com
  * @date    April 2025
- * @version 1.0
+ * @version 2.0
  * @brief   A class that combines a RobotLibrary::Model::RigidyBody object with a RobotLibrary::Model::RobotLibrary::Model::Joint object.
  * 
  * @details This class describes a link as a part of a serial link chain. It contains both a joint
@@ -46,23 +46,25 @@ class Link : public RobotLibrary::Model::RigidBody
            * @param parent A pointer to the preceding Link object.
            * @return Returns false if there was a problem.
            */
-          bool set_parent_link(Link *parent);
+          void
+          set_parent_link(Link *parent);
           
           /**
            * @brief Adds a pointer to a list of proceeding joints in a kinematic chain.
            * @param child A pointer to the proceeding Link object
            * @param Return false if there was a problem.
            */
-          bool add_child_link(Link *child);
+          void
+          add_child_link(Link *child);
           
           /**
            * @brief Updates the kinematic properties of the link.
            * @param jointPosition The position of the joint (radians for revolute joints, and metres for prismatic joints)
            * @param jointVelocity The speed with which the joint is moving (rad/s for revolute, m/s for prismatic)
-           * @return Returns false if there was a problem.
            */
-          bool update_state(const double &jointPosition,
-                            const double &jointVelocity);
+          void
+          update_state(const double &jointPosition,
+                       const double &jointVelocity);
           
           /**
            * @brief Updates the kinematic properties of the link.
@@ -70,54 +72,62 @@ class Link : public RobotLibrary::Model::RigidBody
            * @param previousTwist The velocity of the parent link in the kinematic chain.
            * @param jointPosition The position of the joint (rad for revolute, metres for prismatic)
            * @param jointVelocity The speed at which the joint is moving (rad/s for revolute, m/s for prismatic)
-           * @return Returns false if there was a problem.
            */
-          bool update_state(const Pose                    &previousPose,
-                            const Eigen::Vector<double,6> &previousTwist,
-                            const double                  &jointPosition,
-                            const double                  &jointVelocity);
+          void
+          update_state(const Pose                    &previousPose,
+                       const Eigen::Vector<double,6> &previousTwist,
+                       const double                  &jointPosition,
+                       const double                  &jointVelocity);
           
           /**
            * @brief Returns the RobotLibrary::Model::Joint object associated with this link.
            */
-          RobotLibrary::Model::Joint  joint() const { return this->_joint; }
+          RobotLibrary::Model::Joint 
+          joint() const { return this->_joint; }
           
           /**
            * @brief Returns a pointer to the previous joint in the kinematic chain.
            */
-          Link* parent_link() const { return this->_parentLink; }
+          Link*
+          parent_link() const { return this->_parentLink; }
           
           /**
            * @brief Returns the number of this link in the kinematic chain.
            */
-          unsigned int number() const { return this->_number; }
+          unsigned int
+          number() const { return this->_number; }
           
           /**
            * @brief Returns an array of pointers to the next links attached to this one in a kinematic chain.
            */
-          std::vector<Link*> child_links() const { return this->_childLinks; }
+          std::vector<Link*>
+          child_links() const { return this->_childLinks; }
           
           /**
            * @brief Returns a unit vector for the joint axis in the base frame of the kinematic tree.
            */
-          Eigen::Vector3d joint_axis() const { return this->_jointAxis; }
+          Eigen::Vector3d
+          joint_axis() const { return this->_jointAxis; }
           
           /**
            * @brief Set the pointer to the proceeding link in a kinematic chain as null.
            */
-          void clear_parent_link() { this->_parentLink = nullptr; }
+          void
+          clear_parent_link() { this->_parentLink = nullptr; }
 
           /**
            * @brief Merge the dynamic properties of another link in to this one.
            * @param otherLink The link to be merged in to this one.
            */
-          void merge(const Link &otherLink);
+          void
+          merge(const Link &otherLink);
           
           /**
            * @brief Set the number of this link in the kinematic tree.
            * @param number The number to be assigned.
            */
-          void set_number(const unsigned int &number) { this->_number = number; }
+          void
+          set_number(const unsigned int &number) { this->_number = number; }
           
      private:
      
@@ -127,7 +137,7 @@ class Link : public RobotLibrary::Model::RigidBody
           
           Link * _parentLink = nullptr;                                                             ///< Pointer to previous link in chain (null = attached to base)
           
-          std::vector<Link *> _childLinks = {};                                                     ///< Array of proceeding links in a kinematic tree.
+          std::vector<Link*> _childLinks = {};                                                      ///< Array of proceeding links in a kinematic tree.
           
           unsigned int _number;                                                                     ///< The number in the kinematic chain
           

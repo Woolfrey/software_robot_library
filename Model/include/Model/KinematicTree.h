@@ -18,8 +18,8 @@
  * @see https://github.com/Woolfrey/software_robot_library for more information.
  */
  
-#ifndef KINEMATIC_TREE_H_
-#define KINEMATIC_TREE_H_
+#ifndef KINEMATIC_TREE_H
+#define KINEMATIC_TREE_H
 
 #include <Model/DataStructures.h>
 #include <Model/Joint.h>                                                                            // Custom class for describing a moveable connection between links
