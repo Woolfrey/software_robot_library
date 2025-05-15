@@ -20,6 +20,8 @@
 #ifndef POSE2D_H
 #define POSE2D_H
 
+#include <Math/MathFunctions.h>
+
 #include <Eigen/Geometry>                                                                           // Quaternion
 #include <iostream>                                                                                 // std::cout
 
@@ -42,7 +44,7 @@ class Pose2D
           Pose2D(const Eigen::Vector2d &translation,
                  const double &angle)
           : _translation(translation),
-            _angle(wrap_to_pi(angle)) {}
+            _angle(RobotLibrary::Math::wrap_to_pi(angle)) {}
           
           /**
            * @brief Computes the error between this pose object and another.
@@ -62,13 +64,13 @@ class Pose2D
            * @brief Returns the orientation component of the pose as a 2x2 rotation / SO(2) matrix
            */
           Eigen::Matrix2d
-          rotation();
+          rotation() const;
           
           /**
            * @return Returns the 2x1 translation component
            */
           Eigen::Vector2d
-          translation() const { return this->_translation; }
+          translation() const { return _translation; }
 
           /**
            * @brief  Computes the inverse / opposite of this pose.
@@ -93,27 +95,20 @@ class Pose2D
            */
           Eigen::Vector2d
           operator* (const Eigen::Vector2d &other);
+          
+          /**
+           * @brief Return the angle member of this class.
+           * @return What you asked for.
+           */
+          double
+          angle() const { return _angle; }
            
         private:
 
-            double _angle;                                                                          ///< Orientaiton.
+            double _angle = 0;                                                                      ///< Orientaiton.
             
-            Eigen::Vector32 _translation = {0.0, 0.0, 0.0};                                         ///< The position or translation component
-     
-            /**
-             * @brief Ensure that an angle is between -3.141592.. and 3.141592...
-             * @param angle The value to be capped.
-             * @return The angle re-mapped.
-             */
-            double
-            wrap_to_pi(double &angle);
-            {
-                angle = fmod(angle + M_PI, 2 * M_PI);
-                
-                if(angle < 0) angle += 2 * M_PI;
-                
-                return angle - M_PI;
-            }
+            Eigen::Vector2d _translation = {0.0, 0.0};                                              ///< The position or translation component
+            
 };                                                                                                  // Semicolon needed after class declaration
 
 } } // namespace

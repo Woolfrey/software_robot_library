@@ -2,7 +2,7 @@
  * @file    Pose2D.cpp
  * @author  Jon Woolfrey
  * @email   jonathan.woolfrey@gmail.com
- * @date    April 2025
+ * @date    May 2025
  * @version 1.0
  * @brief   A class that describes the position & orientation of an object in 2D space.
  * 
@@ -45,9 +45,23 @@ Pose2D::error(const Pose2D &desired)
      Eigen::Vector3d error;                                                                         // Value to be returned
      
      error.head(2) = desired.translation() - _translation;
-     error.tail(1) = wrap_to_pi(desired.angle() - _angle);
+     error[2]      = RobotLibrary::Math::wrap_to_pi(desired.angle() - _angle);
      
      return error;
+}
+
+  ///////////////////////////////////////////////////////////////////////////////////////////////////
+ //                      Get the rotation matrix associated with this pose                        //
+///////////////////////////////////////////////////////////////////////////////////////////////////
+Eigen::Matrix2d
+Pose2D::rotation() const
+{
+    Eigen::Matrix2d R;
+    
+    R << cos(_angle), -sin(_angle),
+         sin(_angle),  cos(_angle);
+         
+    return R;
 }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -56,7 +70,7 @@ Pose2D::error(const Pose2D &desired)
 Pose2D
 Pose2D::inverse()
 {
-    return Pose2D(-rotation().transpose() * _translation(), -_angle);
+    return Pose2D(-rotation().transpose() * _translation, -_angle);
 }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -65,7 +79,8 @@ Pose2D::inverse()
 Pose2D
 Pose2D::operator* (const Pose2D &other) const
 {
-    return Pose2D(_translation + rotation() * other.translation, wrap_to_pi(_angle + other.angle()));
+    return Pose2D(_translation + this->rotation() * other.translation(),
+                  RobotLibrary::Math::wrap_to_pi(_angle + other.angle()));
 }
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -75,7 +90,7 @@ void
 Pose2D::operator*= (const Pose2D &other)
 {
     _translation += rotation() * other.translation();
-    _angle = wrap_to_pi(_angle + other.angle());
+    _angle = RobotLibrary::Math::wrap_to_pi(_angle + other.angle());
 }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
