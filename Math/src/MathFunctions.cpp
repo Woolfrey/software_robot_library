@@ -266,4 +266,17 @@ solve_cubic_spline_derivatives(const std::vector<double> &y,
     return temp;                                  
 }
 
+  ///////////////////////////////////////////////////////////////////////////////////////////////////
+ //                          Map an angle to the interveral (-pi, pi]                             //
+///////////////////////////////////////////////////////////////////////////////////////////////////
+double
+wrap_to_pi(const double &angle)
+{
+    double newAngle = fmod(angle + M_PI, 2 * M_PI);
+    
+    if(newAngle < 0) newAngle += 2 * M_PI;
+    
+    return newAngle - M_PI;
+}
+
 } }
