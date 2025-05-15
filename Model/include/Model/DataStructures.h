@@ -41,6 +41,21 @@ struct ReferenceFrame
      Pose relativePose;                                                                             ///< Pose with respect to local link frame
 };
 
+/**
+ * @brief A struct for collating parameters for the DifferentialDrive
+ */
+struct DifferentialDriveParameters
+{
+    double controlFrequency       = 100.0;                                                          ///< Used by controllers
+    double inertia                = 0.5 * 5.0 * 0.25 * 0.25;                                        ///< Rotational inertia (kg*m^2)
+    double mass                   = 5.0;                                                            ///< Weight (kg)
+    double maxAngularAcceleration = 10.0;                                                           ///< Maximum rotational acceleration (rad/s/s)
+    double maxAngularVelocity     = 100.0 * M_PI / 30.0;                                            ///< Maximum rotational speed (rad/s)
+    double maxLinearAcceleration  = 5.0;                                                            ///< Maximum forward acceleration (m/s/s)
+    double maxLinearVelocity      = 2.0;                                                            ///< Maximum forward speed (m/s)
+    Eigen::Matrix3d propagationUncertainty = Eigen::Matrix3d::Identity();                           ///< Uncertainty of configuration propagation in Kalman filter
+};
+
 } } // namespace
 
 #endif
