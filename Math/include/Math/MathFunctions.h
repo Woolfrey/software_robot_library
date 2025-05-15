@@ -81,6 +81,14 @@ solve_cubic_spline_derivatives(const std::vector<double> &y,
                                const double &firstDerivative = 0,
                                const double &finalDerivative = 0);
 
+/**
+ * @brief Ensure that an angle is between -3.141592.. and 3.141592...
+ * @param angle The value to be capped.
+ * @return The angle re-mapped.
+ */
+double
+wrap_to_pi(const double &angle);
+            
 } }
                      
 #endif                                    
