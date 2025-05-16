@@ -2,8 +2,8 @@
  * @file    DataStructures.h
  * @author  Jon Woolfrey
  * @email   jonathan.woolfrey@gmail.com
- * @date    April 2025
- * @version 1.0
+ * @date    May 2025
+ * @version 1.1
  * @brief   Structs used in the Model classes.
  * 
  * @copyright Copyright (c) 2025 Jon Woolfrey
