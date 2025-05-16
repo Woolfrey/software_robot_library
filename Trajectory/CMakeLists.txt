@@ -1,5 +1,6 @@
 # Trajectory/CMakeLists.txt
 add_library(Trajectory src/CartesianSpline.cpp
+                       src/MinimumArcLength.cpp
                        src/SplineTrajectory.cpp
                        src/TrajectoryBase.cpp
                        src/TrapezoidalVelocity.cpp
