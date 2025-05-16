@@ -2,8 +2,8 @@
  * @file    TrajectoryBase.h
  * @author  Jon Woolfrey
  * @email   jonathan.woolfrey@gmail.com
- * @date    February 2025
- * @version 1.0
+ * @date    May 2025
+ * @version 1.0.1
  * @brief   A class to standardise the structure of all other trajectory classes.
  * 
  * @details This class is used to standardise the structure and interfaces for all trajectory classes.
@@ -15,7 +15,7 @@
  * @see https://github.com/Woolfrey/software_robot_library for more information.
  */
  
-#include "Trajectory/TrajectoryBase.h"
+#include <Trajectory/TrajectoryBase.h>
 
 namespace RobotLibrary { namespace Trajectory {
 
@@ -26,11 +26,11 @@ TrajectoryBase::TrajectoryBase(const State  &startPoint,
                                const State  &endPoint,
                                const double &startTime,
                                const double &endTime)
-                               : _startPoint(startPoint),
-                                 _endPoint(endPoint),
-                                 _startTime(startTime),
-                                 _endTime(endTime),
-                                 _dimensions(startPoint.position.size())
+: _startPoint(startPoint),
+  _endPoint(endPoint),
+  _startTime(startTime),
+  _endTime(endTime),
+  _dimensions(startPoint.position.size())
 {
     if(startTime == endTime)
     {
