@@ -37,6 +37,17 @@ class Pose2D
           Pose2D() {};
           
           /**
+           * @brief A delegating constructor using 3 arguments because I'm lazy.
+           * @param x The position in the x-coordinate
+           * @param y The position in the y-coordinate
+           * @param angle The orientation relative to the global frame.
+           */
+          Pose2D(const double &x,
+                 const double &y,
+                 const double &angle)
+          : Pose2D(Eigen::Vector2d(x, y), angle) {}
+          
+          /**
            * @brief A full constructor.
            * @param translation A 3x1 vector for the position/translation component.
            * @param quaternion A quaternion object defining the orientation.
