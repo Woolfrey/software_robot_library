@@ -2,7 +2,7 @@
  * @file    DifferentialDrive.h
  * @author  Jon Woolfrey
  * @email   jonathan.woolfrey@gmail.com
- * @date    April 2025
+ * @date    May 2025
  * @version 1.0
  * @brief   A base class for control of differential drives robots.
  *
@@ -43,8 +43,8 @@ class DifferentialDrive
          */
         void
         update_state(const RobotLibrary::Model::Pose2D &pose,
-                     const Eigen::Matrix3d &covariance,
-                     const Eigen::Vector2d &velocity);
+                     const Eigen::Vector2d &velocity,
+                     const Eigen::Matrix3d &covariance = Eigen::Matrix3d::Identity());
 
         /**
          * @brief Compute the instantaneous limits on the linear & angular velocity.
@@ -92,16 +92,30 @@ class DifferentialDrive
                        const Eigen::Vector2d &currentVelocity);
 
         /**
+         * @brief Get the (predicted) next pose using the internal state.
+         * @return A pose object in SE(2).
+         */
+        RobotLibrary::Model::Pose2D
+        predicted_pose() { return predicted_pose(_pose, _velocity); }
+       
+        /**
          * @brief Get uncertainty of the predicted pose.
          * @param currentPose The current position & orientation
          * @param currentCovariance The current uncertainty (to be propagated)
          * @param currentVelocity The current linear & angular velocity
-         * @return A pose object as SE(2)
+         * @return A 3x3 matrix.
          */
         Eigen::Matrix3d
         predicted_covariance(const RobotLibrary::Model::Pose2D &currentPose,
-                             const Eigen::Matrix3d &currentCovariance,
-                             const Eigen::Vector2d &controlInput);
+                             const Eigen::Vector2d &controlInput,
+                             const Eigen::Matrix3d &currentCovariance);
+                             
+        /**
+         * @brief Get the uncertainty of the predicted pose using internal values.
+         * @return A 3x3 matrix.
+         */
+        Eigen::Matrix3d
+        predicted_covariance() { return predicted_covariance(_pose, _velocity, _covariance); }
                        
         /**
          * @brief Partial derivative of configuration propagation w.r.t configuration.

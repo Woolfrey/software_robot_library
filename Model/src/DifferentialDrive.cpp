@@ -2,7 +2,7 @@
  * @file    DifferentialDrive.cpp
  * @author  Jon Woolfrey
  * @email   jonathan.woolfrey@gmail.com
- * @date    April 2025
+ * @date    May 2025
  * @version 1.0
  * @brief   A base class for control of differential drives robots.
  *
@@ -40,8 +40,8 @@ DifferentialDrive::DifferentialDrive(const RobotLibrary::Model::DifferentialDriv
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 void
 DifferentialDrive::update_state(const RobotLibrary::Model::Pose2D &pose,
-                                const Eigen::Matrix3d &covariance,
-                                const Eigen::Vector2d &velocity)
+                                const Eigen::Vector2d &velocity,
+                                const Eigen::Matrix3d &covariance)
 {
     _pose = pose;                                                                                   // Simple enough...!
     
@@ -55,11 +55,9 @@ DifferentialDrive::update_state(const RobotLibrary::Model::Pose2D &pose,
                                     "Determinant of covariance matrix must be positive (" + std::to_string(det) + ").");
     }
     
-    RobotLibrary::Model::Limits linear, angular;
-    compute_limits(linear, angular, _velocity);
-    
-    _velocity[0] = std::clamp(velocity[0],  linear.lower,  linear.upper);  
-    _velocity[1] = std::clamp(velocity[1], angular.lower, angular.upper);
+    _velocity[0] = velocity[0];
+     
+    _velocity[1] = velocity[1];
 }
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                  Partial derivative of propagation equation w.r.t. configuration               //
@@ -87,7 +85,7 @@ DifferentialDrive::predicted_pose(const RobotLibrary::Model::Pose2D &currentPose
     Eigen::Vector2d translation = {currentPose.translation()[0] + controlInput[0] * cos(currentPose.angle()) / _controlFrequency,
                                    currentPose.translation()[1] + controlInput[0] * sin(currentPose.angle()) / _controlFrequency};
     
-    double angle = currentPose.angle() + controlInput[2] / _controlFrequency;
+    double angle = currentPose.angle() + controlInput[1] / _controlFrequency;
     
     return RobotLibrary::Model::Pose2D(translation, angle);
 }
@@ -97,8 +95,8 @@ DifferentialDrive::predicted_pose(const RobotLibrary::Model::Pose2D &currentPose
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 Eigen::Matrix3d
 DifferentialDrive::predicted_covariance(const RobotLibrary::Model::Pose2D &currentPose,
-                                        const Eigen::Matrix3d &currentCovariance,
-                                        const Eigen::Vector2d &controlInput)
+                                        const Eigen::Vector2d &controlInput,
+                                        const Eigen::Matrix3d &currentCovariance)
 {
     Eigen::Matrix3d A = configuration_matrix(currentPose, controlInput);
     
@@ -120,10 +118,10 @@ DifferentialDrive::compute_limits(RobotLibrary::Model::Limits &linear,
                              currentVelocity[0] - _maxLinearAcceleration / _controlFrequency);
                              
     angular.upper = std::min(_maxAngularVelocity,
-                             currentVelocity[2] + _maxAngularAcceleration / _controlFrequency);
+                             currentVelocity[1] + _maxAngularAcceleration / _controlFrequency);
     
     angular.lower = std::max(-_maxAngularVelocity,
-                              currentVelocity[2] - _maxAngularAcceleration / _controlFrequency);
+                              currentVelocity[1] - _maxAngularAcceleration / _controlFrequency);
                               
     if (linear.lower >= linear.upper)
     {
