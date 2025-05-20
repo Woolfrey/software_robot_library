@@ -45,7 +45,7 @@ class SerialLinkBase : public QPSolver<double>
 		 */
 		SerialLinkBase(std::shared_ptr<RobotLibrary::Model::KinematicTree> model,
 		               const std::string &endpointName,
-		               const RobotLibrary::Control::Parameters &parameters = Parameters());
+		               const RobotLibrary::Control::SerialLinkParameters &parameters = SerialLinkParameters());
 		
 		/**
 		 * @brief Compute the required joint motion to achieve the specified endpoint motion.
@@ -134,14 +134,6 @@ class SerialLinkBase : public QPSolver<double>
 		 */
 		void
 		update();
-		
-	    /**
-	     * @brief Set parameters such as control gains, control frequency, etc.
-	     * @param options a RobotLibrary::Control::Options data structure. Contains things like control gains, frequency, etc.
-	     * @return False if there is something wrong with the arguments.
-	     */
-	    void
-	    set_control_parameters(const Parameters &parameters);
 	    
 		/**
 		 * @brief Assign the redundant task for use in the next control calculation.

@@ -40,7 +40,7 @@ class SerialDynamicControl : public SerialLinkBase
 		 */
 		SerialDynamicControl(std::shared_ptr<RobotLibrary::Model::KinematicTree> model,
 		                     const std::string &endpointName,
-		                     const RobotLibrary::Control::Parameters &parameters = Parameters())
+		                     const RobotLibrary::Control::SerialLinkParameters &parameters = SerialLinkParameters())
         : SerialLinkBase(model, endpointName, parameters){}
 		
 		/**
