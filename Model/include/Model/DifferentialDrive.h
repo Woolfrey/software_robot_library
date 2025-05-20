@@ -128,7 +128,7 @@ class DifferentialDrive
                              const Eigen::Vector2d &velocity);     
     protected:
         
-        double _controlFrequency;                                                                   ///< Used in certain methods
+        unsigned int _controlFrequency;                                                             ///< Used in certain methods
         
         double _inertia;                                                                            ///< Rotational inertia of the robot (kg*m^2)
         
