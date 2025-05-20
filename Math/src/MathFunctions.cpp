@@ -23,34 +23,32 @@ namespace RobotLibrary { namespace Math {
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                                      POSITIVE DEFINITE?                                        //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-bool is_positive_definite(const Eigen::MatrixXd &A)
+bool is_positive_definite(const Eigen::MatrixXd &A,
+                          std::string &message)
 {
-     if(A.rows() != A.cols())
-     {
-          std::cout << "[INFO] is_positive_definite(): The given matrix matrix is not square ("
-                    << std::to_string(A.rows()) << " rows, " << std::to_string(A.cols()) << " columns).\n";
-                    
-          return false;
-     }
-     
-     double det = A.determinant();
-     if(det <= 0)
-     {
-          std::cout << "[INFO] is_positive_definite(): Determinant = " << std::to_string(det) << " < 0.\n";
-          
-          return false;
-     }
-     
-     double symmetryErrorNorm = (A - A.transpose()).norm();
-     if(symmetryErrorNorm > 1e-04)
-     {
-          std::cout << "[INFO] is_positive_defintie(): Not symmetric; ||A - A'|| = "
-                    << std::to_string(symmetryErrorNorm) << " > 0.0001.\n";
-          
-          return false;
-     }
-     
-     return true;
+    if (A.rows() != A.cols())
+    {
+        message = "Matrix is not square.";
+        return false;
+    }
+
+    double symmetryErrorNorm = (A - A.transpose()).norm();
+    if (symmetryErrorNorm > 1e-4)
+    {
+        message = "Matrix is not symmetric; ||A - A'|| = " + std::to_string(symmetryErrorNorm) + " > 1e-4.\n";
+        return false;
+    }
+
+    Eigen::LLT<Eigen::MatrixXd> llt(A);
+    if (llt.info() == Eigen::Success)
+    {
+        return true;
+    }
+    else
+    {
+        message = "Cholesky decomposition failed.";
+        return false;
+    }
 }
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////

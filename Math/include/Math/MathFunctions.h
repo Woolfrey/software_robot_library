@@ -32,7 +32,8 @@ namespace RobotLibrary { namespace Math {
  * @param A a square matrix
  * @return True if positive-definite, false otherwise
  */
-bool is_positive_definite(const Eigen::MatrixXd &A);                                                                                               // Semicolon needed after struct declaration
+bool is_positive_definite(const Eigen::MatrixXd &A,
+                          std::string &info);
        
 /**
  * Decompose a matrix A = Q*R where Q is an orthogonal matrix, and R is upper-triangular.
@@ -41,7 +42,8 @@ bool is_positive_definite(const Eigen::MatrixXd &A);                            
  * @return A QRDecomposition data structure
  */
 RobotLibrary::Math::QRDecomposition
-schwarz_rutishauser(const Eigen::MatrixXd &A, const double tolerance = 1e-04);
+schwarz_rutishauser(const Eigen::MatrixXd &A,
+                    const double tolerance = 1e-04);
 
 /**
  * Solve a system of equations y = L*x, where L is a lower-triangular matrix.
