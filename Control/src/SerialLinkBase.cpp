@@ -18,7 +18,7 @@
  * @see https://github.com/Woolfrey/software_simple_qp for the optimisation algorithm used in the control.
  */
 
-#include "Control/SerialLinkBase.h"
+#include <Control/SerialLinkBase.h>
 
 namespace RobotLibrary { namespace Control {
 
@@ -27,7 +27,7 @@ namespace RobotLibrary { namespace Control {
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 SerialLinkBase::SerialLinkBase(std::shared_ptr<RobotLibrary::Model::KinematicTree> model,
                                const std::string &endpointName,
-                               const Parameters &parameters)
+                               const RobotLibrary::Control::SerialLinkParameters &parameters)
                               : QPSolver<double>(parameters.qpsolver)
 {
      _model = model;                                                                                // Save model internally so we can access it later
@@ -139,27 +139,6 @@ SerialLinkBase::manipulability_gradient()
     }
 
     return gradient;
-}
-
-  ////////////////////////////////////////////////////////////////////////////////////////////////////
- //                        Set the control gains, frequency, QP solver params, etc.                //
-////////////////////////////////////////////////////////////////////////////////////////////////////
-void
-SerialLinkBase::set_control_parameters(const Parameters &parameters)
-{
-    // TO DO: Check parameters, throw error if invalid
-    
-    // Set properties specific to this class
-    _controlFrequency     = parameters.controlFrequency;
-    _jointPositionGain    = parameters.jointPositionGain;
-    _jointVelocityGain    = parameters.jointVelocityGain;
-    _minManipulability    = parameters.minManipulability;
-    _maxJointAcceleration = parameters.maxJointAcceleration;
-    _cartesianStiffness   = parameters.cartesianStiffness;
-    _cartesianDamping     = parameters.cartesianDamping;
-
-    // Set properties specific to the QPSolver class
-    QPSolver<double>set_solver_options(parameters.qpsolver);
 }
 
 } }
