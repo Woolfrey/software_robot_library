@@ -32,8 +32,44 @@ DifferentialDrive::DifferentialDrive(const RobotLibrary::Model::DifferentialDriv
   _maxLinearVelocity(parameters.maxLinearVelocity),
   _propagationUncertainty(parameters.propagationUncertainty)
 {
-    // Ought to do something here.
+    if (_mass <= 0 or _inertia <= 0)
+    {
+        throw std::invalid_argument("[ERROR] [DIFFERENTIAL DRIVE] Constructor: "
+                                    "Mass and inertia must be positive. Received mass = " +
+                                    std::to_string(_mass) + ", inertia = " + std::to_string(_inertia));
+    }
+
+    if (_controlFrequency <= 0)
+    {
+        throw std::invalid_argument("[ERROR] [DIFFERENTIAL DRIVE] Constructor: "
+                                    "Control frequency must be positive. Received = " +
+                                    std::to_string(_controlFrequency));
+    }
+
+    if (_maxLinearVelocity <= 0 or _maxAngularVelocity <= 0)
+    {
+        throw std::invalid_argument("[ERROR] [DIFFERENTIAL DRIVE] Constructor: "
+                                    "Velocity limits must be positive. Received maxLinearVelocity = " +
+                                    std::to_string(_maxLinearVelocity) +
+                                    ", maxAngularVelocity = " + std::to_string(_maxAngularVelocity));
+    }
+
+    if (_maxLinearAcceleration <= 0 or _maxAngularAcceleration <= 0)
+    {
+        throw std::invalid_argument("[ERROR] [DIFFERENTIAL DRIVE] Constructor: "
+                                    "Acceleration limits must be positive. Received maxLinearAcceleration = " +
+                                    std::to_string(_maxLinearAcceleration) +
+                                    ", maxAngularAcceleration = " + std::to_string(_maxAngularAcceleration));
+    }
+
+    std::string message;
+    if (not RobotLibrary::Math::is_positive_definite(_propagationUncertainty, message))
+    {
+        throw std::invalid_argument("[ERROR] [DIFFERENTIAL DRIVE] Constructor: "
+                                    "Propagation uncertainty matrix is not positive definite: " + message);
+    }
 }
+
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                                   Udate the pose & velocity                                    //
@@ -43,21 +79,23 @@ DifferentialDrive::update_state(const RobotLibrary::Model::Pose2D &pose,
                                 const Eigen::Vector2d &velocity,
                                 const Eigen::Matrix3d &covariance)
 {
-    _pose = pose;                                                                                   // Simple enough...!
-    
-    _covariance = covariance;                                                                       // Uncertainty of the pose
-    
-    double det = _covariance.determinant();
-    
-    if (det <= 0.0)
+    if (abs(velocity[0]) > _maxLinearVelocity)
     {
         throw std::invalid_argument("[ERROR] [DIFFERENTIAL DRIVE] update_state(): "
-                                    "Determinant of covariance matrix must be positive (" + std::to_string(det) + ").");
+                                    "(Absolute) linear velocity greater than maximum ("
+                                    + std::to_string(abs(velocity[0])) + " > " + std::to_string(_maxLinearVelocity) + ").");
+    }
+    else if (abs(velocity[1]) > _maxAngularVelocity)
+    {
+        throw std::invalid_argument("[ERROR] [DIFFERENTIAL DRIVE] update_state(): "
+                                    "(Absolute) angular velocity greater than maximum ("
+                                    + std::to_string(abs(velocity[1])) + " > " + std::to_string(_maxAngularVelocity) + ").");
     }
     
-    _velocity[0] = velocity[0];
-     
-    _velocity[1] = velocity[1];
+    _pose = pose;                                                                                   // Simple enough...! 
+    _covariance  = covariance;                                                                      // Uncertainty of the pose   
+    _velocity[0] = velocity[0];                                                                     // Linear velocity  
+    _velocity[1] = velocity[1];                                                                     // Angular velocity
 }
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                  Partial derivative of propagation equation w.r.t. configuration               //
