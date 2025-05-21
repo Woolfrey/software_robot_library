@@ -31,7 +31,8 @@ namespace RobotLibrary { namespace Control {
  * @brief A class that performs nonlinear feedback control for trajectory tracking of a differential
  *        drive mobile robot.
  */
-class DifferentialDrivePredictive : public RobotLibrary::Model::DifferentialDrive
+class DifferentialDrivePredictive : public RobotLibrary::Model::DifferentialDrive,
+                                    public QPSolver<double>
 {
     public:
     
@@ -43,7 +44,8 @@ class DifferentialDrivePredictive : public RobotLibrary::Model::DifferentialDriv
          * @param parameters Model parameters for the base class.
          */
         DifferentialDrivePredictive(RobotLibrary::Control::DifferentialDrivePredictiveParameters &controlParameters,
-                                    RobotLibrary::Model::DifferentialDriveParameters &modelParameters);
+                                    RobotLibrary::Model::DifferentialDriveParameters &modelParameters,
+                                    SolverOptions<double> &solverOptions);
           
         /**
          * @brief Solve the (nonlinear) feedback control problem to track a trajectory.
@@ -80,7 +82,7 @@ class DifferentialDrivePredictive : public RobotLibrary::Model::DifferentialDriv
         
         private:
         
-        double _threshold;                                                                          ///< Terminates algorithm early if this threshold is reached
+        double _threshold = 1e-10;                                                                  ///< Terminates algorithm early if this threshold is reached
         
         unsigned int _predictionSteps;                                                              ///< Number of steps in the prediction horizon
         
@@ -88,13 +90,13 @@ class DifferentialDrivePredictive : public RobotLibrary::Model::DifferentialDriv
        
         Eigen::Matrix3d _finalPoseErrorWeight;                                                      ///< Weighting matrix on the final pose error
         
-        Eigen::Matrix<double, 4 ,2> _controlConstraintMatrix;                                       ///< Used in the QP solver to ensure control inputs are within bounds
+        Eigen::Matrix<double,4,2> _controlConstraintMatrix;                                         ///< Used in the QP solver to ensure control inputs are within bounds
         
-        Eigen::Matrix<double, Eigen::Dynamic, 2> _obstacleConstraintMatrix;                         ///< Used in the QP solver to avoid collision with obstacles
+        Eigen::Matrix<double,Eigen::Dynamic,2> _obstacleConstraintMatrix;                           ///< Used in the QP solver to avoid collision with obstacles
         
-        Eigen::Matrix<double, Eigen::Dynamic, 2> _constraintMatrix;                                 ///< Full constraint matrix passed to the QP solver
+        Eigen::Matrix<double,Eigen::Dynamic,2> _constraintMatrix;                                   ///< Full constraint matrix passed to the QP solver
         
-        Eigen::Vector<double, 4> _controlConstraintVector;                                          ///< Use in the QP solver to ensure control input is within limits
+        Eigen::Vector<double,4> _controlConstraintVector;                                           ///< Use in the QP solver to ensure control input is within limits
         
         Eigen::VectorXd _obstacleConstraintVector;                                                  ///< Used in the QP solve to avoid collision with obstacles
         
