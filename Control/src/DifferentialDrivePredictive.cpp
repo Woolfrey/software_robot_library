@@ -28,10 +28,13 @@ namespace RobotLibrary { namespace Control {
  //                                            Constructor                                         //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 DifferentialDrivePredictive::DifferentialDrivePredictive(RobotLibrary::Control::DifferentialDrivePredictiveParameters &controlParameters,
-                                                         RobotLibrary::Model::DifferentialDriveParameters &modelParameters)
+                                                         RobotLibrary::Model::DifferentialDriveParameters &modelParameters,
+                                                         SolverOptions<double> &solverOptions)
 : DifferentialDrive(modelParameters),
+  QPSolver<double>(solverOptions),
  _numberOfRecursions(controlParameters.numberOfRecursions),
  _predictionSteps(controlParameters.predictionSteps),
+ _threshold(controlParameters.maxControlStepNorm),
  _finalPoseErrorWeight(controlParameters.finalPoseErrorWeight)
 {
     // Ensure weighting matrices are positive definite:
@@ -64,7 +67,7 @@ DifferentialDrivePredictive::DifferentialDrivePredictive(RobotLibrary::Control::
     inertiaMatrix << _mass,      0.0,
                        0.0, _inertia;
     
-    for (int i = 0; i < _predictionSteps - 1; ++i)
+    for (int i = 0; i < _predictionSteps; ++i)
     {
         _intermediatePoseErrorWeight[i] = std::exp(decayRate * i) * controlParameters.initialPoseErrorWeight;
         
@@ -122,6 +125,7 @@ DifferentialDrivePredictive::track_trajectory(const std::vector<RobotLibrary::Mo
                                     "but the input argument had " + std::to_string(desiredStates.size()) + " elements.");
     }
     
+    // Run the optimisations
     for (int i = 0; i < _numberOfRecursions; ++i)
     {
         double largestStepChange = 0.0;                                                             // Store largest step change in control for this recursion
@@ -130,40 +134,48 @@ DifferentialDrivePredictive::track_trajectory(const std::vector<RobotLibrary::Mo
         
         // Backwards recursions
         for (int j = _predictionSteps - 1; j >= 0; --j)
-        {
-            Eigen::Vector3d poseError = _predictedStates[j].pose.error(desiredStates[j].pose);      // Self explainatory
+        {    
+            Eigen::Vector3d poseError = _predictedStates[j+1].pose.error(desiredStates[j].pose);    // Error at step j+1 is affected by control input at step j
 
             if (j == _predictionSteps - 1)
             {
-                costateVector = _finalPoseErrorWeight * poseError;                                  // Only need to evaluate costate vector at final step
+                costateVector = _finalPoseErrorWeight * poseError;                                  // Only need to evaluate costate vector at final steps   
             }
             else
             {
-                double angle = _predictedStates[j].pose.angle();                                     // Used in multiple places
+                double angle = _predictedStates[j].pose.angle();                                    // Used in multiple places
                 
-                // Partial derivative of state propagation w.r.t. control
+                // Partial derivative of state propagation w.r.t. configuration                                                    
+                Eigen::Matrix<double,3,3> dfdx;
+                
+                dfdx << 1.0, 0.0, -_predictedStates[j].velocity[0] * sin(angle) / _controlFrequency,
+                        0.0, 1.0,  _predictedStates[j].velocity[0] * cos(angle) / _controlFrequency,
+                        0.0, 0.0,  _predictedStates[j].velocity[1] / _controlFrequency;
+                        
+                // Partial derivative of state propagation w.r.t. control.
+                // NOTE: This last element should be 1 / _controlFrequency, but it works better as 1.0?
                 Eigen::Matrix<double,3,2> dfdu;
                 
-                dfdu << cos(angle) / _controlFrequency,                     0.0,
-                        sin(angle) / _controlFrequency,                     0.0,
-                                                   0.0,                     1.0;
-                        
+                dfdu << cos(angle) / _controlFrequency,  0.0,
+                        sin(angle) / _controlFrequency,  0.0,
+                                                   0.0,  1.0; 
+
+                // Partial derivative of state propagation w.r.t. configuration   
+                // NOTE TO SELF: I THINK INDEXING ON desiredStates IS WRONG?                                               
+                Eigen::Vector<double,2> dLdu = -_intermediateControlWeight[j] * (desiredStates[j].velocity - _predictedStates[j].velocity)
+                                               - dfdu.transpose() * ( _intermediatePoseErrorWeight[j] * poseError + costateVector );
+                                                                      
                 // Second derivative of Lagrangian w.r.t. control (i.e. Hessian)
-                Eigen::Matrix<double,2,2> d2Ldu2 = _intermediateControlWeight[j];
-                
+                Eigen::Matrix<double,2,2> d2Ldu2 = _intermediateControlWeight[j]
+                                                 + dfdu.transpose() * _intermediatePoseErrorWeight[j] * dfdu;
+                                                 
                 d2Ldu2(0,0) += 1e-04;
                 d2Ldu2(1,1) += 1e-04;
                 
                 // Mixed derivatives of Lagrangian 
-                Eigen::Matrix<double,2,3> d2Ldudx;
-
-                d2Ldudx << 0.0, 0.0, (costateVector[1] * cos(angle) - costateVector[0] * sin(angle)) / _controlFrequency,
-                           0.0, 0.0, 0.0;
-                
-                // Partial derivative of state propagation w.r.t. configuration                                                  
-                Eigen::Vector<double,2> dLdu = -(_intermediateControlWeight[j] * (desiredStates[j].velocity - _predictedStates[j].velocity)
-                                               + dfdu.transpose() * costateVector);
-                                                               
+                Eigen::Matrix<double,2,3> d2Ldudx = dfdu.transpose() * _intermediatePoseErrorWeight[j] * dfdx;
+                d2Ldudx(0,2) += (costateVector[1] * cos(angle) - costateVector[0] * sin(angle)) / _controlFrequency;
+                                                                           
                 // Set up the constraint for the control input du
                 RobotLibrary::Model::Limits linear, angular;
                 
@@ -173,51 +185,49 @@ DifferentialDrivePredictive::track_trajectory(const std::vector<RobotLibrary::Mo
                                             _predictedStates[j].velocity[1] - angular.lower,        // -dw <= w - w_min
                                             linear.upper  - _predictedStates[j].velocity[0],        //  dv <= v_max - v
                                             angular.upper - _predictedStates[j].velocity[1];        //  dw <= w_max - ws
+        
+                // Set up the constraints for the obstacles
+                /*
+                for (int k = 0; k < obstacles.size(); ++k)
+                {
+                    _obstacleConstraintMatrix.row(k) = ...
+                    _obstacleConstraintVector.row(k) = ...
+                }
+                */
                 
-                // Combine constraints
-                unsigned int numRows = _controlConstraintMatrix.rows()
-                                     + _obstacleConstraintMatrix.rows();
-
+                // Combine the constraints
+                unsigned int numRows = _controlConstraintVector.size() + _obstacleConstraintVector.size();
                 _constraintMatrix.resize(numRows, 2);
-                _constraintMatrix.topRows(_controlConstraintMatrix.rows()) = _controlConstraintMatrix;
-                _constraintMatrix.bottomRows(_obstacleConstraintMatrix.rows()) = _obstacleConstraintMatrix;
-
-                _constraintVector.resize(numRows);
-                _constraintVector.head(_controlConstraintVector.size()) = _controlConstraintVector;
-                _constraintVector.tail(_obstacleConstraintVector.size()) = _obstacleConstraintVector;
+                _constraintMatrix.block(0,0,4,2)         = _controlConstraintMatrix;
+                _constraintMatrix.block(4,0,numRows-4,2) = _obstacleConstraintMatrix;
                 
-                // QP Solver could fail if no solution is sfound
+                _constraintVector.resize(numRows);
+                _constraintVector.segment(0,4)         = _controlConstraintVector;
+                _constraintVector.segment(4,numRows-4) = _obstacleConstraintVector;
+                
+                // Solve the control
+                Eigen::Vector3d dx = _predictedStates[j].pose.error(_predictedStates[j+1].pose);
+                Eigen::Vector2d du = {0.0, 0.0};                                                    // We want to solve for this                                        
                 try
                 {
-                    // Minimise 0.5* du^T * d2Ldu2 * du + du^T * dLdu + d2Ldudx * dx
-                    // subject to: B * du < z
-                    
-                    Eigen::Vector3d dx = _predictedStates[j].pose.error(_predictedStates[j+1].pose);
-                    
-                    Eigen::Vector2d du = d2Ldu2.llt().solve(-(dLdu + d2Ldudx * dx));
-                               
-                    double norm = du.norm();
-                    
-                    if (norm > largestStepChange) largestStepChange = norm;                         // Save the largest
-                    
-                    _predictedStates[j].velocity += du;
-    
+                    du = QPSolver<double>::solve(d2Ldu2,
+                                                 dLdu + d2Ldudx * dx,
+                                                 _constraintMatrix,
+                                                 _constraintVector,
+                                                 du);
                 }
-                catch(const std::exception &exception)
+                catch (const std::exception &exception)
                 {
-                    throw std::runtime_error(std::string(exception.what()) + 
-                                             " Failed on recursion " + std::to_string(i) + 
-                                             " on step " + std::to_string(j) + ".");
+                    throw std::runtime_error(std::string(exception.what()) + " "
+                                             "Failed on recursion no. " + std::to_string(i) + " "
+                                             "at step no. " + std::to_string(j) + ".");
                 }
-            
-                                                               
-                // Partial derivative of state propagation w.r.t. configuration                                                    
-                Eigen::Matrix<double,3,3> dfdx;
                 
-                dfdx << 1.0, 0.0, -_predictedStates[j].velocity[0] * sin(angle) / _controlFrequency,
-                        0.0, 1.0,  _predictedStates[j].velocity[0] * cos(angle) / _controlFrequency,
-                        0.0, 0.0,  _predictedStates[j].velocity[1] / _controlFrequency;
-                        
+                _predictedStates[j].velocity += du;                                                 // Increment control input
+
+                double norm = du.norm();
+                if (norm > largestStepChange) largestStepChange = norm;                             // Save the largest
+                       
                 costateVector = _intermediatePoseErrorWeight[j] * poseError + dfdx.transpose() * costateVector;
             }
         }
