@@ -54,17 +54,25 @@ struct SerialLinkParameters
     SolverOptions<double> qpsolver = SolverOptions<double>();                                       ///< Parameters for the underlying QP solver
 };
 
+/**
+ * @brief A data structure containing parameters for model predictive control.
+ */
 struct DifferentialDrivePredictiveParameters
 {
     DifferentialDrivePredictiveParameters() = default;
-  
-    unsigned int numberOfRecursions = 2;
+
+    double maxControlStepNorm       = 1e-10;                                                        ///< Threshold for terminating optimisation
+    unsigned int numberOfRecursions = 2;                                                            ///< Number of forward & backward passes to optimise control
+    unsigned int predictionSteps    = 10;                                                           ///< Length of prediction horizon
     
-    unsigned int predictionSteps = 10;
-    
-    Eigen::Matrix3d initialPoseErrorWeight = Eigen::Matrix3d::Identity();
-    
-    Eigen::Matrix3d finalPoseErrorWeight = Eigen::Matrix3d::Identity();
+    Eigen::Matrix3d initialPoseErrorWeight = (Eigen::MatrixXd(3,3) << 100.0,   0.0,  0.0,
+                                                                        0.0, 100.0, -4.0, 
+                                                                        0.0,  -4.0,  5.0).finished();
+                                                                        
+    Eigen::Matrix3d finalPoseErrorWeight = (Eigen::MatrixXd(3,3) << 1.0, 0.0, 0.0,
+                                                                    0.0, 1.0, 0.0, 
+                                                                    0.0, 0.0, 0.1).finished();
+
 };
 
 } } // namespace
