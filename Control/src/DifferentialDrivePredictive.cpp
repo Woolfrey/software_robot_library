@@ -27,59 +27,74 @@ namespace RobotLibrary { namespace Control {
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                                            Constructor                                         //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-DifferentialDrivePredictive::DifferentialDrivePredictive(RobotLibrary::Control::DifferentialDrivePredictiveParameters &controlParameters,
-                                                         RobotLibrary::Model::DifferentialDriveParameters &modelParameters,
+DifferentialDrivePredictive::DifferentialDrivePredictive(RobotLibrary::Model::DifferentialDriveParameters &modelParameters,
+                                                         RobotLibrary::Control::DifferentialDrivePredictiveParameters &controlParameters,
                                                          SolverOptions<double> &solverOptions)
-: DifferentialDrive(modelParameters),
+: DifferentialDriveBase(controlParameters.controlFrequency,
+                        controlParameters.minimumSafeDistance,
+                        modelParameters),
   QPSolver<double>(solverOptions),
  _numberOfRecursions(controlParameters.numberOfRecursions),
  _predictionSteps(controlParameters.predictionSteps),
- _threshold(controlParameters.maxControlStepNorm),
- _finalPoseErrorWeight(controlParameters.finalPoseErrorWeight)
+ _threshold(controlParameters.maximumControlStepNorm)
 {
     // Ensure weighting matrices are positive definite:
     std::string message;
-    if (not RobotLibrary::Math::is_positive_definite(controlParameters.initialPoseErrorWeight, message))
+    if (not RobotLibrary::Math::is_positive_definite(controlParameters.poseErrorWeight, message))
     {
         throw std::invalid_argument("[ERROR] [DIFFERENTIAL DRIVE MPC] Constructor: "
                                     "Initial pose error weight matrix is not positive definite: " + message);
     }
-    else if (not RobotLibrary::Math::is_positive_definite(controlParameters.finalPoseErrorWeight, message))
-    {
-        throw std::invalid_argument("[ERROR] [DIFFERENTIAL DRIVE MPC] Constructor: "
-                                    "Final pose error weight matrix is not positive definite: " + message);
-    }
     
     // Set size of vectors
     _predictedStates.resize(_predictionSteps + 1);                                                  // 1 for current state + N for predicted states
-    _intermediatePoseErrorWeight.resize(_predictionSteps);
-    _intermediateControlWeight.resize(_predictionSteps);
+    _poseErrorWeight.resize(_predictionSteps);
+    _controlWeight.resize(_predictionSteps);
 
-    // Compute the intermediate weighting matrices using exponential growth / decay:
-    
-    double normK0 = controlParameters.initialPoseErrorWeight.norm();
-    
-    double normKN = controlParameters.finalPoseErrorWeight.norm();
-    
-    double decayRate = (1.0 / _predictionSteps) * std::log(normKN / normK0);
-    
+    // --- Pose Error Weights (Normalized Exponential) ---
+    double exponent = controlParameters.exponent;
+
+    // Precompute denominator for normalization
+    double denominator = 0.0;
+    for (int j = 0; j < _predictionSteps; ++j)
+    {
+        denominator += std::exp(exponent * j);
+    }
+
+    // Assign normalized exponential pose weights
+    for (int j = 0; j < _predictionSteps; ++j)
+    {
+        double scalar = std::exp(exponent * j) / denominator;
+        _poseErrorWeight[j] = scalar * controlParameters.poseErrorWeight;
+    }
+
+    // --- Control Weights (Exponentially Scaled Inertia Matrix) ---
     Eigen::Matrix2d inertiaMatrix;
-    inertiaMatrix << _mass,      0.0,
-                       0.0, _inertia;
-    
+    inertiaMatrix << _mass,  0.0,
+                      0.0, _inertia;
+
+    std::vector<double> expWeights(_predictionSteps);
+
+    // Compute exponential profile
     for (int i = 0; i < _predictionSteps; ++i)
     {
-        _intermediatePoseErrorWeight[i] = std::exp(decayRate * i) * controlParameters.initialPoseErrorWeight;
-        
-        double scale = (decayRate >= 0.0)
-                     ? std::exp(decayRate * (i -_predictionSteps - 1))                              // Increasing, so final inertia == true inertia
-                     : std::exp(decayRate * i);                                                     // Decreasing, so initial inertia == true inertia
-        
-        _intermediateControlWeight[i] = scale * inertiaMatrix;
+        expWeights[i] = std::exp(exponent * i);
+    }
+
+    // Anchor at R_0 = M or R_{N-1} = M depending on direction of growth
+    double scale = (exponent >= 0.0)
+                 ? 1.0 / expWeights.back()   // Ensure R_{N-1} = M
+                 : 1.0 / expWeights.front(); // Ensure R_0 = M
+
+    // Assign scaled control effort weights
+    for (int i = 0; i < _predictionSteps; ++i)
+    {
+        double weight = expWeights[i] * scale;
+        _controlWeight[i] = weight * inertiaMatrix;
     }
     
-   // Set up the constraint matrices in advance to save time:
-   
+    // Set up the constraint matrices in advance to save time:
+
     _controlConstraintMatrix << -1.0,  0.0,
                                  0.0, -1.0,
                                  1.0,  0.0,
@@ -115,81 +130,87 @@ DifferentialDrivePredictive::update_state(const RobotLibrary::Model::Pose2D &pos
  //                               Solve the trajectory tracking problem                            //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 Eigen::Vector2d
-DifferentialDrivePredictive::track_trajectory(const std::vector<RobotLibrary::Model::DifferentialDriveState> &desiredStates)
+DifferentialDrivePredictive::track_trajectory(const std::vector<RobotLibrary::Model::DifferentialDriveState> &desiredStates,
+                                              const std::vector<std::vector<RobotLibrary::Model::Ellipsoid<2>>> &obstacles)
 {
     // Ensure inputs are sound
-    if (desiredStates.size() != _predictionSteps)
+    if (desiredStates.size() != _predictionSteps + 1)
     {
         throw std::invalid_argument("[ERROR] [DIFFERENTIAL DRIVE PREDICTIVE] track_trajectory(): "
-                                    "This controller has N = " + std::to_string(_predictionSteps) + " steps, "
-                                    "but the input argument had " + std::to_string(desiredStates.size()) + " elements.");
+                                    "This controller requires N + 1 = " + std::to_string(_predictionSteps+1) + " "
+                                    "desired states for the trajectory tracking, but received "
+                                    + std::to_string(desiredStates.size()) + ".");
     }
     
     // Run the optimisations
     for (int i = 0; i < _numberOfRecursions; ++i)
     {
         double largestStepChange = 0.0;                                                             // Store largest step change in control for this recursion
-        
+
         Eigen::Vector3d costateVector;                                                              // i.e. Lagrange multipliers
         
         // Backwards recursions
         for (int j = _predictionSteps - 1; j >= 0; --j)
         {    
-            Eigen::Vector3d poseError = _predictedStates[j+1].pose.error(desiredStates[j].pose);    // Error at step j+1 is affected by control input at step j
+            Eigen::Vector3d poseError = _predictedStates[j+1].pose.error(desiredStates[j+1].pose);  // Error at step j+1 is affected by control input at step j
 
             if (j == _predictionSteps - 1)
             {
-                costateVector = _finalPoseErrorWeight * poseError;                                  // Only need to evaluate costate vector at final steps   
+                costateVector = _poseErrorWeight[j] * poseError;                                    // Only need to evaluate costate vector at final steps   
             }
             else
             {
-                double angle = _predictedStates[j].pose.angle();                                    // Used in multiple places
-                
+                // Values used in this scope           
+                RobotLibrary::Model::Pose2D currentPose = _predictedStates[j].pose;
+                Eigen::Vector2d currentVelocity = _predictedStates[j].velocity;
+                Eigen::Vector2d desiredVelocity = desiredStates[j].velocity;
+                Eigen::Matrix3d K = _poseErrorWeight[j];
+                Eigen::Matrix2d M = _controlWeight[j];
+                double angle = currentPose.angle();                                                 // Used in multiple places
+                 
                 // Partial derivative of state propagation w.r.t. configuration                                                    
-                Eigen::Matrix<double,3,3> dfdx;
-                
-                dfdx << 1.0, 0.0, -_predictedStates[j].velocity[0] * sin(angle) / _controlFrequency,
-                        0.0, 1.0,  _predictedStates[j].velocity[0] * cos(angle) / _controlFrequency,
-                        0.0, 0.0,  _predictedStates[j].velocity[1] / _controlFrequency;
-                        
+                Eigen::Matrix<double,3,3> dfdx = configuration_jacobian(currentPose, currentVelocity, _controlFrequency);
+                    
                 // Partial derivative of state propagation w.r.t. control.
-                // NOTE: This last element should be 1 / _controlFrequency, but it works better as 1.0?
-                Eigen::Matrix<double,3,2> dfdu;
-                
-                dfdu << cos(angle) / _controlFrequency,  0.0,
-                        sin(angle) / _controlFrequency,  0.0,
-                                                   0.0,  1.0; 
+                Eigen::Matrix<double,3,2> dfdu = control_jacobian(currentPose, _controlFrequency);
+                dfdu(2,1) = 1.0; // THIS WORKS BETTER?
 
                 // Partial derivative of state propagation w.r.t. configuration   
-                // NOTE TO SELF: I THINK INDEXING ON desiredStates IS WRONG?                                               
-                Eigen::Vector<double,2> dLdu = -_intermediateControlWeight[j] * (desiredStates[j].velocity - _predictedStates[j].velocity)
-                                               - dfdu.transpose() * ( _intermediatePoseErrorWeight[j] * poseError + costateVector );
+                Eigen::Vector<double,2> dLdu = - M * (desiredVelocity - currentVelocity)
+                                               - dfdu.transpose() * ( K * poseError + costateVector );
                                                                       
                 // Second derivative of Lagrangian w.r.t. control (i.e. Hessian)
-                Eigen::Matrix<double,2,2> d2Ldu2 = _intermediateControlWeight[j]
-                                                 + dfdu.transpose() * _intermediatePoseErrorWeight[j] * dfdu;
+                Eigen::Matrix<double,2,2> d2Ldu2 = M + dfdu.transpose() * K * dfdu;
                                                  
-                d2Ldu2(0,0) += 1e-04;
-                d2Ldu2(1,1) += 1e-04;
+                d2Ldu2(0,0) += 1e-06;                                                               // Add some damping to ensure stability
+                d2Ldu2(1,1) += 1e-06;   
                 
                 // Mixed derivatives of Lagrangian 
-                Eigen::Matrix<double,2,3> d2Ldudx = dfdu.transpose() * _intermediatePoseErrorWeight[j] * dfdx;
+                Eigen::Matrix<double,2,3> d2Ldudx = dfdu.transpose() * K * dfdx;
                 d2Ldudx(0,2) += (costateVector[1] * cos(angle) - costateVector[0] * sin(angle)) / _controlFrequency;
                                                                            
                 // Set up the constraint for the control input du
                 RobotLibrary::Model::Limits linear, angular;
                 
-                compute_limits(linear, angular, _predictedStates[j].velocity);                      // Limits are computed w.r.t. current velocity
+                compute_control_limits(linear, angular, currentVelocity);                           // Limits are computed w.r.t. current velocity
                 
-                _controlConstraintVector << _predictedStates[j].velocity[0] - linear.lower,         // -dv <= v - v_min
-                                            _predictedStates[j].velocity[1] - angular.lower,        // -dw <= w - w_min
-                                            linear.upper  - _predictedStates[j].velocity[0],        //  dv <= v_max - v
-                                            angular.upper - _predictedStates[j].velocity[1];        //  dw <= w_max - ws
+                _controlConstraintVector << currentVelocity[0] - linear.lower,                      // -dv <= v - v_min
+                                            currentVelocity[1] - angular.lower,                     // -dw <= w - w_min
+                                            linear.upper  - currentVelocity[0],                     //  dv <= v_max - v
+                                            angular.upper - currentVelocity[1];                     //  dw <= w_max - ws
         
                 // Set up the constraints for the obstacles
                 /*
                 for (int k = 0; k < obstacles.size(); ++k)
                 {
+                    if (obstacles[k].size() != _predictionSteps + 1)
+                    {
+                        throw std::invalid_argument("[ERROR] [DIFFERENTIAL DRIVE PREDICTIVE] track_trajectory(): "
+                                                    "This controller has N + 1 = " + std::to_string(_predictionSteps+1) + " control steps "
+                                                    "but obstacle #" + std::to_string(k+1) + " had " + std::to_string(obstacles[k].size()) + " "
+                                                    "predicted positions.");
+                    }
+                    
                     _obstacleConstraintMatrix.row(k) = ...
                     _obstacleConstraintVector.row(k) = ...
                 }
@@ -206,7 +227,7 @@ DifferentialDrivePredictive::track_trajectory(const std::vector<RobotLibrary::Mo
                 _constraintVector.segment(4,numRows-4) = _obstacleConstraintVector;
                 
                 // Solve the control
-                Eigen::Vector3d dx = _predictedStates[j].pose.error(_predictedStates[j+1].pose);
+                Eigen::Vector3d dx = currentPose.error(_predictedStates[j+1].pose);
                 Eigen::Vector2d du = {0.0, 0.0};                                                    // We want to solve for this                                        
                 try
                 {
@@ -228,19 +249,23 @@ DifferentialDrivePredictive::track_trajectory(const std::vector<RobotLibrary::Mo
                 double norm = du.norm();
                 if (norm > largestStepChange) largestStepChange = norm;                             // Save the largest
                        
-                costateVector = _intermediatePoseErrorWeight[j] * poseError + dfdx.transpose() * costateVector;
+                costateVector = K * poseError + dfdx.transpose() * costateVector;
             }
         }
         
         // Forward recursions
         for (int j = 0; j < _predictionSteps; ++j)
         {       
-            _predictedStates[j+1].pose = predicted_pose(_predictedStates[j].pose,
-                                                        _predictedStates[j].velocity);
+            _predictedStates[j+1].pose =
+            RobotLibrary::Model::DifferentialDrive::predicted_pose(_predictedStates[j].pose,
+                                                                   _predictedStates[j].velocity,
+                                                                   _controlFrequency);
                                               
-            _predictedStates[j+1].covariance = predicted_covariance(_predictedStates[j].pose,
-                                                                    _predictedStates[j].velocity,
-                                                                    _predictedStates[j].covariance);
+            _predictedStates[j+1].covariance =
+            RobotLibrary::Model::DifferentialDrive::predicted_covariance(_predictedStates[j].pose,
+                                                                         _predictedStates[j].velocity,
+                                                                         _predictedStates[j].covariance,
+                                                                         _controlFrequency);
         }
         
         if (largestStepChange < _threshold) break;                                                  // Break early if step change is tiny
