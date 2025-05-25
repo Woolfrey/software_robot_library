@@ -23,7 +23,7 @@
 #define DIFFERENTIAL_DRIVE_PREDICTIVE_H
 
 #include <Control/DataStructures.h>
-#include <Model/DifferentialDrive.h>
+#include <Control/DifferentialDriveBase.h>
 
 namespace RobotLibrary { namespace Control {
 
@@ -31,7 +31,7 @@ namespace RobotLibrary { namespace Control {
  * @brief A class that performs nonlinear feedback control for trajectory tracking of a differential
  *        drive mobile robot.
  */
-class DifferentialDrivePredictive : public RobotLibrary::Model::DifferentialDrive,
+class DifferentialDrivePredictive : public RobotLibrary::Control::DifferentialDriveBase,
                                     public QPSolver<double>
 {
     public:
@@ -43,18 +43,19 @@ class DifferentialDrivePredictive : public RobotLibrary::Model::DifferentialDriv
          * @param orientationGain Feedback gain on orientation error
          * @param parameters Model parameters for the base class.
          */
-        DifferentialDrivePredictive(RobotLibrary::Control::DifferentialDrivePredictiveParameters &controlParameters,
-                                    RobotLibrary::Model::DifferentialDriveParameters &modelParameters,
+        DifferentialDrivePredictive(RobotLibrary::Model::DifferentialDriveParameters &modelParameters,
+                                    RobotLibrary::Control::DifferentialDrivePredictiveParameters &controlParameters,
                                     SolverOptions<double> &solverOptions);
           
         /**
-         * @brief Solve the (nonlinear) feedback control problem to track a trajectory.
-         * @param desiredPose The desired position & orientation defined by the trajectory.
-         * @param desiredVelocity The desired linear & angular velocity defined by the trajectory.
+         * @brief Solve the model predictive control to track a trajectory.
+         * @param desiredStates A series of desired poses & velocities sampled from a trajectory.
+         * @param obstacles A vector of k obstacles across N+1 prediction steps.
          * @return The linear & angular velocity to track the trajectory.
          */
         Eigen::Vector2d
-        track_trajectory(const std::vector<RobotLibrary::Model::DifferentialDriveState> &desiredStates);
+        track_trajectory(const std::vector<RobotLibrary::Model::DifferentialDriveState>    &desiredStates,
+                         const std::vector<std::vector<RobotLibrary::Model::Ellipsoid<2>>> &obstacles);
         
         /**
          * @brief Get the predicted state at a specified step.
@@ -102,9 +103,9 @@ class DifferentialDrivePredictive : public RobotLibrary::Model::DifferentialDriv
         
         Eigen::VectorXd _constraintVector;                                                          ///< Full constraint vector passed to the QP solver
         
-        std::vector<Eigen::Matrix3d> _intermediatePoseErrorWeight;                                  ///< Weighting matrix on the intermediate pose error
+        std::vector<Eigen::Matrix3d> _poseErrorWeight;                                              ///< Weighting matrix on the intermediate pose error
         
-        std::vector<Eigen::Matrix2d> _intermediateControlWeight;                                    ///< Weighting on the intermediate control
+        std::vector<Eigen::Matrix2d> _controlWeight;                                                ///< Weighting on the intermediate control
   
         std::vector<RobotLibrary::Model::DifferentialDriveState> _predictedStates;                  ///< Pose, velocity, and covariance over the prediction horizon
                 
