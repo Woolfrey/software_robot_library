@@ -71,11 +71,11 @@ SerialKinematicControl::resolve_endpoint_motion(const Eigen::Vector<double,6> &e
     }
 
     // Compute manipulability gradient once and update constraints
-    const VectorXd manipulabilityGradient = manipulability_gradient();                              // Used in a few places, so compute it once here
-    _constraintMatrix.row(2 * numJoints) = -manipulabilityGradient.transpose();                     // Part of the control barrier function
-    _constraintVector.head(numJoints) = upperBound;
+    const VectorXd manipulabilityGradient           = manipulability_gradient();                    // Used in a few places, so compute it once here
+    _constraintMatrix.row(2 * numJoints)            = -manipulabilityGradient.transpose();          // Part of the control barrier function
+    _constraintVector.head(numJoints)               = upperBound;
     _constraintVector.segment(numJoints, numJoints) = -lowerBound;
-    _constraintVector(2 * numJoints) = (_manipulability - _minManipulability) * 100 * sqrt(_controlFrequency);
+    _constraintVector(2 * numJoints)                = (_manipulability - _minManipulability) * 100 * sqrt(_controlFrequency);
 
     VectorXd controlVelocity = VectorXd::Zero(numJoints);                                           // We need to compute this
 
