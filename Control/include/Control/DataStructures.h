@@ -27,7 +27,6 @@ namespace RobotLibrary { namespace Control {
  */
 struct SerialLinkParameters
 {
-    // NOTE: These are for the control class itself:
     SerialLinkParameters() = default;                                                               ///< This enables default options
     
     double jointPositionGain    = 100.0;                                                            ///< Scales the position error feedback  
@@ -55,24 +54,37 @@ struct SerialLinkParameters
 };
 
 /**
+ * @brief A data structure for parameters in the feedback control class.
+ */
+struct DifferentialDriveFeedbackParameters
+{
+    DifferentialDriveFeedbackParameters() = default;
+    
+    double controlFrequency    = 100.0;                                                             ///< Rate at which control is computed
+    double minimumSafeDistance =   1.0;                                                             ///< Used in collision avoidance
+    double orientationGain     =  10.0;                                                             ///< Feedback gain on orientation error   
+    double xPositionGain       =   5.0;                                                             ///< Feedback gain on x position error
+    double yPositionGain       =  25.0;                                                             ///< Feedback gain on y position error
+};
+
+/**
  * @brief A data structure containing parameters for model predictive control.
  */
 struct DifferentialDrivePredictiveParameters
 {
     DifferentialDrivePredictiveParameters() = default;
 
-    double maxControlStepNorm       = 1e-10;                                                        ///< Threshold for terminating optimisation
+    double controlFrequency         = 100.0;                                                        ///< Rate at which control is calculated / implemented
+    double exponent                 = -0.1;                                                         ///< Scales the pose error weight across the horizon
+    double maximumControlStepNorm   = 1e-10;                                                        ///< Threshold for terminating optimisation
+    double minimumSafeDistance      = 1.0;                                                          ///< Used in collision avoidance
     unsigned int numberOfRecursions = 2;                                                            ///< Number of forward & backward passes to optimise control
     unsigned int predictionSteps    = 10;                                                           ///< Length of prediction horizon
     
-    Eigen::Matrix3d initialPoseErrorWeight = (Eigen::MatrixXd(3,3) << 100.0,   0.0,  0.0,
-                                                                        0.0, 100.0, -4.0, 
-                                                                        0.0,  -4.0,  5.0).finished();
-                                                                        
-    Eigen::Matrix3d finalPoseErrorWeight = (Eigen::MatrixXd(3,3) << 1.0, 0.0, 0.0,
-                                                                    0.0, 1.0, 0.0, 
-                                                                    0.0, 0.0, 0.1).finished();
-
+    Eigen::Matrix3d poseErrorWeight
+    = (Eigen::MatrixXd(3,3) << 200.0,   0.00,  0.00,
+                                 0.0, 200.00, -0.09, 
+                                 0.0,  -0.09,  0.10).finished();
 };
 
 } } // namespace
