@@ -47,7 +47,6 @@ struct ReferenceFrame
  */
 struct DifferentialDriveParameters
 {
-    double controlFrequency       = 100.0;                                                          ///< Used by controllers
     double inertia                = 0.5 * 5.0 * 0.25 * 0.25;                                        ///< Rotational inertia (kg*m^2)
     double mass                   = 5.0;                                                            ///< Weight (kg)
     double maxAngularAcceleration = 10.0;                                                           ///< Maximum rotational acceleration (rad/s/s)
