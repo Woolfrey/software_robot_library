@@ -19,7 +19,8 @@
 #ifndef DIFFERENTIAL_DRIVE_FEEDBACK_H
 #define DIFFERENTIAL_DRIVE_FEEDBACK_H
 
-#include <Model/DifferentialDrive.h>
+#include <Control/DataStructures.h>
+#include <Control/DifferentialDriveBase.h>
 
 namespace RobotLibrary { namespace Control {
 
@@ -27,7 +28,7 @@ namespace RobotLibrary { namespace Control {
  * @brief A class that performs nonlinear feedback control for trajectory tracking of a differential
  *        drive mobile robot.
  */
-class DifferentialDriveFeedback : public RobotLibrary::Model::DifferentialDrive
+class DifferentialDriveFeedback : public RobotLibrary::Control::DifferentialDriveBase
 {
     public:
     
@@ -38,10 +39,8 @@ class DifferentialDriveFeedback : public RobotLibrary::Model::DifferentialDrive
          * @param orientationGain Feedback gain on orientation error
          * @param parameters Model parameters for the base class.
          */
-        DifferentialDriveFeedback(const double &xPositionGain = 1.0,
-                                  const double &yPositionGain = 100.0,
-                                  const double &orientationGain = 5.0,
-                                  const RobotLibrary::Model::DifferentialDriveParameters &parameters = RobotLibrary::Model::DifferentialDriveParameters());
+        DifferentialDriveFeedback(const RobotLibrary::Model::DifferentialDriveParameters &modelParameters = RobotLibrary::Model::DifferentialDriveParameters(),
+                                  const RobotLibrary::Control::DifferentialDriveFeedbackParameters &controlParameters = RobotLibrary::Control::DifferentialDriveFeedbackParameters());
 
         /**
          * @brief Solve the (nonlinear) feedback control problem to track a trajectory.
@@ -55,11 +54,9 @@ class DifferentialDriveFeedback : public RobotLibrary::Model::DifferentialDrive
 
         private:
             
-            double _xPositionGain = 1.0;                                                            ///< Feedback gain on x-translation error
-            
-            double _yPositionGain = 100.0;                                                          ///< Feedback gain on y-translation error
-            
             double _orientationGain = 5.0;                                                          ///< Feedback gain on orientation error
+            double _xPositionGain   = 1.0;                                                          ///< Feedback gain on x-translation error       
+            double _yPositionGain   = 50.0;                                                         ///< Feedback gain on y-translation error           
 
 };                                                                                                  // Semicolon needed after class declaration
 
