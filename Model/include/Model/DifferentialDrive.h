@@ -45,17 +45,7 @@ class DifferentialDrive
         update_state(const RobotLibrary::Model::Pose2D &pose,
                      const Eigen::Vector2d &velocity,
                      const Eigen::Matrix3d &covariance = Eigen::Matrix3d::Identity());
-
-        /**
-         * @brief Compute the instantaneous limits on the linear & angular velocity.
-         * @param Storage for the linear velocity limits.
-         * @param Storage for the angular velocity limits.
-         */
-        void
-        compute_limits(RobotLibrary::Model::Limits &linear,
-                       RobotLibrary::Model::Limits &angular,
-                       const Eigen::Vector2d &currentVelocity);
-                                       
+                                                          
         /**
          * @brief Get the current pose of the robot.
          * @return What you asked for.
@@ -89,14 +79,8 @@ class DifferentialDrive
          */
         RobotLibrary::Model::Pose2D
         predicted_pose(const RobotLibrary::Model::Pose2D &currentPose,
-                       const Eigen::Vector2d &currentVelocity);
-
-        /**
-         * @brief Get the (predicted) next pose using the internal state.
-         * @return A pose object in SE(2).
-         */
-        RobotLibrary::Model::Pose2D
-        predicted_pose() { return predicted_pose(_pose, _velocity); }
+                       const Eigen::Vector2d &currentVelocity,
+                       const double &controlFrequency);
        
         /**
          * @brief Get uncertainty of the predicted pose.
@@ -108,15 +92,9 @@ class DifferentialDrive
         Eigen::Matrix3d
         predicted_covariance(const RobotLibrary::Model::Pose2D &currentPose,
                              const Eigen::Vector2d &controlInput,
-                             const Eigen::Matrix3d &currentCovariance);
-                             
-        /**
-         * @brief Get the uncertainty of the predicted pose using internal values.
-         * @return A 3x3 matrix.
-         */
-        Eigen::Matrix3d
-        predicted_covariance() { return predicted_covariance(_pose, _velocity, _covariance); }
-                       
+                             const Eigen::Matrix3d &currentCovariance,
+                             const double &controlFrequency);
+             
         /**
          * @brief Partial derivative of configuration propagation w.r.t configuration.
          * @param pose The current position & orientation
@@ -124,11 +102,14 @@ class DifferentialDrive
          * @return A pose object as SE(2)
          */
         Eigen::Matrix3d
-        configuration_matrix(const RobotLibrary::Model::Pose2D &pose,
-                             const Eigen::Vector2d &velocity);     
+        configuration_jacobian(const RobotLibrary::Model::Pose2D &pose,
+                               const Eigen::Vector2d &velocity,
+                               const double &controlFrequency);
+                               
+        Eigen::Matrix<double,3,2>
+        control_jacobian(const RobotLibrary::Model::Pose2D &pose,
+                         const double &controlFrequency);
     protected:
-        
-        unsigned int _controlFrequency;                                                             ///< Used in certain methods
         
         double _inertia;                                                                            ///< Rotational inertia of the robot (kg*m^2)
         
