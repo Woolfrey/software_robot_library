@@ -68,24 +68,6 @@ struct DifferentialDriveState
     RobotLibrary::Model::Pose2D pose;                                                               ///< Position & orientation relative to a reference frame.
 };
 
-
-/**
- * @brief A struct that defines an ellipsoid in 2D or 3D space.
- * 
- * The ellipsoid is represented as a quadratic form:
- * (x - centerPoint)^T * shapeMatrix.inverse() * (x - centerPoint) <= 1
- * 
- * @tparam Dim The dimension of the space (e.g., 2 or 3)
- * 
- * @note shapeMatrix must be symmetric and positive-definite.
- */
-template <int Dim>
-struct Ellipsoid
-{
-    Eigen::Matrix<double, Dim, Dim> shapeMatrix;                                                    ///< Positive-definite matrix that determines shape
-    Eigen::Vector<double, Dim> centerPoint;                                                         ///< Location of center
-};
-
 } } // namespace
 
 #endif
