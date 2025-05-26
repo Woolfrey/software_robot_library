@@ -24,6 +24,7 @@
 
 #include <Control/DataStructures.h>
 #include <Control/DifferentialDriveBase.h>
+#include <Math/Ellipsoid.h>
 
 namespace RobotLibrary { namespace Control {
 
@@ -54,8 +55,8 @@ class DifferentialDrivePredictive : public RobotLibrary::Control::DifferentialDr
          * @return The linear & angular velocity to track the trajectory.
          */
         Eigen::Vector2d
-        track_trajectory(const std::vector<RobotLibrary::Model::DifferentialDriveState>    &desiredStates,
-                         const std::vector<std::vector<RobotLibrary::Model::Ellipsoid<2>>> &obstacles);
+        track_trajectory(const std::vector<RobotLibrary::Model::DifferentialDriveState>   &desiredStates,
+                         const std::vector<std::vector<RobotLibrary::Math::Ellipsoid<2>>> &obstacles);
         
         /**
          * @brief Get the predicted state at a specified step.

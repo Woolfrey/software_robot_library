@@ -130,8 +130,8 @@ DifferentialDrivePredictive::update_state(const RobotLibrary::Model::Pose2D &pos
  //                               Solve the trajectory tracking problem                            //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 Eigen::Vector2d
-DifferentialDrivePredictive::track_trajectory(const std::vector<RobotLibrary::Model::DifferentialDriveState> &desiredStates,
-                                              const std::vector<std::vector<RobotLibrary::Model::Ellipsoid<2>>> &obstacles)
+DifferentialDrivePredictive::track_trajectory(const std::vector<RobotLibrary::Model::DifferentialDriveState>   &desiredStates,
+                                              const std::vector<std::vector<RobotLibrary::Math::Ellipsoid<2>>> &obstacles)
 {
     // Ensure inputs are sound
     if (desiredStates.size() != _predictionSteps + 1)

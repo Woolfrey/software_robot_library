@@ -1,5 +1,6 @@
 # Math/CMakeLists.txt
-add_library(Math src/MathFunctions.cpp
+add_library(Math src/Ellipsoid.cpp
+                 src/MathFunctions.cpp
                  src/Polynomial.cpp
                  src/SkewSymmetric.cpp
                  src/Spline.cpp
