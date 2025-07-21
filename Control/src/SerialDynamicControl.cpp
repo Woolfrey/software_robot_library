@@ -2,16 +2,17 @@
  * @file    SerialDynamicControl.cpp
  * @author  Jon Woolfrey
  * @email   jonathan.woolfrey@gmail.com
- * @date    May 2025
+ * @date    July 2025
  * @version 1.0
  * @brief   Computes joint torques required to perform Cartesian, or joint feedback control for a serial link robot arm.
  * 
  * @details This class contains methods for performing torque control of a serial link robot arm
  *          in both Cartesian and joint space.
- * 
- * @copyright Copyright (c) 2025 Jon Woolfrey
- * 
- * @license GNU General Public License V3
+ *
+ * @copyright (c) 2025 Jon Woolfrey
+ *
+ * @license   OSCL - Free for non-commercial open-source use only.
+ *            Commercial use requires a license.
  * 
  * @see https://github.com/Woolfrey/software_robot_library for more information.
  * @see https://github.com/Woolfrey/software_simple_qp for the optimisation algorithm used in the control.
@@ -21,6 +22,20 @@
 
 namespace RobotLibrary { namespace Control {
 
+
+  ///////////////////////////////////////////////////////////////////////////////////////////////////
+ //                                            Constructor                                        //
+///////////////////////////////////////////////////////////////////////////////////////////////////
+SerialDynamicControl::SerialDynamicControl(std::shared_ptr<RobotLibrary::Model::KinematicTree> model,
+                                           const std::string &endpointName,
+                                           const RobotLibrary::Control::SerialLinkParameters &parameters)
+: SerialLinkBase(model, endpointName, parameters)
+{
+    // Worker bees can leave.
+    // Even drones can fly away.
+    // The Queen is their slave.
+}
+
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //               Compute the endpoint acceleration needed to track a given trajectory            //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -29,9 +44,13 @@ SerialDynamicControl::track_endpoint_trajectory(const RobotLibrary::Model::Pose 
                                                 const Eigen::Vector<double,6>   &desiredVelocity,
                                                 const Eigen::Vector<double,6>   &desiredAcceleration)
 {
-    return resolve_endpoint_motion(desiredAcceleration                                              // Feedforward acceleration
-                                 + _cartesianDamping * (desiredVelocity - endpoint_velocity())      // Velocity feedback
-                                 + _cartesianStiffness * _endpointPose.error(desiredPose));         // Pose feedback
+    // NOTE: This method saves the magnitude of position and orientation error internally,
+    //       so it can be queried after for analysing performance
+    Eigen::Vector<double,6> poseError = pose_error(desiredPose);
+    
+    return resolve_endpoint_motion(desiredAcceleration
+                                 + _cartesianVelocityGain * (desiredVelocity - endpoint_velocity())
+                                 + _cartesianPoseGain * poseError);
 }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -40,7 +59,7 @@ SerialDynamicControl::track_endpoint_trajectory(const RobotLibrary::Model::Pose 
 Eigen::VectorXd
 SerialDynamicControl::resolve_endpoint_twist(const Eigen::Vector<double,6> &twist)
 {
-    return resolve_endpoint_motion(_cartesianDamping*(twist - endpoint_velocity()));
+    return resolve_endpoint_motion(_cartesianVelocityGain * (twist - endpoint_velocity()));
 }
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -54,23 +73,23 @@ SerialDynamicControl::resolve_endpoint_motion(const Eigen::Vector<double,6> &end
     // Gauss' principle and the dynamics of redundant and constrained manipulators.
     // In Proceedings 2000 ICRA. Millennium Conference. IEEE International Conference on Robotics and Automation.
     // Symposia Proceedings (Cat. No. 00CH37065) (Vol. 3, pp. 2563-2568). IEEE.
-    // 
-    // Ferraguti, F., Landi, C. T., Singletary, A., Lin, H. C., Ames, A., Secchi, C., & Bonfe, M. (2022).
-    // Safety and efficiency in robotics: The control barrier functions approach.
-    // IEEE Robotics & Automation Magazine, 29(3), 139-151.
 
     using namespace Eigen;                                                                          // Improves readability
     
     // Variables used in this scope
     unsigned int numJoints = _model->number_of_joints();                                            // Makes referencing easier   
-        
-    VectorXd lowerBound(numJoints), upperBound(numJoints);                                          // Limits on joint control
+    VectorXd manipulabilityGradient = manipulability_gradient();                                    // Used in a few places, so compute it once here
+    VectorXd jointVelocities        = _model->joint_velocities();
+    VectorXd coriolisTorques        = _model->joint_coriolis_matrix() * jointVelocities;    
+    MatrixXd inertiaMatrix          = _model->joint_inertia_matrix();        
+    VectorXd lowerBound(numJoints);
+    VectorXd upperBound(numJoints);
 
     VectorXd startPoint = (QPSolver<double>::results().solution.size() == 0)
                         ? VectorXd::Zero(numJoints)
-                        : QPSolver<double>::results().solution;
+                        : QPSolver<double>::results().solution;                                     // This is needed for the QP solver
 
-    // Compute joint acceleration limits and ensure the starting point is within bounds
+    // Compute joint acceleration limits
     for (unsigned int i = 0; i < numJoints; ++i)
     {
         // NOTE: Size of bounds is not known at compile time,
@@ -81,19 +100,19 @@ SerialDynamicControl::resolve_endpoint_motion(const Eigen::Vector<double,6> &end
 
         startPoint[i] = std::clamp(startPoint[i], lower + 1e-03, upper - 1e-03);                    // Ensure within bounds of QP solver might fail
     }
-
-    // Compute manipulability gradient once and update constraints
-    const VectorXd manipulabilityGradient = manipulability_gradient();                              // Used in a few places, so compute it once here
-    const VectorXd jointVelocities        = _model->joint_velocities();
-    const VectorXd coriolisTorques        = _model->joint_coriolis_matrix() * jointVelocities;    
-    const MatrixXd inertiaMatrix          = _model->joint_inertia_matrix();
     
-    _constraintMatrix.row(2 * numJoints) = (inertiaMatrix * jointVelocities).transpose();           // Part of the dynamic control barrier function
     _constraintVector.head(numJoints) = upperBound;
     _constraintVector.segment(numJoints, numJoints) = -lowerBound;
-    _constraintVector(2 * numJoints) = (_manipulability - _minManipulability) * 100 * sqrt(_controlFrequency)
-                                     + (manipulabilityGradient - coriolisTorques).dot(jointVelocities);
 
+    // Singularity avoidance, assume second derivative of manipulability is zero
+    _constraintMatrix.row(2 * numJoints) = -manipulabilityGradient.transpose();
+    
+    double alpha = 10 * sqrt(_controlFrequency);
+    
+    _constraintVector(2 * numJoints) = 2 * alpha * manipulabilityGradient.dot(jointVelocities)
+                                     + alpha * alpha * (_manipulability - _minManipulability);
+
+    // Now we solve the control
     VectorXd controlAcceleration = VectorXd::Zero(numJoints);
     
     if (not is_singular())
@@ -118,7 +137,7 @@ SerialDynamicControl::resolve_endpoint_motion(const Eigen::Vector<double,6> &end
         {
             if (not _redundantTaskSet)
             {
-                _redundantTask = manipulabilityGradient * sqrt(_controlFrequency) / 10.0            // This term moves away from a singularity
+                _redundantTask = manipulabilityGradient * sqrt(_controlFrequency) / 2.0             // This term moves away from a singularity
                                - coriolisTorques                                                    // This term minimises kinetic energy
                                - _model->joint_damping_vector();                                    // This term ensures stability
                                
@@ -170,7 +189,7 @@ SerialDynamicControl::resolve_endpoint_motion(const Eigen::Vector<double,6> &end
         );
     }
 
-    return inertiaMatrix * controlAcceleration + coriolisTorques;
+    return inertiaMatrix * controlAcceleration;
 }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -208,8 +227,8 @@ SerialDynamicControl::track_joint_trajectory(const Eigen::VectorXd &desiredPosit
          
         controlAcceleration(i) = std::clamp(controlAcceleration(i), lower + 1e-03, upper - 1e-03);  // Ensure within limits
     }
-	
-	return _model->joint_inertia_matrix() * controlAcceleration + _model->joint_coriolis_matrix() * _model->joint_velocities();
+    
+	return _model->joint_inertia_matrix() * controlAcceleration;
 }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -221,17 +240,18 @@ SerialDynamicControl::compute_control_limits(const unsigned int &jointNumber)
 	// Flacco, F., De Luca, A., & Khatib, O. (2015).
 	// "Control of redundant robots under hard joint constraints: Saturation in the null space."
 	// IEEE Transactions on Robotics, 31(3), 637-654.
+	
+    // NOTE: If I include _maxJointAcceleration as a limit, then eventually the lower limit will
+	//       be greater than the upper limit, which throws an error ¯\_(⊙︿⊙)_/¯          
 
-	RobotLibrary::Model::Limits limits;                                                             // Value to be returned
+	RobotLibrary::Model::Limits limits;
 	
 	limits.lower = std::max(2 * _controlFrequency * _controlFrequency * ( _model->link(jointNumber)->joint().position_limits().lower - _model->joint_positions()[jointNumber] - _model->joint_velocities()[jointNumber] / _controlFrequency ),
-	               std::max(-_controlFrequency * (_model->link(jointNumber)->joint().speed_limit() + _model->joint_velocities()[jointNumber]),
-	                        -_maxJointAcceleration ));
+	                        -_controlFrequency * (_model->link(jointNumber)->joint().speed_limit() + _model->joint_velocities()[jointNumber]));
 	                           
 	limits.upper = std::min(2 * _controlFrequency * _controlFrequency * (_model->link(jointNumber)->joint().position_limits().upper - _model->joint_positions()[jointNumber] - _model->joint_velocities()[jointNumber] / _controlFrequency),
-	               std::min(_controlFrequency * (_model->link(jointNumber)->joint().speed_limit() - _model->joint_velocities()[jointNumber]),
-	                        _maxJointAcceleration ));	
-	                        
+	                        _controlFrequency * (_model->link(jointNumber)->joint().speed_limit() - _model->joint_velocities()[jointNumber]));
+	                   
 	if(limits.lower > limits.upper)
 	{
 	    throw std::logic_error("[ERROR] [SERIAL DYNAMIC CONTROL] compute_control_limits(): "
@@ -239,7 +259,7 @@ SerialDynamicControl::compute_control_limits(const unsigned int &jointNumber)
 	                           "upper limit (" + std::to_string(limits.lower) + " > " + std::to_string(limits.upper) + "). "
 	                           "How did that happen???");
     }
-	                        
+	                
 	return limits;
 }
 

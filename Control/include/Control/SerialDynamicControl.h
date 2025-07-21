@@ -2,16 +2,17 @@
  * @file    SerialDynamicControl.h
  * @author  Jon Woolfrey
  * @email   jonathan.woolfrey@gmail.com
- * @date    May 2025
+ * @date    July 2025
  * @version 1.0
- * @brief   Computes joint torques for feedback control of serial link robot arms..
+ * @brief   Computes joint torques for feedback control of serial link robot arms.
  * 
  * @details This class contains methods for performing torque control of a serial link robot arm
  *          in both Cartesian and joint space.
  * 
- * @copyright Copyright (c) 2025 Jon Woolfrey
- * 
- * @license Open Source / Commercial Use License (OSCL)
+ * @copyright (c) 2025 Jon Woolfrey
+ *
+ * @license   OSCL - Free for non-commercial open-source use only.
+ *            Commercial use requires a license.
  *
  * @see https://github.com/Woolfrey/software_robot_library for more information.
  * @see https://github.com/Woolfrey/software_simple_qp for the optimisation algorithm used in the control.
@@ -36,17 +37,16 @@ class SerialDynamicControl : public SerialLinkBase
 		 * @brief Constructor.
 		 * @param model A pointer to a KinematicTree object.
 		 * @param endpointName The name of the reference frame in the KinematicTree to be controlled.
-		 *@pram parameters Control gains and algorithm parameters.
+		 * @pram parameters Control gains and algorithm parameters.
 		 */
 		SerialDynamicControl(std::shared_ptr<RobotLibrary::Model::KinematicTree> model,
 		                     const std::string &endpointName,
-		                     const RobotLibrary::Control::SerialLinkParameters &parameters = SerialLinkParameters())
-        : SerialLinkBase(model, endpointName, parameters){}
+		                     const RobotLibrary::Control::SerialLinkParameters &parameters = SerialLinkParameters());
 		
 		/**
-		 * @brief Solve the joint torques required to move the endpoint at a given speed.
-		 * @param endpointMotion A twist vector (linear & angular velocity).
-		 * @return A nx1 vector of joint velocities.
+		 * @brief Solve the joint torques required to move the endpoint at a given acceleration.
+		 * @param endpointMotion A vector containing linear & angular acceleration.
+		 * @return A vector of joint torques (nx1)
 		 */
 		Eigen::VectorXd
 		resolve_endpoint_motion(const Eigen::Vector<double,6> &endPointMotion);
@@ -64,7 +64,7 @@ class SerialDynamicControl : public SerialLinkBase
 		 * @brief Solve the joint torques required to track a Cartesian trajectory.
 		 * @param desiredPose The desired position & orientation (pose) for the endpoint.
 		 * @param desiredVel The desired linear & angular velocity (twist) for the endpoint.
-		 * @param desiredAcc Not used in velocity control.
+		 * @param desiredAcc The desired linear & angular acceleration for the endpoint.
 		 * @return The joint torques (nx1) required to track the trajectory.
 		 */
 		Eigen::VectorXd
@@ -76,16 +76,16 @@ class SerialDynamicControl : public SerialLinkBase
 		 * @brief Solve the joint torques required to track a joint space trajectory.
 		 * @param desiredPos The desired joint position (nx1).
 		 * @param desiredVel The desired joint velocity (nx1).
-		 * @param desiredAcc Not used in velocity control.
+		 * @param desiredAcc The desired joint acceleration (nx1).
 		 * @return The control torque (nx1).
-           */			  
+         */			  
 		Eigen::VectorXd
 		track_joint_trajectory(const Eigen::VectorXd &desiredPosition,
 		                       const Eigen::VectorXd &desiredVelocity,
 		                       const Eigen::VectorXd &desiredAcceleration);
-													   		
+		                       												   		
 	protected:
-	
+ 
 		/**
 		 * @brief Compute the instantaneous limits on the joint acceleration control.
 		 *        It computes the minimum between joint positions, speed, and acceleration limits.
