@@ -1,14 +1,12 @@
 
 # List the source files for this library
-add_library(Model STATIC
-    src/DifferentialDrive.cpp
-    src/Joint.cpp
-    src/KinematicTree.cpp
-    src/Link.cpp
-    src/Pose.cpp
-    src/Pose2D.cpp
-    src/RigidBody.cpp
-    src/tinyxml2.cpp
+add_library(Model src/Joint.cpp
+                  src/KinematicTree.cpp
+                  src/Link.cpp
+                  src/Pose.cpp
+                  src/Pose2D.cpp
+                  src/RigidBody.cpp
+                  src/tinyxml2.cpp
 )
 
 # Specify targets to be built
