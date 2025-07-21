@@ -2,17 +2,18 @@
  * @file    Spline.h
  * @author  Jon Woolfrey
  * @email   jonathan.woolfrey@gmail.com
- * @date    April 2025
- * @version 1.0
+ * @date    July 2025
+ * @version 1.1
  * @brief   Represents a series of RobotLibrary::Math::Polynomials connecting several points.
  * 
  * @details This class will interpolate across multiple points using piecewise RobotLibrary::Math::Polynomials.
  *          It currently supports cubic splines, and ensures continuity down to the second derivative.
  *          Higher order RobotLibrary::Math::Polynomials are possible, but continuity of derivatives is not yet supported (please help!)
  * 
- * @copyright Copyright (c) 2025 Jon Woolfrey
- * 
- * @license GNU General Public License V3
+ * @copyright (c) 2025 Jon Woolfrey
+ *
+ * @license   OSCL - Free for non-commercial open-source use only.
+ *            Commercial use requires a license.
  * 
  * @see https://github.com/Woolfrey/software_robot_library for more information.
  */
