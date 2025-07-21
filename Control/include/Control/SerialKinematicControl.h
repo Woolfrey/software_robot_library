@@ -2,17 +2,18 @@
  * @file    SerialKinematicControl.h
  * @author  Jon Woolfrey
  * @email   jonathan.woolfrey@gmail.com
- * @date    February 2025
- * @version 1.0
+ * @date    July 2025
+ * @version 1.1
  * @brief   Computes velocity (position) feedback control for a serial link robot arm.
  * 
  * @details This class contains methods for performing velocity control of a serial link robot arm
  *          in both Cartesian and joint space. The fundamental feedforward + feedback control is given by:
  *          control velocity = desired velocity + gain * (desired position - actual position).
  * 
- * @copyright Copyright (c) 2025 Jon Woolfrey
- * 
- * @license Open Source / Commercial Use License (OSCL)
+ * @copyright (c) 2025 Jon Woolfrey
+ *
+ * @license   OSCL - Free for non-commercial open-source use only.
+ *            Commercial use requires a license.
  *
  * @see https://github.com/Woolfrey/software_robot_library for more information.
  * @see https://github.com/Woolfrey/software_simple_qp for the optimisation algorithm used in the control.
