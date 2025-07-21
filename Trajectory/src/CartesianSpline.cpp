@@ -2,16 +2,17 @@
  * @file    CartesianSpline.cpp
  * @author  Jon Woolfrey
  * @email   jonathan.woolfrey@gmail.com
- * @date    April 2025
- * @version 1.0
+ * @date    July 2025
+ * @version 1.1
  * @brief   A class that defines trajectories for position & orientation in 3D space.
  * 
  * @details This class generates trajectories for position & orientation by using a spline to
  *          interpolate over a series of poses.
  * 
- * @copyright Copyright (c) 2025 Jon Woolfrey
- * 
- * @license GNU General Public License V3
+ * @copyright (c) 2025 Jon Woolfrey
+ *
+ * @license   OSCL - Free for non-commercial open-source use only.
+ *            Commercial use requires a license.
  * 
  * @see https://github.com/Woolfrey/software_robot_library for more information.
  */
@@ -44,16 +45,14 @@ CartesianSpline::CartesianSpline(const std::vector<RobotLibrary::Model::Pose> &p
     std::vector<Eigen::VectorXd> positions(poses.size());                                           // NOTE: The SplineTrajectory class expects a Dynamic size vector
     for(int i = 0; i < positions.size(); i++)
     {   
-        positions[i].resize(6);
+        positions[i].resize(6);                                                                     // 3 for position, 3 for orientation
         
         positions[i].head(3) = poses[i].translation();                                              // First part is just the translation
         
-        double angle = 2*acos(poses[i].quaternion().w());                                           // w = cos(0.5*angle)
+        double angle = 2.0 * acos(std::clamp(poses[i].quaternion().normalized().w(), -1.0, 1.0));   // Get angle component
         
-        if(abs(angle) < 1e-04) positions[i].tail(3).setZero();
-        else                   positions[i].tail(3) = angle*poses[i].quaternion().vec().normalized();
-
-        positions[i].tail(3) = angle*poses[i].quaternion().vec().normalized();
+        if (abs(angle) < 1e-03) positions[i].tail(3).setZero();                                     // Practically zero
+        else                    positions[i].tail(3) = angle * poses[i].quaternion().vec().normalized();
     }
     
     this->_spline = SplineTrajectory(positions,times,startTwist);                                   // Generates a cubic spline. Velocities automatically calculated.  
@@ -69,12 +68,12 @@ CartesianSpline::query_state(const double &time)
     
     // Now we need to convert the "position" vector to a pose
 
-    double angle = state.position.tail(3).norm();                                                   // Norm of the angle*axis component
+    double angle = state.position.tail(3).norm();                                                   // Norm of the angle * saxis component
 
     RobotLibrary::Model::Pose pose;                                                                 // We need to compute this
 
-    if(abs(angle) < 1e-04) pose = RobotLibrary::Model::Pose(state.position.head(3),
-                                  Eigen::Quaterniond(1,0,0,0));                                     // Assume zero rotation
+    if (angle < 1e-04) pose = RobotLibrary::Model::Pose(state.position.head(3),
+                                                        Eigen::Quaterniond(1,0,0,0));               // Assume zero rotation
     else
     {
       Eigen::Vector<double,3> axis = state.position.tail(3).normalized();                           // Ensure magnitude of 1 

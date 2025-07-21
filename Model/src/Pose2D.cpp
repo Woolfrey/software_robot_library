@@ -1,40 +1,38 @@
 /**
- * @file    Pose.cpp
+ * @file    Pose2D.cpp
  * @author  Jon Woolfrey
  * @email   jonathan.woolfrey@gmail.com
  * @date    July 2025
- * @version 1.1
- * @brief   A class that describes the position & orientation of an object in 3D space.
+ * @version 1.0
+ * @brief   A class that describes the position & orientation of an object in 2D space.
  * 
- * @details This class describes the position of an object as a 3D vector, and the orientation
- *          using a quaternion. Arithmetic can be used to propagate & invert these objects for
- *          performing transforms in 3D space.
- *
- * @update  June 2025 - Fixed quaternion unwinding in Pose::error() by enforcing hemisphere alignment.
+ * @details This class describes the position of an object as a 2D vector, and the orientation
+ *          using a scalar. Arithmetic can be used to propagate & invert these objects for
+ *          performing transforms in 2D space.
  * 
  * @copyright (c) 2025 Jon Woolfrey
- *
  * @license   OSCL - Free for non-commercial open-source use only.
  *            Commercial use requires a license.
+ *            Contact: jonathan.woolfrey@gmail.com
  * 
  * @see https://github.com/Woolfrey/software_robot_library for more information.
  */
  
-#include <Model/Pose.h>
+#include <Model/Pose2D.h>
 
 namespace RobotLibrary { namespace Model {
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //                   Get this object as a 4x4 homogeneous transformation matrix                  //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::Matrix4d
-Pose::as_matrix()
+Eigen::Matrix3d
+Pose2D::as_matrix()
 {
-    Eigen::Matrix4d T;
+    Eigen::Matrix3d T;
     
-    T.block(0,0,3,3) = _quaternion.toRotationMatrix();
-    T.block(0,3,3,1) = _translation;
-    T.row(3) << 0, 0, 0, 1;
+    T << cos(_angle), -sin(_angle), _translation[0],
+         sin(_angle),  cos(_angle), _translation[1],
+                   0,            0,               1;
     
     return T;
 }
@@ -42,61 +40,67 @@ Pose::as_matrix()
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //                     Get the error between this pose and another one                           //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::Vector<double,6>
-Pose::error(const Pose &desired)
+Eigen::Vector3d
+Pose2D::error(const Pose2D &desired)
 {
-     Eigen::Vector<double,6> error;                                                                 // Value to be returned
-
-     error.head(3) = desired.translation() - _translation;                                          // translation error
-
-     Eigen::Quaterniond orientationError = (desired.quaternion() * _quaternion.inverse()).normalized();
+     Eigen::Vector3d error;                                                                         // Value to be returned
      
-     double angle = 2 * acos(std::clamp(orientationError.w(), -1.0, 1.0));
-     
-     if (angle < 1e-04) error.tail(3).setZero();
-     else               error.tail(3) = angle * orientationError.vec().normalized();
+     error.head(2) = desired.translation() - _translation;
+     error[2]      = RobotLibrary::Math::wrap_to_pi(desired.angle() - _angle);
      
      return error;
 }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
+ //                      Get the rotation matrix associated with this pose                        //
+///////////////////////////////////////////////////////////////////////////////////////////////////
+Eigen::Matrix2d
+Pose2D::rotation() const
+{
+    Eigen::Matrix2d R;
+    
+    R << cos(_angle), -sin(_angle),
+         sin(_angle),  cos(_angle);
+         
+    return R;
+}
+
+  ///////////////////////////////////////////////////////////////////////////////////////////////////
  //                      Get the inverse that "undoes" a rotation                                 //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-Pose
-Pose::inverse()
+Pose2D
+Pose2D::inverse()
 {
-     return Pose(-_quaternion.toRotationMatrix() * _translation, _quaternion.inverse());
+    return Pose2D(-rotation().transpose() * _translation, -_angle);
 }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //                                 Multiply two pose objects                                     //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-Pose
-Pose::operator* (const Pose &other) const
+Pose2D
+Pose2D::operator* (const Pose2D &other) const
 {
-     
-     return Pose(_translation + _quaternion.toRotationMatrix()*other.translation(),
-                (_quaternion * other.quaternion()).normalized());
+    return Pose2D(_translation + this->rotation() * other.translation(),
+                  RobotLibrary::Math::wrap_to_pi(_angle + other.angle()));
 }
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                                Multiply this pose in place                                     //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 void
-Pose::operator*= (const Pose &other)
+Pose2D::operator*= (const Pose2D &other)
 {
-     _translation += _quaternion.toRotationMatrix() * other.translation();
-     _quaternion  *= other.quaternion();
-     _quaternion.normalize();
+    _translation += rotation() * other.translation();
+    _angle = RobotLibrary::Math::wrap_to_pi(_angle + other.angle());
 }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //                                    Transform a vector                                         //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-Eigen::Vector<double,3>
-Pose::operator* (const Eigen::Vector<double,3> &other)
+Eigen::Vector2d
+Pose2D::operator* (const Eigen::Vector2d &other)
 {
-     return _translation + _quaternion.toRotationMatrix() * other;
+    return _translation + rotation() * other;
 }
 
 } } // namespace

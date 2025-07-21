@@ -1,0 +1,15 @@
+Checklist for next release:
+[ ] Update license on ALL files:
+    - [ ] Control/
+        - [ ] include/
+        - [ ] src/
+    - [ ] Math/
+        - [ ] include/
+        - [ ] src/
+    - [ ] Model/
+        - [ ] include/
+        - [ ] src/
+    - [ ] Trajectory/
+        - [ ] include/
+        - [ ] src/
+

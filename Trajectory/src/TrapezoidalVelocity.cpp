@@ -2,16 +2,17 @@
  * @file    TrapezoidalVelocity.h
  * @author  Jon Woolfrey
  * @email   jonathan.woolfrey@gmail.com
- * @date    April 2025
- * @version 1.0
+ * @date    July 2025
+ * @version 1.1
  * @brief   A class with a trapezoidal velocity profile.
  * 
  * @details This class generates a trajectory using a trapezoidal velocity profile. It will ramp up
  *          at a given acceleration, and coast at a constant speed, before decelerating.
  * 
- * @copyright Copyright (c) 2025 Jon Woolfrey
- * 
- * @license GNU General Public License V3
+ * @copyright (c) 2025 Jon Woolfrey
+ *
+ * @license   OSCL - Free for non-commercial open-source use only.
+ *            Commercial use requires a license.
  * 
  * @see https://github.com/Woolfrey/software_robot_library for more information.
  */
@@ -81,11 +82,11 @@ TrapezoidalBase::TrapezoidalBase(const Eigen::VectorXd &startPosition,
 
     _rampDistance = 0.5*_normalisedAcc*_rampTime*_rampTime;                                         // s = 0.5*a*t^2
 
-    _coastTime = (1.0 - 2*_rampDistance)/_normalisedVel;                          // Time spent moving at max speed
+    _coastTime = (1.0 - 2*_rampDistance)/_normalisedVel;                                            // Time spent moving at max speed
 
-    _coastDistance = _normalisedVel*_coastTime;                                   // Distance travelled moving at max speed
+    _coastDistance = _normalisedVel*_coastTime;                                                     // Distance travelled moving at max speed
 
-    _endTime = _startTime + 2*_rampTime + _coastTime;                       // Total time passed
+    _endTime = _startTime + 2*_rampTime + _coastTime;                                               // Total time passed
 }
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -106,13 +107,13 @@ TrapezoidalBase::query_state(const double &time)
 
         if(elapsedTime < _rampTime)
         {
-              s = _normalisedAcc*elapsedTime*elapsedTime/2.0;
-             sd = _normalisedAcc*elapsedTime;
+              s = _normalisedAcc * elapsedTime * elapsedTime / 2.0;
+             sd = _normalisedAcc * elapsedTime;
             sdd = _normalisedAcc;
         }
         else if(elapsedTime < _rampTime + _coastTime)
         {
-              s = _rampDistance + _normalisedVel*(elapsedTime - _rampTime);
+              s = _rampDistance + _normalisedVel * (elapsedTime - _rampTime);
              sd = _normalisedVel;
             sdd = 0.0;
         }
@@ -120,16 +121,16 @@ TrapezoidalBase::query_state(const double &time)
         {
             double t = elapsedTime - _coastTime - _rampTime;
            
-              s =  _rampDistance  + _coastDistance + _normalisedVel*t - _normalisedAcc*t*t/2.0;
-             sd =  _normalisedVel - _normalisedAcc*t;
+              s =  _rampDistance  + _coastDistance + _normalisedVel * t - _normalisedAcc * t * t / 2.0;
+             sd =  _normalisedVel - _normalisedAcc * t;
             sdd = -_normalisedAcc;
         }
 
         // Interpolate the state
 
-        state.position     = (1.0 - s)*_startPoint.position + s*_endPoint.position;
-        state.velocity     =  sd*(_endPoint.position - _startPoint.position);
-        state.acceleration = sdd*(_endPoint.position - _startPoint.position);
+        state.position     = (1.0 - s) * _startPoint.position + s * _endPoint.position;
+        state.velocity     =  sd * (_endPoint.position - _startPoint.position);
+        state.acceleration = sdd * (_endPoint.position - _startPoint.position);
         
         return state;
     }
@@ -153,14 +154,14 @@ TrapezoidalVelocity::TrapezoidalVelocity(const std::vector<Eigen::VectorXd> &way
     
     for(int i = 0; i < waypoints.size()-1; i++)                                                     // There are n-1 trajectories for n waypoints
     {
-        _trajectories.emplace_back(waypoints[i], waypoints[i+1],
-                                         maxVelocity, maxAcceleration, start);
+        _trajectories.emplace_back(waypoints[i], waypoints[i+1], maxVelocity, maxAcceleration, start);
         
-        start = _trajectories.back().end_time();                                              // Start of next trajectory is the end of this one
+        start = _trajectories.back().end_time();                                                    // Start of next trajectory is the end of this one
 
     }
     
     _startTime = startTime;
+    
     _endTime = start;
 }
 
@@ -174,12 +175,12 @@ TrapezoidalVelocity::query_state(const double &time)
     {
         if(time < _trajectories[i].end_time())
         {
-            return _trajectories[i].query_state(time);                                        // Must be on the ith trajectory
+            return _trajectories[i].query_state(time);                                              // Must be on the ith trajectory
         }
     }
     
     // else
-    return _trajectories.back().query_state(time);                                            // Final trajectory
+    return _trajectories.back().query_state(time);                                                  // Final trajectory
 }
 
 } }

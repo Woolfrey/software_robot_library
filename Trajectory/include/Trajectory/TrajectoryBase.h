@@ -2,16 +2,17 @@
  * @file    TrajectoryBase.h
  * @author  Jon Woolfrey
  * @email   jonathan.woolfrey@gmail.com
- * @date    April 2025
- * @version 1.0
+ * @date    July 2025
+ * @version 1.1
  * @brief   A class to standardise the structure of all other trajectory classes.
  * 
  * @details This class is used to standardise the structure and interfaces for all trajectory classes.
  * 
- * @copyright Copyright (c) 2025 Jon Woolfrey
- * 
- * @license GNU General Public License V3
- * 
+ * @copyright (c) 2025 Jon Woolfrey
+ *
+ * @license   OSCL - Free for non-commercial open-source use only.
+ *            Commercial use requires a license.
+ *
  * @see https://github.com/Woolfrey/software_robot_library for more information.
  */
 
@@ -89,9 +90,9 @@ class TrajectoryBase
 
     double _endTime;                                                                                ///< The end time for the trajectory
 
-    RobotLibrary::Trajectory::State _startPoint;                                                         ///< The starting position, velocity, and acceleration
+    RobotLibrary::Trajectory::State _startPoint;                                                    ///< The starting position, velocity, and acceleration
 
-    RobotLibrary::Trajectory::State _endPoint;                                                           ///< The final position, velocity, and acceleration
+    RobotLibrary::Trajectory::State _endPoint;                                                      ///< The final position, velocity, and acceleration
     
     unsigned int _dimensions;                                                                       ///< The number of dimensions this trajectory spans
     

@@ -2,23 +2,24 @@
  * @file    SerialKinematicControl.h
  * @author  Jon Woolfrey
  * @email   jonathan.woolfrey@gmail.com
- * @date    February 2025
- * @version 1.0
+ * @date    July 2025
+ * @version 1.1
  * @brief   A base class providing a standardised interface for all serial link robot arm controllers.
  * 
  * @details This class is designed to provide a standardised structure for all types of serial link
  *          robot arm controllers. This enables seemless interfacing between position/velocity and
  *          dynamic control.
  * 
- * @copyright Copyright (c) 2025 Jon Woolfrey
- * 
- * @license GNU General Public License V3
+ * @copyright (c) 2025 Jon Woolfrey
+ *
+ * @license   OSCL - Free for non-commercial open-source use only.
+ *            Commercial use requires a license.
  * 
  * @see https://github.com/Woolfrey/software_robot_library for more information.
  * @see https://github.com/Woolfrey/software_simple_qp for the optimisation algorithm used in the control.
  */
 
-#include "Control/SerialLinkBase.h"
+#include <Control/SerialLinkBase.h>
 
 namespace RobotLibrary { namespace Control {
 
@@ -27,7 +28,7 @@ namespace RobotLibrary { namespace Control {
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 SerialLinkBase::SerialLinkBase(std::shared_ptr<RobotLibrary::Model::KinematicTree> model,
                                const std::string &endpointName,
-                               const Parameters &parameters)
+                               const RobotLibrary::Control::SerialLinkParameters &parameters)
                               : QPSolver<double>(parameters.qpsolver)
 {
      _model = model;                                                                                // Save model internally so we can access it later
@@ -37,13 +38,15 @@ SerialLinkBase::SerialLinkBase(std::shared_ptr<RobotLibrary::Model::KinematicTre
      update();                                                                                      // Compute initial state
 
      unsigned int n = _model->number_of_joints();
-                         
+                 
      // Transfer control options
-     _controlFrequency     = parameters.controlFrequency;
-     _jointPositionGain    = parameters.jointPositionGain;
-     _jointVelocityGain    = parameters.jointVelocityGain;
-     _minManipulability    = parameters.minManipulability;
-     _maxJointAcceleration = parameters.maxJointAcceleration;  
+     _cartesianPoseGain     = parameters.cartesianPoseGain;
+     _cartesianVelocityGain = parameters.cartesianVelocityGain;
+     _controlFrequency      = parameters.controlFrequency;
+     _jointPositionGain     = parameters.jointPositionGain;
+     _jointVelocityGain     = parameters.jointVelocityGain;
+     _minManipulability     = parameters.minManipulability;
+     _maxJointAcceleration  = parameters.maxJointAcceleration;  
      
      // Set up the QP solver
      
@@ -57,13 +60,9 @@ SerialLinkBase::SerialLinkBase(std::shared_ptr<RobotLibrary::Model::KinematicTre
      _constraintMatrix.resize(2*n+1,n);
      _constraintMatrix.block(0,0,n,n).setIdentity();
      _constraintMatrix.block(n,0,n,n) = -_constraintMatrix.block(0,0,n,n);
-//   _constraintMatrix.row(2*n) = this->manipulability_gradient();                                  <-- Needs to be set in the control loop
 
      _constraintVector.resize(2*n+1);
-//   _constraintVector.block(0,0,n,1) =  upperBound;                                                <-- Needs to be set in the control loop
-//   _constraintVector.block(n,0,n,1) = -lowerBound;                                                <-- Needs to be set in the control loop
-//   _constraintVector(2*n) = _manipulability - _minManipulability;                                 <-- Needs to be set in the control loop
-
+     
      std::cout << "[INFO] [SERIAL LINK CONTROL] Controlling the '" << endpointName << "' frame on the '" 
                << _model->name() << "' robot." << std::endl;
 }
@@ -78,7 +77,7 @@ SerialLinkBase::update()
 	                      
     _jacobianMatrix = _model->jacobian(_endpointFrame);                                             // Jacobian for the endpoint
 	                      
-	_forceEllipsoid = _jacobianMatrix*_jacobianMatrix.transpose();                                  // Used for certain calculations
+	_forceEllipsoid = _jacobianMatrix * _jacobianMatrix.transpose();                                // Used for certain calculations
 	
 	double temp = sqrt(_forceEllipsoid.determinant());                                              // Proximity to a singularity
 	
@@ -91,7 +90,7 @@ SerialLinkBase::update()
 bool
 SerialLinkBase::set_redundant_task(const Eigen::VectorXd &task)
 {
-     if(task.size() != _model->number_of_joints())
+     if (task.size() != _model->number_of_joints())
      {
           std::cerr << "[ERROR] [SERIAL LINK] set_redundant_task(): "
                     << "This robot model has " << _model->number_of_joints() << " joints, "
@@ -101,19 +100,44 @@ SerialLinkBase::set_redundant_task(const Eigen::VectorXd &task)
      }
      else
      {
-          _redundantTask = task;
+          _redundantTask    = task;
           _redundantTaskSet = true;
           
           return true;
      }
 }
- 
+
+  ////////////////////////////////////////////////////////////////////////////////////////////////////
+ //                     Compute the pose error, but save performance values internally             //
+////////////////////////////////////////////////////////////////////////////////////////////////////
+Eigen::Vector<double,6>
+SerialLinkBase::pose_error(const RobotLibrary::Model::Pose &desired)
+{
+    Eigen::Vector<double,6> error = _endpointPose.error(desired);
+
+    _positionError = error.head(3).norm();
+
+    Eigen::Quaterniond orientationError = desired.quaternion() * _endpointPose.quaternion().inverse();
+
+    double angle = 2.0 * std::acos(std::clamp(orientationError.w(), -1.0, 1.0));
+
+    _orientationError = angle;
+    
+    if (angle < M_PI) error.tail(3) =  orientationError.vec();
+    else              error.tail(3) = -orientationError.vec();
+
+    return error;
+}
+    
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                            Compute the gradient of manipulability                              //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 Eigen::VectorXd
 SerialLinkBase::manipulability_gradient()
 {
+    // NOTE: d/dq (JJ^T) = dJ/dq * J^T + J * dJ/dq^T,
+    // but when taking the trace we can ignore off-diagonal elements.
+    
     using namespace Eigen;                                                                          // For clarity
 
     VectorXd gradient = VectorXd::Zero(_model->number_of_joints());                                 // Initialise gradient as all zero
@@ -131,9 +155,9 @@ SerialLinkBase::manipulability_gradient()
 
         int jointIndex = currentLink->number();
 
-        Matrix<double,6,Dynamic> dJ = this->_model->partial_derivative(this->_jacobianMatrix, jointIndex); // Compute the partial derivative of the Jacobian w.r.t. the current joint
+        Matrix<double,6,Dynamic> dJ = _model->partial_derivative(_jacobianMatrix, jointIndex);      // Compute the partial derivative of the Jacobian w.r.t. the current joint
         
-        gradient(jointIndex) = this->_manipulability * (JJT.solve(dJ * JT)).trace();                // Compute the manipulability gradient contribution for this joint
+        gradient(jointIndex) = _manipulability * (JJT.solve(dJ * JT)).trace();                      // Compute the manipulability gradient contribution for this joint
 
         currentLink = currentLink->parent_link();                                                   // Move to the parent link in the kinematic chain
     }
@@ -141,25 +165,4 @@ SerialLinkBase::manipulability_gradient()
     return gradient;
 }
 
-  ////////////////////////////////////////////////////////////////////////////////////////////////////
- //                        Set the control gains, frequency, QP solver params, etc.                //
-////////////////////////////////////////////////////////////////////////////////////////////////////
-void
-SerialLinkBase::set_control_parameters(const Parameters &parameters)
-{
-    // TO DO: Check parameters, throw error if invalid
-    
-    // Set properties specific to this class
-    _controlFrequency     = parameters.controlFrequency;
-    _jointPositionGain    = parameters.jointPositionGain;
-    _jointVelocityGain    = parameters.jointVelocityGain;
-    _minManipulability    = parameters.minManipulability;
-    _maxJointAcceleration = parameters.maxJointAcceleration;
-    _cartesianStiffness   = parameters.cartesianStiffness;
-    _cartesianDamping     = parameters.cartesianDamping;
-
-    // Set properties specific to the QPSolver class
-    QPSolver<double>set_solver_options(parameters.qpsolver);
-}
-
-} }
+} } // namespace

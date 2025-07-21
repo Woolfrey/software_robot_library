@@ -2,17 +2,18 @@
  * @file    SkewSymmetric.h
  * @author  Jon Woolfrey
  * @email   jonathan.woolfrey@gmail.com
- * @date    April 2025
- * @version 1.0
+ * @date    July 2025
+ * @version 1.1
  * @brief   Represents a 3D skew-symmetric matrix such that S^T = -S.
  * 
  * @details This class is used to generate a skew-symmetric matrix for use in computations that
  *          are otherwise not offered by the Eigen library. Eigen offers the cross() method for
  *          3D vectors, but does not enable representation as a matrix-vector product.
  * 
- * @copyright Copyright (c) 2025 Jon Woolfrey
- * 
- * @license GNU General Public License V3
+ * @copyright (c) 2025 Jon Woolfrey
+ *
+ * @license   OSCL - Free for non-commercial open-source use only.
+ *            Commercial use requires a license.
  * 
  * @see https://github.com/Woolfrey/software_robot_library for more information.
  */

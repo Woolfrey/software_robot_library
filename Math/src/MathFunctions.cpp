@@ -2,16 +2,17 @@
  * @file    MathFunctions.cpp
  * @author  Jon Woolfrey
  * @email   jonathan.woolfrey@gmail.com
- * @date    April 2025
- * @version 1.0
+ * @date    July 2025
+ * @version 1.1
  * @brief   Useful math functions for robot kinematics & control.
  * 
  * @details This header files contains forward declarations for useful math functions that are not
  *          offered by the Eigen library.
  * 
- * @copyright Copyright (c) 2025 Jon Woolfrey
- * 
- * @license GNU General Public License V3
+ * @copyright (c) 2025 Jon Woolfrey
+ *
+ * @license   OSCL - Free for non-commercial open-source use only.
+ *            Commercial use requires a license.
  * 
  * @see https://github.com/Woolfrey/software_robot_library for more information.
  */
@@ -23,34 +24,32 @@ namespace RobotLibrary { namespace Math {
   ////////////////////////////////////////////////////////////////////////////////////////////////////
  //                                      POSITIVE DEFINITE?                                        //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-bool is_positive_definite(const Eigen::MatrixXd &A)
+bool is_positive_definite(const Eigen::MatrixXd &A,
+                          std::string &message)
 {
-     if(A.rows() != A.cols())
-     {
-          std::cout << "[INFO] is_positive_definite(): The given matrix matrix is not square ("
-                    << std::to_string(A.rows()) << " rows, " << std::to_string(A.cols()) << " columns).\n";
-                    
-          return false;
-     }
-     
-     double det = A.determinant();
-     if(det <= 0)
-     {
-          std::cout << "[INFO] is_positive_definite(): Determinant = " << std::to_string(det) << " < 0.\n";
-          
-          return false;
-     }
-     
-     double symmetryErrorNorm = (A - A.transpose()).norm();
-     if(symmetryErrorNorm > 1e-04)
-     {
-          std::cout << "[INFO] is_positive_defintie(): Not symmetric; ||A - A'|| = "
-                    << std::to_string(symmetryErrorNorm) << " > 0.0001.\n";
-          
-          return false;
-     }
-     
-     return true;
+    if (A.rows() != A.cols())
+    {
+        message = "Matrix is not square.";
+        return false;
+    }
+
+    double symmetryErrorNorm = (A - A.transpose()).norm();
+    if (symmetryErrorNorm > 1e-4)
+    {
+        message = "Matrix is not symmetric; ||A - A'|| = " + std::to_string(symmetryErrorNorm) + " > 1e-4.\n";
+        return false;
+    }
+
+    Eigen::LLT<Eigen::MatrixXd> llt(A);
+    if (llt.info() == Eigen::Success)
+    {
+        return true;
+    }
+    else
+    {
+        message = "Cholesky decomposition failed.";
+        return false;
+    }
 }
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -264,6 +263,19 @@ solve_cubic_spline_derivatives(const std::vector<double> &y,
     for(int i = 0; i < derivatives.size(); i++) temp[i] = derivatives[i];
     
     return temp;                                  
+}
+
+  ///////////////////////////////////////////////////////////////////////////////////////////////////
+ //                          Map an angle to the interveral (-pi, pi]                             //
+///////////////////////////////////////////////////////////////////////////////////////////////////
+double
+wrap_to_pi(const double &angle)
+{
+    double newAngle = fmod(angle + M_PI, 2 * M_PI);
+    
+    if(newAngle < 0) newAngle += 2 * M_PI;
+    
+    return newAngle - M_PI;
 }
 
 } }

@@ -2,16 +2,17 @@
  * @file    SplineTrajectory.h
  * @author  Jon Woolfrey
  * @email   jonathan.woolfrey@gmail.com
- * @date    April 2025
- * @version 1.0
+ * @date    July 2025
+ * @version 1.1
  * @brief   This class gives a spline as a function of time over a finite series of points.
  * 
  * @details Given a set of points and times, this class will generate piece-wise polynomials to interpolate
  *          between them. It ensures continuity at the velocity and acceleration level.
  * 
- * @copyright Copyright (c) 2025 Jon Woolfrey
- * 
- * @license GNU General Public License V3
+ * @copyright (c) 2025 Jon Woolfrey
+ *
+ * @license   OSCL - Free for non-commercial open-source use only.
+ *            Commercial use requires a license.
  * 
  * @see https://github.com/Woolfrey/software_robot_library for more information.
  */

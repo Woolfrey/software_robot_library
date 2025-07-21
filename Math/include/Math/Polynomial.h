@@ -2,16 +2,17 @@
  * @file    Polynomial.h
  * @author  Jon Woolfrey
  * @email   jonathan.woolfrey@gmail.com
- * @date    April 2025
- * @version 1.0
+ * @date    July 2025
+ * @version 1.1
  * @brief   Represents a polynomial function.
  * 
  * @details This class represents a polynomial function of the form  f(x) = a_0 + a_1 * x + a_2 * x^2 + ...
  *          By querying a point it can return the interpolated value and its derivatives.
  * 
- * @copyright Copyright (c) 2025 Jon Woolfrey
- * 
- * @license GNU General Public License V3
+ * @copyright (c) 2025 Jon Woolfrey
+ *
+ * @license   OSCL - Free for non-commercial open-source use only.
+ *            Commercial use requires a license.
  * 
  * @see https://github.com/Woolfrey/software_robot_library for more information.
  */

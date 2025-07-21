@@ -2,16 +2,17 @@
  * @file    MathFunctions.h
  * @author  Jon Woolfrey
  * @email   jonathan.woolfrey@gmail.com
- * @date    February 2025
- * @version 1.0
+ * @date    July 2025
+ * @version 1.1
  * @brief   Useful math functions for robot kinematics & control.
  * 
  * @details This header files contains forward declarations for useful math functions that are not
  *          offered by the Eigen library.
  * 
- * @copyright Copyright (c) 2025 Jon Woolfrey
- * 
- * @license GNU General Public License V3
+ * @copyright (c) 2025 Jon Woolfrey
+ *
+ * @license   OSCL - Free for non-commercial open-source use only.
+ *            Commercial use requires a license.
  * 
  * @see https://github.com/Woolfrey/software_robot_library for more information.
  */
@@ -32,7 +33,8 @@ namespace RobotLibrary { namespace Math {
  * @param A a square matrix
  * @return True if positive-definite, false otherwise
  */
-bool is_positive_definite(const Eigen::MatrixXd &A);                                                                                               // Semicolon needed after struct declaration
+bool is_positive_definite(const Eigen::MatrixXd &A,
+                          std::string &info);
        
 /**
  * Decompose a matrix A = Q*R where Q is an orthogonal matrix, and R is upper-triangular.
@@ -41,7 +43,8 @@ bool is_positive_definite(const Eigen::MatrixXd &A);                            
  * @return A QRDecomposition data structure
  */
 RobotLibrary::Math::QRDecomposition
-schwarz_rutishauser(const Eigen::MatrixXd &A, const double tolerance = 1e-04);
+schwarz_rutishauser(const Eigen::MatrixXd &A,
+                    const double tolerance = 1e-04);
 
 /**
  * Solve a system of equations y = L*x, where L is a lower-triangular matrix.
@@ -81,6 +84,14 @@ solve_cubic_spline_derivatives(const std::vector<double> &y,
                                const double &firstDerivative = 0,
                                const double &finalDerivative = 0);
 
+/**
+ * @brief Ensure that an angle is between -3.141592.. and 3.141592...
+ * @param angle The value to be capped.
+ * @return The angle re-mapped.
+ */
+double
+wrap_to_pi(const double &angle);
+            
 } }
                      
 #endif                                    

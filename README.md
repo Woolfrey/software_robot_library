@@ -1,19 +1,29 @@
-# :robot: RobotLibrary
+# :robot: Robot Library :open_book:
 
-RobotLibrary is a C++ package for modeling, trajectory generation, and control of robots. The [initial release](#package-release-notes---v100-april-2025) supports real-time velocity control of serial link robot arms (work on torque control is underway). The interfaces are designed to provide simple inputs and outputs, without needing to know anything about the algorithms underneath.
+Robot Library is a C++ package for modeling, trajectory generation, and control of robots. The [initial release](#package-release-notes---v100-april-2025) supports real-time velocity control of serial link robot arms (work on torque control is underway!). Checkout the [ROS2 action server](https://github.com/Woolfrey/server_serial_link) to see it in action :boom:
 
-The modular design means you can utilize different components to develop your own controllers. For example, you can inherit the `SerialLinkBase` class in the [Control sub-library](Control/README.md) and implement your own algorithms for the joint and Cartesian control methods. Or, you can use the `KinematicTree` in the [Model sub-library](Model/README.md) for the inverse dynamics and write your own controller from scratch.
+#### :sparkles: Features:
+- _Everything_ is contained in _one_ library: modeling, control, _and_ trajectory generation.
+- Easy-to-use control classes with automatic joint limit avoidance, redundancy resolution, singularity avoidance, etc.
+- Modular design:
+   - Build your own controllers from `SerialLinkBase` class, or make one entirely from scratch with the `KinematicTree` class.
+   - Use the trajectory generation classes for your controller. Or don't - make your own!
+- Full inverse dynamics for floating-base robots with the `KinematicTree` class.
+- All you need is a [URDF](https://docs.ros.org/en/jazzy/Tutorials/Intermediate/URDF/URDF-Main.html) to get started :sunglasses:
+
+#### :compass: Navigation:
 
 - [Sections of the Library](#classical_building-sections-of-the-library)
 - [Installation](#floppy_disk-installation)
     - [Requirements](#requirements)
     - [Installing Eigen](#installing-eigen)
     - [Installing RobotLibrary](#installing-robotlibrary)
-- [Using RobotLibrary](#rocket-using-robotlibrary)
+- [Using Robot Library](#rocket-using-robot-library)
     - [In Another Project](#in-another-project)
     - [Examples](#examples)
 - [Release Notes](#package-release-notes---v100-april-2025)
 - [Contributing](#handshake-contributing)
+- [Citing this Repository](#bookmark_tabs-citing-this-repository)
 - [License](#scroll-license)
 
 ## :classical_building: Sections of the Library
@@ -23,7 +33,13 @@ The modular design means you can utilize different components to develop your ow
 - [Model](Model/README.md): Classes for computing the kinematics & dynamics of rigid-body structures.
 - [Trajectory](Trajectory/README.md): Classes for generating paths through space & time.
 
-[:top: Back to Top.](#robot-robotlibrary)
+The diagram below shows how the different libraries interact:
+
+<p align="center">
+    <img src = "doc/interaction.png" width="450" height="auto"/>
+</p>
+
+[:top: Back to Top.](#robot-robot-library-open_book)
 
 ## :floppy_disk: Installation
 
@@ -92,9 +108,9 @@ Eigen 3.4 is automatically installed on later versions of Ubuntu. In the command
 
 You should now be able to include different parts of the library in your C++ files.
 
-[:top: Back to Top.](#robot-robotlibrary)
+[:top: Back to Top.](#robot-robot-library-open_book)
 
-## :rocket: Using RobotLibrary
+## :rocket: Using Robot Library
 
 ### In Another Project:
 
@@ -151,7 +167,7 @@ If you would like to see examples where `RobotLibrary` has been applied, you can
 - [Kuka iiwa14 velocity control](https://github.com/Woolfrey/control_kuka_velocity) : a ROS2 package which implements the former action server, and
 - [TestingRobotLibrary](https://github.com/Woolfrey/testing_robot_library) : C++ executables I use for numerical validation of RobotLibrary.
 
-[:top: Back to Top.](#robot-robotlibrary)
+[:top: Back to Top.](#robot-robot-library-open_book)
 
 ## :package: Release Notes - v1.0.0 (April 2025)
 
@@ -176,14 +192,48 @@ If you would like to see examples where `RobotLibrary` has been applied, you can
      - TrajectoryBase : Provides common structure to all trajectory classes.
      - TrapezoidalVelocity : Trajectory with constant sections, and ramps up and down.
   
-[:top: Back to Top.](#robot-robotlibrary)
+[:top: Back to Top.](#robot-robot-library-open_book)
     
 ## :handshake: Contributing
 
-Contributions are welcome! Feel free to fork the library, make your own improvements, and issue a pull request.
+Contributions to this repositore are welcome! Feel free to:
+1. Fork the repository,
+2. Implement your changes / improvements, then
+3. Issue a pull request.
 
-[:top: Back to Top.](#robot-robotlibrary)
+If you're looking for ideas, you can always check the [Issues tab](https://github.com/Woolfrey/software_robot_library/issues) for those with :raising_hand: [OPEN]. These are things I'd like to implement, but don't have time for. It'd be much appreciated, and you'll be tagged as a contributor :sunglasses:
+
+[:top: Back to Top.](#robot-robot-library-open_book)
+
+## :bookmark_tabs: Citing this Repository
+
+If you find this code useful, spread the word by acknowledging it. Click on `Cite this repository` under the **About** section in the top-right corner of this page :arrow_upper_right:.
+
+Here's a BibTeX reference:
+```
+@software{woolfrey_robot_library_2025
+     author  = {Woolfrey, Jon},
+     month   = apr,
+     title   = {{R}obot {L}ibrary},
+     url     = {https://github.com/Woolfrey/software_robot_library},
+     version = {1.0.0},
+     year    = {2025}
+}
+```
+Here's the automatically generated APA format:
+```
+Woolfrey, J. (2025). Robot Library (Version 1.0.0). Retrieved from https://github.com/Woolfrey/software_robot_library
+```
+
+[:top: Back to Top.](#robot-robot-library-open_book)
 
 ## :scroll: License
 
-[:top: Back to Top.](#robot-robotlibrary)
+This project is licensed under an **Open Source / Commercial Use License (OSCL)**. You are free to use, modify, and (re)distribute this software at no cost under the following conditions:
+
+- You may incorporate this software into your own project, as long as your project also remains free and open source, in accordance with an [OSI-approved open-source license](https://opensource.org/licenses).
+- You may use this software in a closed-source, proprietary, or commercial product or service, _but_ you must obtain a commercial license. Please contact [jonathan.woolfrey@gmail.com](mailto:jonathan.woolfrey@gmail.com) to discuss licensing terms and royalties.
+
+This license is designed to encourage open collaboration — but if you profit, then so must I (if only a little :pinching_hand:). See the full [LICENSE](./LICENSE) for complete terms.
+
+[:top: Back to Top.](#robot-robot-library-open_book)
