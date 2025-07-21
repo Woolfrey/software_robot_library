@@ -2,17 +2,18 @@
  * @file    SerialLinkBase.h
  * @author  Jon Woolfrey
  * @email   jonathan.woolfrey@gmail.com
- * @date    April 2025
- * @version 1.0
+ * @date    July 2025
+ * @version 1.1
  * @brief   A base class providing a standardised interface for all serial link robot arm controllers.
  * 
  * @details This class is designed to provide a standardised structure for all types of serial link
  *          robot arm controllers. This enables seemless interfacing between position/velocity and
  *          dynamic control.
  * 
- * @copyright Copyright (c) 2025 Jon Woolfrey
- * 
- * @license Open Source / Commercial Use License (OSCL)
+ * @copyright (c) 2025 Jon Woolfrey
+ *
+ * @license   OSCL - Free for non-commercial open-source use only.
+ *            Commercial use requires a license.
  *
  * @see https://github.com/Woolfrey/software_robot_library for more information.
  * @see https://github.com/Woolfrey/software_simple_qp for the optimisation algorithm used in the control.
@@ -115,6 +116,25 @@ class SerialLinkBase : public QPSolver<double>
 		endpoint_pose() const { return _endpointPose; }
 		
 		/**
+		 * @brief Compute the pose error from the current endpoint pose to a desired one.
+		 * @return A 6D vector containing position (3x1), and orientation (3x1).
+		 */
+		Eigen::Vector<double,6>
+		pose_error(const RobotLibrary::Model::Pose &desired);
+		
+		/**
+		 * @brief Return the magnitude of the position error.
+		 */
+		double
+		position_error() const { return _positionError; }
+		
+		/**
+		 * @brief Return the magnitude of orientation error.
+		 */
+		double
+		orientation_error() const { return _orientationError; }
+		
+		/**
 		 * @brief Get the linear & angular velocity of the endpoint.
 		 * @return A 6D Eigen::Vector object.
 		 */
@@ -166,28 +186,32 @@ class SerialLinkBase : public QPSolver<double>
 	protected:
 		
         bool _redundantTaskSet = false;                                                             ///< When false, a redundant robot will autonomously reconfigure away from a singularity
-		
+
+		double _controlFrequency = 500.0;                                                           ///< Used in certain control calculations.
+				
 		double _jointPositionGain = 100.0;                                                          ///< On position tracking error
 		
 		double _jointVelocityGain = 20.0;                                                           ///< On velocity tracking error
 		
 		double _manipulability;                                                                     ///< Proximity to a singularity
 		
-		double _minManipulability = 5e-03;                                                          ///< Used in singularity avoidance
-		
 		double _maxJointAcceleration = 5.0;                                                         ///< As it says.
-
-		double _controlFrequency = 100.0;                                                           ///< Used in certain control calculations.
 				
-		Eigen::Matrix<double,6,6> _cartesianStiffness =
-		(Eigen::Matrix<double,6,6>(6,6) << 10.0,  0.0,  0.0, 0.0, 0.0, 0.0,
-		                                    0.0, 10.0,  0.0, 0.0, 0.0, 0.0,
-		                                    0.0,  0.0, 10.0, 0.0, 0.0, 0.0,
-		                                    0.0,  0.0,  0.0, 2.0, 0.0, 0.0,
-		                                    0.0,  0.0,  0.0, 0.0, 2.0, 0.0,
-		                                    0.0,  0.0,  0.0, 0.0, 0.0, 2.0).finished();             ///< Gain on the endpoint pose error
+		double _minManipulability = 1e-02;                                                          ///< Used in singularity avoidance
 		
-		Eigen::Matrix<double,6,6> _cartesianDamping = 0.1*_cartesianStiffness;                      ///< Gain the endpoint velocity error
+		double _orientationError = 0.0;                                                             ///< In radians
+		
+		double _positionError = 0.0;                                                                ///< In meters
+				
+		Eigen::Matrix<double,6,6> _cartesianPoseGain =
+		(Eigen::Matrix<double,6,6>(6,6) << 10.0,  0.0,  0.0,  0.0,  0.0,  0.0,
+		                                    0.0, 10.0,  0.0,  0.0,  0.0,  0.0,
+		                                    0.0,  0.0, 10.0,  0.0,  0.0,  0.0,
+		                                    0.0,  0.0,  0.0,  5.0,  0.0,  0.0,
+		                                    0.0,  0.0,  0.0,  0.0,  5.0,  0.0,
+		                                    0.0,  0.0,  0.0,  0.0,  0.0,  5.0).finished();          ///< Gain on the endpoint pose error
+		
+		Eigen::Matrix<double,6,6> _cartesianVelocityGain = 0.5*_cartesianPoseGain;                  ///< Gain the endpoint velocity error
 		
 		Eigen::Matrix<double,6,Eigen::Dynamic> _jacobianMatrix;                                     ///< Of the endpoint frame
 		
@@ -204,7 +228,7 @@ class SerialLinkBase : public QPSolver<double>
 		RobotLibrary::Model::Pose _endpointPose;                                                    ///< Class denoting position and orientation of endpoint frame
 		
 		RobotLibrary::Model::ReferenceFrame *_endpointFrame;                                        ///< Pointer to frame controlled in underlying model
-	
+
 		/**
 		 * @brief Computes the instantaneous limits on the joint control.
 		 * @param jointNumber Which joint to compute the limits for.
