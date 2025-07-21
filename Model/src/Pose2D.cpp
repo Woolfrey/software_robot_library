@@ -2,7 +2,7 @@
  * @file    Pose2D.cpp
  * @author  Jon Woolfrey
  * @email   jonathan.woolfrey@gmail.com
- * @date    May 2025
+ * @date    July 2025
  * @version 1.0
  * @brief   A class that describes the position & orientation of an object in 2D space.
  * 
@@ -10,9 +10,10 @@
  *          using a scalar. Arithmetic can be used to propagate & invert these objects for
  *          performing transforms in 2D space.
  * 
- * @copyright Copyright (c) 2025 Jon Woolfrey
- * 
- * @license GNU General Public License V3
+ * @copyright (c) 2025 Jon Woolfrey
+ * @license   OSCL - Free for non-commercial open-source use only.
+ *            Commercial use requires a license.
+ *            Contact: jonathan.woolfrey@gmail.com
  * 
  * @see https://github.com/Woolfrey/software_robot_library for more information.
  */

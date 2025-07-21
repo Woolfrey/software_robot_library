@@ -2,8 +2,8 @@
  * @file    KinematicTree.cpp
  * @author  Jon Woolfrey
  * @email   jonathan.woolfrey@gmail.com
- * @date    April 2025
- * @version 1.0
+ * @date    July 2025
+ * @version 2.1
  * @brief   A class for a multi rigid body system of branching serial link structures.
  * 
  * @details This class is used to compute the kinematics and dynamics of branching, serial link structures.
@@ -11,9 +11,10 @@
  *          It is designed to be embedded in to a control class to obtain things like the Jacobian,
  *          inertia matrix, Coriolis matrix, etc.
  * 
- * @copyright Copyright (c) 2025 Jon Woolfrey
- * 
- * @license GNU General Public License V3
+ * @copyright (c) 2025 Jon Woolfrey
+ *
+ * @license   OSCL - Free for non-commercial open-source use only.
+ *            Commercial use requires a license.
  * 
  * @see https://github.com/Woolfrey/software_robot_library for more information.
  */

@@ -2,16 +2,17 @@
  * @file    Link.h
  * @author  Jon Woolfrey
  * @email   jonathan.woolfrey@gmail.com
- * @date    April 2025
- * @version 2.0
+ * @date    July 2025
+ * @version 2.1
  * @brief   A class that combines a RobotLibrary::Model::RigidyBody object with a RobotLibrary::Model::RobotLibrary::Model::Joint object.
  * 
  * @details This class describes a link as a part of a serial link chain. It contains both a joint
  *          and a rigid body to define the kinematic and dynamic properties.
  * 
- * @copyright Copyright (c) 2025 Jon Woolfrey
- * 
- * @license GNU General Public License V3
+ * @copyright (c) 2025 Jon Woolfrey
+ *
+ * @license   OSCL - Free for non-commercial open-source use only.
+ *            Commercial use requires a license.
  * 
  * @see https://github.com/Woolfrey/software_robot_library for more information.
  */

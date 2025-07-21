@@ -2,17 +2,20 @@
  * @file    Pose.cpp
  * @author  Jon Woolfrey
  * @email   jonathan.woolfrey@gmail.com
- * @date    April 2025
- * @version 1.0
+ * @date    July 2025
+ * @version 1.1
  * @brief   A class that describes the position & orientation of an object in 3D space.
  * 
  * @details This class describes the position of an object as a 3D vector, and the orientation
  *          using a quaternion. Arithmetic can be used to propagate & invert these objects for
  *          performing transforms in 3D space.
+ *
+ * @update  June 2025 - Fixed quaternion unwinding in Pose::error() by enforcing hemisphere alignment.
  * 
- * @copyright Copyright (c) 2025 Jon Woolfrey
- * 
- * @license GNU General Public License V3
+ * @copyright (c) 2025 Jon Woolfrey
+ *
+ * @license   OSCL - Free for non-commercial open-source use only.
+ *            Commercial use requires a license.
  * 
  * @see https://github.com/Woolfrey/software_robot_library for more information.
  */
@@ -29,8 +32,8 @@ Pose::as_matrix()
 {
     Eigen::Matrix4d T;
     
-    T.block(0,0,3,3) = this->_quaternion.toRotationMatrix();
-    T.block(0,3,3,1) = this->_translation;
+    T.block(0,0,3,3) = _quaternion.toRotationMatrix();
+    T.block(0,3,3,1) = _translation;
     T.row(3) << 0, 0, 0, 1;
     
     return T;
@@ -44,17 +47,14 @@ Pose::error(const Pose &desired)
 {
      Eigen::Vector<double,6> error;                                                                 // Value to be returned
 
-     error.head(3) = desired.translation() - this->_translation;                                    // translation error
+     error.head(3) = desired.translation() - _translation;                                          // translation error
 
-     // Compute the vector component of the quaternion error
-     Eigen::Vector<double,3> vec = this->_quaternion.w() * desired.quaternion().vec()
-                                    - desired.quaternion().w() * this->_quaternion.vec()
-                                    - desired.quaternion().vec().cross(this->_quaternion.vec());
+     Eigen::Quaterniond orientationError = (desired.quaternion() * _quaternion.inverse()).normalized();
      
-     double angle = this->_quaternion.angularDistance(desired.quaternion());                        // Angle between the 2 vectors
+     double angle = 2 * acos(std::clamp(orientationError.w(), -1.0, 1.0));
      
-     if(angle <= M_PI) error.tail(3) =  vec;
-     else              error.tail(3) = -vec;                                                        // Angle > 180 degrees, spin opposite (shortest) direction
+     if (angle < 1e-04) error.tail(3).setZero();
+     else               error.tail(3) = angle * orientationError.vec().normalized();
      
      return error;
 }
@@ -65,7 +65,7 @@ Pose::error(const Pose &desired)
 Pose
 Pose::inverse()
 {
-     return Pose(-this->_quaternion.toRotationMatrix()*this->_translation, this->_quaternion.inverse());
+     return Pose(-_quaternion.toRotationMatrix() * _translation, _quaternion.inverse());
 }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -74,8 +74,9 @@ Pose::inverse()
 Pose
 Pose::operator* (const Pose &other) const
 {
-     return Pose(this->_translation + this->_quaternion.toRotationMatrix()*other.translation(),
-                 this->_quaternion*other.quaternion());
+     
+     return Pose(_translation + _quaternion.toRotationMatrix()*other.translation(),
+                (_quaternion * other.quaternion()).normalized());
 }
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -84,8 +85,9 @@ Pose::operator* (const Pose &other) const
 void
 Pose::operator*= (const Pose &other)
 {
-     this->_translation += this->_quaternion.toRotationMatrix()*other.translation(),
-     this->_quaternion  *= other.quaternion();
+     _translation += _quaternion.toRotationMatrix() * other.translation();
+     _quaternion  *= other.quaternion();
+     _quaternion.normalize();
 }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -94,7 +96,7 @@ Pose::operator*= (const Pose &other)
 Eigen::Vector<double,3>
 Pose::operator* (const Eigen::Vector<double,3> &other)
 {
-     return this->_translation + this->_quaternion.toRotationMatrix()*other;
+     return _translation + _quaternion.toRotationMatrix() * other;
 }
 
 } } // namespace

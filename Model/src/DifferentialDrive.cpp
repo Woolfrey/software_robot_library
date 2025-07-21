@@ -2,15 +2,16 @@
  * @file    DifferentialDrive.cpp
  * @author  Jon Woolfrey
  * @email   jonathan.woolfrey@gmail.com
- * @date    May 2025
+ * @date    July 2025
  * @version 1.0
  * @brief   A base class for control of differential drives robots.
  *
  * @details This class is a simple model that serves as a base for control classes.
  *
- * @copyright Copyright (c) 2025 Jon Woolfrey
- * 
- * @license GNU General Public License V3
+ * @copyright (c) 2025 Jon Woolfrey
+ *
+ * @license   OSCL - Free for non-commercial open-source use only.
+ *            Commercial use requires a license.
  * 
  * @see https://github.com/Woolfrey/software_robot_library for more information.
  */
