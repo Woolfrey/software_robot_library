@@ -2,7 +2,7 @@
  * @file    MinimumArcLength.cpp
  * @author  Jon Woolfrey
  * @email   jonathan.woolfrey@gmail.com
- * @date    May 2025
+ * @date    July 2025
  * @version 1.0
  * @brief   Source code for the minimum arc length class.
  *
@@ -11,9 +11,10 @@
  *          whereas the radius parameter is a hyperbolic cosine. It is suitable for short paths for
  *          differential drive robots subject to non-holonomic constraints.
  * 
- * @copyright Copyright (c) 2025 Jon Woolfrey
- * 
- * @license GNU General Public License V3
+ * @copyright (c) 2025 Jon Woolfrey
+ *
+ * @license   OSCL - Free for non-commercial open-source use only.
+ *            Commercial use requires a license.
  * 
  * @see https://github.com/Woolfrey/software_robot_library for more information.
  */

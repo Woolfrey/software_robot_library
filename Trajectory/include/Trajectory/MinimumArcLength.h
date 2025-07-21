@@ -2,8 +2,8 @@
  * @file    MinimumArcLength.h
  * @author  Jon Woolfrey
  * @email   jonathan.woolfrey@gmail.com
- * @date    May 2025
- * @version 1.0
+ * @date    July 2025
+ * @version 1.1
  * @brief   A class that generates arcs over a 2D plane with a minimum path length.
  *
  * @details This is used for creating curves over a 2D plane with a minimum path length. Internally
@@ -11,9 +11,10 @@
  *          whereas the radius parameter is a hyperbolic cosine. It is suitable for short paths for
  *          differential drive robots subject to non-holonomic constraints.
  * 
- * @copyright Copyright (c) 2025 Jon Woolfrey
- * 
- * @license GNU General Public License V3
+ * @copyright (c) 2025 Jon Woolfrey
+ *
+ * @license   OSCL - Free for non-commercial open-source use only.
+ *            Commercial use requires a license.
  * 
  * @see https://github.com/Woolfrey/software_robot_library for more information.
  */
