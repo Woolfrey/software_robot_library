@@ -3,18 +3,32 @@ Open Source / Commercial Use License (OSCL)
 Copyright (c) 2025 Jonathan Kyle Woolfrey
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to use,
-copy, modify, merge, publish, and distribute the Software, **provided that**
-the Software and any derivative works are released under the terms of an
-open-source license approved by the Open Source Initiative (OSI).
+of this software and associated documentation files (the “Software”) to use,
+copy, modify, merge, publish, and distribute the Software, **provided that**:
 
-Commercial/Proprietary Use Exception:
-Any use, distribution, or incorporation of the Software or derivative works
-into a proprietary or commercial product or service—defined as one that is
-not released under an OSI-approved open-source license—requires a separate
-commercial license. Please contact jonathan.woolfrey@gmail.com to obtain
-such a license. Terms and royalties may be negotiated on a case-by-case basis.
+1. The Software and any derivative or combined works are used **solely for non-commercial,
+   educational, or academic research purposes**, and
 
-The Software is provided "AS IS", without warranty of any kind, express or
-implied, including but not limited to the warranties of merchantability,
-fitness for a particular purpose, and noninfringement.
+2. The Software and any derivative or combined works are released under the terms of an
+   **Open Source Initiative (OSI)-approved license**, and are **freely accessible to the public**.
+
+## Commercial Use Restriction
+
+**Any use of the Software, or derivative works, in a commercial context requires
+a separate commercial license**. This includes, but is not limited to:
+
+- Integration into any product, system, or service that is sold, licensed, rented,
+  or used for financial gain
+- Use within a business or corporate environment (excluding accredited academic research)
+- Internal tools used in for-profit organizations, even if not externally distributed
+- Embedded software in hardware systems that are manufactured or sold
+
+To obtain a commercial license, please contact:
+
+📧 jonathan.woolfrey@gmail.com
+
+## Warranty Disclaimer
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+PURPOSE, AND NON-INFRINGEMENT.
