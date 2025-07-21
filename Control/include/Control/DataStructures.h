@@ -2,16 +2,17 @@
  * @file    DataStructures.h
  * @author  Jon Woolfrey
  * @email   jonathan.woolfrey@gmail.com
- * @date    April 2025
- * @version 1.0
+ * @date    July 2025
+ * @version 1.1
  * @brief   Contains custom structs used in Control classes.
  *
- * @copyright Copyright (c) 2025 Jon Woolfrey
+ * @copyright (c) 2025 Jon Woolfrey
+ * @license   OSCL - Free for non-commercial open-source use only.
+ *            Commercial use requires a license.
+ *            Contact: jonathan.woolfrey@gmail.com
  *
- * @license Open Source / Commercial Use License (OSCL)
- *
- * @see https://github.com/Woolfrey/software_robot_library for more information.
- * @see https://github.com/Woolfrey/software_simple_qp for the optimisation algorithm used in the control.
+ * @see https://github.com/Woolfrey/software_robot_library
+ * @see https://github.com/Woolfrey/software_simple_qp
  */
 
 #ifndef CONTROL_DATA_STRUCTS_H
@@ -34,21 +35,21 @@ struct SerialLinkParameters
     double maxJointAcceleration = 5.0;                                                              ///< Limits joint acceleration
     double minManipulability    = 1e-04;                                                            ///< Threshold for singularity avoidance
     
-    unsigned int controlFrequency = 100;                                                            ///< Rate at which control loop operates.    
+    unsigned int controlFrequency = 500;                                                            ///< Rate at which control loop operates.    
     
-    Eigen::Matrix<double,6,6> cartesianStiffness = (Eigen::MatrixXd(6,6) << 10.0,  0.0,  0.0, 0.0, 0.0, 0.0,
-                                                                             0.0, 10.0,  0.0, 0.0, 0.0, 0.0,
-                                                                             0.0,  0.0, 10.0, 0.0, 0.0, 0.0, 
-                                                                             0.0,  0.0,  0.0, 2.0, 0.0, 0.0,
-                                                                             0.0,  0.0,  0.0, 0.0, 2.0, 0.0,
-                                                                             0.0,  0.0,  0.0, 0.0, 0.0, 2.0).finished(); ///< Scales pose error feedback
+    Eigen::Matrix<double,6,6> cartesianPoseGain = (Eigen::MatrixXd(6,6) << 10.0,  0.0,   0.0,  0.0,  0.0,  0.0,
+                                                                            0.0, 10.0,   0.0,  0.0,  0.0,  0.0,
+                                                                            0.0,  0.0,  10.0,  0.0,  0.0,  0.0, 
+                                                                            0.0,  0.0,   0.0,  5.0,  0.0,  0.0,
+                                                                            0.0,  0.0,   0.0,  0.0,  5.0,  0.0,
+                                                                            0.0,  0.0,   0.0,  0.0,  0.0,  5.0).finished(); ///< Scales pose error feedback
                                                                              
-    Eigen::Matrix<double,6,6> cartesianDamping = (Eigen::MatrixXd(6,6) << 1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                                                                          0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
-                                                                          0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 
-                                                                          0.0, 0.0, 0.0, 0.2, 0.0, 0.0,
-                                                                          0.0, 0.0, 0.0, 0.0, 0.2, 0.0,
-                                                                          0.0, 0.0, 0.0, 0.0, 0.0, 0.2).finished(); ///< Scales twist error feedback                                                                                                                        
+    Eigen::Matrix<double,6,6> cartesianVelocityGain = (Eigen::MatrixXd(6,6) << 20.0,  0.0,  0.0, 0.0, 0.0, 0.0,
+                                                                                0.0, 20.0,  0.0, 0.0, 0.0, 0.0,
+                                                                                0.0,  0.0, 20.0, 0.0, 0.0, 0.0, 
+                                                                                0.0,  0.0,  0.0, 2.0, 0.0, 0.0,
+                                                                                0.0,  0.0,  0.0, 0.0, 2.0, 0.0,
+                                                                                0.0,  0.0,  0.0, 0.0, 0.0, 2.0).finished(); ///< Scales twist error feedback                                                                                                                        
                                                                           
     SolverOptions<double> qpsolver = SolverOptions<double>();                                       ///< Parameters for the underlying QP solver
 };
