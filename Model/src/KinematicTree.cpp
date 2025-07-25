@@ -250,7 +250,7 @@ KinematicTree::KinematicTree(const std::string &pathToURDF)
                {
                     this->base.combine_inertia(currentLink,currentLink.joint().origin());           // Combine inertia of this link with the base
                     
-                    for (auto childLink : currentLink.child_links())                                // Cycle through all the child links
+                    for (auto &childLink : currentLink.child_links())                               // Cycle through all the child links
                     {
                          childLink->clear_parent_link();                                            // Link has been merged, so sever the connection
                     }
@@ -549,7 +549,6 @@ Eigen::Matrix<double, 6, Eigen::Dynamic>
 KinematicTree::partial_derivative(const Eigen::Matrix<double,6,Eigen::Dynamic> &jacobianMatrix,
                                   const unsigned int &jointNumber)
 {
-
      // E. D. Pohl and H. Lipkin, "A new method of robotic rate control near singularities,"
      // Proceedings. 1991 IEEE International Conference on Robotics and Automation,
      // 1991, pp. 1708-1713 vol.2, doi: 10.1109/ROBOT.1991.131866.
