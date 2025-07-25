@@ -1,6 +1,7 @@
 
 # List the source files for this library
-add_library(Model src/Joint.cpp
+add_library(Model src/DifferentialDrive.cpp
+                  src/Joint.cpp
                   src/KinematicTree.cpp
                   src/Link.cpp
                   src/Pose.cpp

@@ -1,0 +1,49 @@
+v                /*                   
+                for (int k = 0; k < numObstacles; ++k)
+                {
+                    if (obstacles[k].size() != _predictionSteps + 1)
+                    {
+                        throw std::invalid_argument("[ERROR] [DIFFERENTIAL DRIVE PREDICTIVE] track_trajectory(): "
+                                                    "This controller has N + 1 = " + std::to_string(_predictionSteps+1) + " control steps "
+                                                    "but obstacle #" + std::to_string(k+1) + " had " + std::to_string(obstacles[k].size()) + " "
+                                                    "predicted positions.");
+                    }
+                    
+                    double distanceSquared =  obstacles[k][j].distance_squared(_predictedStates[j+1].pose.translation()) - 1;
+                    
+                    if (distanceSquared < 0.0)
+                    {
+                        throw std::runtime_error("[ERROR] [DIFFERENTIAL DRIVE PREDICTIVE] track_trajectory(): "
+                                                 "Collision detected with obstacle " + std::to_string(k+1) + " "
+                                                 "on prediction step " + std::to_string(j+1) + ", "
+                                                 "recursion " + std::to_string(i+1) + ". Distance to obstacle: "
+                                                 + std::to_string(distanceSquared) + ".");
+                    }
+                                  
+                    // Compute partial derivatives of control barrier function
+                    Vector2d inverseTransformedDisplacement = obstacles[k][j+1].inverse_shape_transformed_vector(obstacles[k][j+1].centre() - _predictedStates[j+1].pose.translation());
+                     
+                    Vector2d dbdu =  2 * dfdu.transpose() * projectionMatrix.transpose() * inverseTransformedDisplacement;
+                    
+                    std::cout << "i: " << i << " j: " << j << " db/du: " << dbdu.transpose() << "\n";
+                    
+                    Vector3d dbdx =  2 * dfdx.transpose() * projectionMatrix.transpose() * inverseTransformedDisplacement;
+                    
+                    Vector2d dbdc = -2 * inverseTransformedDisplacement;
+                    
+                    _obstacleConstraintMatrix.row(k) = -dbdu.transpose();
+                    
+                    // Change in obstacle position
+                    Vector2d dc;
+                    if (j == _predictionSteps - 2) dc = obstacles[k][j+1].centre() - obstacles[k][j+0].centre(); // Assume last step is the same as prior, since we don't have j+2
+                    else                           dc = obstacles[k][j+2].centre() - obstacles[k][j+1].centre();
+                    
+                    double scalar = 0.1; 
+                    std::cout << i << " " << j << " " << scalar * distanceSquared << "\n";
+                    
+                    _obstacleConstraintVector(k) = scalar * distanceSquared
+                                                 + dbdx.transpose() * (_predictedStates[j].pose.error(_predictedStates[j+1].pose))
+                                                 + dbdc.transpose() * dc
+                                                 + 0.1;
+                }
+               */

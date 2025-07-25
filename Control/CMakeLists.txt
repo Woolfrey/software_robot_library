@@ -1,6 +1,9 @@
 
 # List the source files for this library
-add_library(Control src/SerialDynamicControl.cpp
+add_library(Control src/DifferentialDriveBase.cpp
+                    src/DifferentialDriveFeedback.cpp
+                    src/DifferentialDrivePredictive.cpp
+                    src/SerialDynamicControl.cpp
                     src/SerialKinematicControl.cpp
                     src/SerialLinkBase.cpp
 )

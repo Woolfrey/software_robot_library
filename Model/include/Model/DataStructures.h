@@ -54,6 +54,8 @@ struct DifferentialDriveParameters
     double maxAngularVelocity     = 100.0 * M_PI / 30.0;                                            ///< Maximum rotational speed (rad/s)
     double maxLinearAcceleration  = 5.0;                                                            ///< Maximum forward acceleration (m/s/s)
     double maxLinearVelocity      = 2.0;                                                            ///< Maximum forward speed (m/s)
+    double minimumSafeDistance    = 0.5;                                                            ///< Used for collision detection
+    
     Eigen::Matrix3d propagationUncertainty = Eigen::Matrix3d::Identity();                           ///< Uncertainty of configuration propagation in Kalman filter
 
     DifferentialDriveParameters() = default;
