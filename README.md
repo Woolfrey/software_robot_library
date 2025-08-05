@@ -1,6 +1,8 @@
 # :robot: Robot Library :open_book:
 
-Robot Library is a C++ package for modeling, trajectory generation, and control of robots. The [initial release](#package-release-notes---v100-april-2025) supports real-time velocity control of serial link robot arms (work on torque control is underway!). Checkout the [ROS2 action server](https://github.com/Woolfrey/server_serial_link) to see it in action :boom:
+Robot Library is a C++ package for modeling, trajectory generation, and control of robots. The current release now supports torque control of robot arms. Check out these repositories for implementations of:
+- [Velocity control](https://github.com/Woolfrey/control_serial_link_velocity), or
+- [Torque control](https://github.com/Woolfrey/control_kuka_torque).
 
 #### :sparkles: Features:
 - _Everything_ is contained in _one_ library: modeling, control, _and_ trajectory generation.
@@ -21,7 +23,6 @@ Robot Library is a C++ package for modeling, trajectory generation, and control 
 - [Using Robot Library](#rocket-using-robot-library)
     - [In Another Project](#in-another-project)
     - [Examples](#examples)
-- [Release Notes](#package-release-notes---v100-april-2025)
 - [Contributing](#handshake-contributing)
 - [Citing this Repository](#bookmark_tabs-citing-this-repository)
 - [License](#scroll-license)
@@ -168,31 +169,6 @@ If you would like to see examples where `RobotLibrary` has been applied, you can
 - [TestingRobotLibrary](https://github.com/Woolfrey/testing_robot_library) : C++ executables I use for numerical validation of RobotLibrary.
 
 [:top: Back to Top.](#robot-robot-library-open_book)
-
-## :package: Release Notes - v1.0.0 (April 2025)
-
-### :tada: Initial Release:
-- Control:
-     - SerialLinkBase : Base class providing common structure for all child classes.
-     - SerialKinematicControl : Joint velocity & Cartesian velocity control algorithms.
-- Math:
-     - MathFunctions : Helper functions for other classes.
-     - Polynomial : Generates a scalar, polynomial function.
-     - SkewSymmetric: Converted an `Eigen::Vector3d` object to an anti-symmetric `Eigen::Matrix3d` object.
-     - Spline : Connects multiple points using polynomials, whilst ensuring continuity.
-- Model:
-     - Joint : Models an actuated joint on a robot.
-     - KinematicTree : Kinematic & dynamic modeling of branching, serial-link structures.
-     - Link : Represents a combined `Joint` and `RigidBody` object.
-     - Pose : Position and orientation; $\mathbb{SE}(3)$.
-     - RigidBody : Dynamics for a single, solid object.
-- Trajectory:
-     - CartesianSpline : Generates smooth trajectories over a series of poses.
-     - SplineTrajectory : Generates smooth trajectories over a series of points.
-     - TrajectoryBase : Provides common structure to all trajectory classes.
-     - TrapezoidalVelocity : Trajectory with constant sections, and ramps up and down.
-  
-[:top: Back to Top.](#robot-robot-library-open_book)
     
 ## :handshake: Contributing
 
@@ -213,16 +189,16 @@ Here's a BibTeX reference:
 ```
 @software{woolfrey_robot_library_2025
      author  = {Woolfrey, Jon},
-     month   = apr,
+     month   = aug,
      title   = {{R}obot {L}ibrary},
      url     = {https://github.com/Woolfrey/software_robot_library},
-     version = {1.0.0},
+     version = {1.2.0},
      year    = {2025}
 }
 ```
 Here's the automatically generated APA format:
 ```
-Woolfrey, J. (2025). Robot Library (Version 1.0.0). Retrieved from https://github.com/Woolfrey/software_robot_library
+Woolfrey, J. (2025). Robot Library (Version 1.2.0). Retrieved from https://github.com/Woolfrey/software_robot_library
 ```
 
 [:top: Back to Top.](#robot-robot-library-open_book)
@@ -231,7 +207,7 @@ Woolfrey, J. (2025). Robot Library (Version 1.0.0). Retrieved from https://githu
 
 This project is licensed under an **Open Source / Commercial Use License (OSCL)**. You are free to use, modify, and (re)distribute this software at no cost under the following conditions:
 
-- You may incorporate this software into your own project, as long as your project also remains free and open source, in accordance with an [OSI-approved open-source license](https://opensource.org/licenses).
+- You may incorporate this software into your own project, as long as your project also remains free and open source.
 - You may use this software in a closed-source, proprietary, or commercial product or service, _but_ you must obtain a commercial license. Please contact [jonathan.woolfrey@gmail.com](mailto:jonathan.woolfrey@gmail.com) to discuss licensing terms and royalties.
 
 This license is designed to encourage open collaboration — but if you profit, then so must I (if only a little :pinching_hand:). See the full [LICENSE](./LICENSE) for complete terms.
