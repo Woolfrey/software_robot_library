@@ -58,54 +58,69 @@ The diagram below shows how the different libraries interact:
 #### Ubuntu 20.04
 
 1. First ensure prerequisites are installed:
+   ```
+   sudo apt update
+   ```
+   ```
+   sudo apt install -y build-essential cmake git
+   ```
+    
+3. Download version 3.4 directly (or from the webpage):
+   ```
+   wget https://gitlab.com/libeigen/eigen/-/archive/3.4.0/eigen-3.4.0.tar.gz
+   ```
 
-    `sudo apt update`
+5. Extract the downloaded file:
+   ```
+   tar -xvf eigen-3.4.0.tar.gz
+   ```
+   ```
+   cd eigen-3.4.0
+   ```
     
-    `sudo apt install -y build-essential cmake git`
-    
-2. Download version 3.4 directly (or from the webpage):
-
-    `wget https://gitlab.com/libeigen/eigen/-/archive/3.4.0/eigen-3.4.0.tar.gz`
-
-3. Extract the downloaded file:
-
-    `tar -xvf eigen-3.4.0.tar.gz`
-    
-    `cd eigen-3.4.0`
-    
-4. Build and install:
-
-    `mkdir build && cd build`
-    
-    `cmake ../`
-    
-    `sudo make install`
+7. Build and install:
+   ```
+   mkdir build && cd build
+   ```
+   ```
+   cmake ../
+   ```
+   ```
+   sudo make install
+   ```
 
 #### Ubuntu 22.04 & Later
 
 Eigen 3.4 is automatically installed on later versions of Ubuntu. In the command line you can run:
 
-  `sudo apt install libeigen3-dev`
+```
+sudo apt install libeigen3-dev
+```
 
 ### Installing RobotLibrary:
 
 1. Clone this repository in to your working directory:
-
-   `git clone https://github.com/Woolfrey/software_robot_library.git`
+   ```
+   git clone https://github.com/Woolfrey/software_robot_library.git
+   ```
    
-2. Navigate in to the folder:
+3. Navigate in to the folder:
+   ```
+   cd ~/<your_working_directory>/software_robot_library
+   ```
 
-   `cd ~/<your_working_directory>/software_robot_library`
+5. Create a build directory and navigate in to it:
+   ```
+   mkdir build && cd build
+   ```
 
-3. Create a build directory and navigate in to it:
-
-   `mkdir build && cd build`
-
-4. Run the following commands in the `build` directory:
-
-   `cmake ..`
-   
-   `sudo make install`
+7. Run the following commands in the `build` directory:
+   ```
+   cmake ..
+   ```
+   ```
+   sudo make install
+   ```
 
 You should now be able to include different parts of the library in your C++ files.
 
