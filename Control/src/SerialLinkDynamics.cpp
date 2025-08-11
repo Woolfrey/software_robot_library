@@ -1,9 +1,10 @@
 /**
- * @file    SerialDynamicControl.cpp
+ * @file    SerialLinkDynamics.cpp
  * @author  Jon Woolfrey
  * @email   jonathan.woolfrey@gmail.com
- * @date    July 2025
- * @version 1.0
+ * @date    August 2025
+ * @version 2.0
+ *
  * @brief   Computes joint torques required to perform Cartesian, or joint feedback control for a serial link robot arm.
  * 
  * @details This class contains methods for performing torque control of a serial link robot arm
@@ -18,7 +19,7 @@
  * @see https://github.com/Woolfrey/software_simple_qp for the optimisation algorithm used in the control.
  */
 
-#include <Control/SerialDynamicControl.h>
+#include <Control/SerialLinkDynamics.h>
 
 namespace RobotLibrary { namespace Control {
 
@@ -26,23 +27,22 @@ namespace RobotLibrary { namespace Control {
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //                                            Constructor                                        //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-SerialDynamicControl::SerialDynamicControl(std::shared_ptr<RobotLibrary::Model::KinematicTree> model,
-                                           const std::string &endpointName,
-                                           const RobotLibrary::Control::SerialLinkParameters &parameters)
+SerialLinkDynamics::SerialLinkDynamics(std::shared_ptr<RobotLibrary::Model::KinematicTree> model,
+                                       const std::string &endpointName,
+                                       const RobotLibrary::Control::SerialLinkParameters &parameters)
 : SerialLinkBase(model, endpointName, parameters)
 {
-    // Worker bees can leave.
-    // Even drones can fly away.
-    // The Queen is their slave.
+    std::cout << "[INFO] [SERIAL LINK DYNAMICS] ";
+    std::cout << "Performing TORQUE control on the " + _model->name() + " robot.";
 }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //               Compute the endpoint acceleration needed to track a given trajectory            //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 Eigen::VectorXd
-SerialDynamicControl::track_endpoint_trajectory(const RobotLibrary::Model::Pose &desiredPose,
-                                                const Eigen::Vector<double,6>   &desiredVelocity,
-                                                const Eigen::Vector<double,6>   &desiredAcceleration)
+SerialLinkDynamics::track_endpoint_trajectory(const RobotLibrary::Model::Pose &desiredPose,
+                                              const Eigen::Vector<double,6>   &desiredVelocity,
+                                              const Eigen::Vector<double,6>   &desiredAcceleration)
 {
     // NOTE: This method saves the magnitude of position and orientation error internally,
     //       so it can be queried after for analysing performance
@@ -57,7 +57,7 @@ SerialDynamicControl::track_endpoint_trajectory(const RobotLibrary::Model::Pose 
  //                                        Velocity feedback                                      //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 Eigen::VectorXd
-SerialDynamicControl::resolve_endpoint_twist(const Eigen::Vector<double,6> &twist)
+SerialLinkDynamics::resolve_endpoint_twist(const Eigen::Vector<double,6> &twist)
 {
     return resolve_endpoint_motion(_cartesianVelocityGain * (twist - endpoint_velocity()));
 }
@@ -66,7 +66,7 @@ SerialDynamicControl::resolve_endpoint_twist(const Eigen::Vector<double,6> &twis
  //              Solve the endpoint motion required to achieve a given endpoint motion             //
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 Eigen::VectorXd
-SerialDynamicControl::resolve_endpoint_motion(const Eigen::Vector<double,6> &endpointMotion)
+SerialLinkDynamics::resolve_endpoint_motion(const Eigen::Vector<double,6> &endpointMotion)
 {
     // See:
     // Bruyninckx, H., & Khatib, O. (2000, April).
@@ -196,9 +196,9 @@ SerialDynamicControl::resolve_endpoint_motion(const Eigen::Vector<double,6> &end
  //                  Compute the joint torques needed to track a given joint trajectory           //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 Eigen::VectorXd
-SerialDynamicControl::track_joint_trajectory(const Eigen::VectorXd &desiredPosition,
-                                             const Eigen::VectorXd &desiredVelocity,
-						                     const Eigen::VectorXd &desiredAcceleration)
+SerialLinkDynamics::track_joint_trajectory(const Eigen::VectorXd &desiredPosition,
+                                           const Eigen::VectorXd &desiredVelocity,
+						                   const Eigen::VectorXd &desiredAcceleration)
 {
 	unsigned int numJoints = _model->number_of_joints();                                            // Makes things easier
 	
@@ -206,7 +206,7 @@ SerialDynamicControl::track_joint_trajectory(const Eigen::VectorXd &desiredPosit
 	or desiredVelocity.size()     != numJoints
 	or desiredAcceleration.size() != numJoints)
 	{
-		throw std::invalid_argument("[ERROR] [SERIAL DYNAMIC CONTROL] track_joint_trajectory(): "
+		throw std::invalid_argument("[ERROR] [SERIAL LINK DYNAMICS] track_joint_trajectory(): "
 		                            "Incorrect size for input arguments. This robot has "
 		                            + std::to_string(numJoints) + " joints, but "
 		                            "the position argument had " + std::to_string(desiredPosition.size()) + " elements,"
@@ -219,9 +219,9 @@ SerialDynamicControl::track_joint_trajectory(const Eigen::VectorXd &desiredPosit
 	for (int i = 0; i < numJoints; ++i)
 	{
 	    
-	    controlAcceleration(i) = desiredAcceleration(i)                                                    // Feedforward term
-	                           + _jointVelocityGain * (desiredVelocity(i) - _model->joint_velocities()[i]) // Velocity feedback
-	                           + _jointPositionGain * (desiredPosition(i) - _model->joint_positions()[i]); // Position feedback
+	    controlAcceleration(i) = desiredAcceleration(i)                                                        // Feedforward term
+	                           + _jointVelocityGains[i] * (desiredVelocity(i) - _model->joint_velocities()[i]) // Velocity feedback
+	                           + _jointPositionGains[i] * (desiredPosition(i) - _model->joint_positions()[i]); // Position feedback
         
         const auto &[lower, upper] = compute_control_limits(i);                                     // Get instantaneous limits on the joint acceleration
          
@@ -235,7 +235,7 @@ SerialDynamicControl::track_joint_trajectory(const Eigen::VectorXd &desiredPosit
  //                   Compute the instantaneous limits on the joint velocities                    //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 RobotLibrary::Model::Limits
-SerialDynamicControl::compute_control_limits(const unsigned int &jointNumber)
+SerialLinkDynamics::compute_control_limits(const unsigned int &jointNumber)
 {
 	// Flacco, F., De Luca, A., & Khatib, O. (2015).
 	// "Control of redundant robots under hard joint constraints: Saturation in the null space."
@@ -254,7 +254,7 @@ SerialDynamicControl::compute_control_limits(const unsigned int &jointNumber)
 	                   
 	if(limits.lower > limits.upper)
 	{
-	    throw std::logic_error("[ERROR] [SERIAL DYNAMIC CONTROL] compute_control_limits(): "
+	    throw std::logic_error("[ERROR] [SERIAL LINK DYNAMICS] compute_control_limits(): "
 	                           "Lower limit for the '" + _model->link(jointNumber)->joint().name() + "' joint is greater than "
 	                           "upper limit (" + std::to_string(limits.lower) + " > " + std::to_string(limits.upper) + "). "
 	                           "How did that happen???");

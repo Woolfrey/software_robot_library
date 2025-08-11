@@ -2,8 +2,9 @@
  * @file    SerialLinkBase.h
  * @author  Jon Woolfrey
  * @email   jonathan.woolfrey@gmail.com
- * @date    July 2025
- * @version 1.1
+ * @date    August 2025
+ * @version 2.0
+ *
  * @brief   A base class providing a standardised interface for all serial link robot arm controllers.
  * 
  * @details This class is designed to provide a standardised structure for all types of serial link
@@ -189,10 +190,6 @@ class SerialLinkBase : public QPSolver<double>
 
 		double _controlFrequency = 500.0;                                                           ///< Used in certain control calculations.
 				
-		double _jointPositionGain = 100.0;                                                          ///< On position tracking error
-		
-		double _jointVelocityGain = 20.0;                                                           ///< On velocity tracking error
-		
 		double _manipulability;                                                                     ///< Proximity to a singularity
 		
 		double _maxJointAcceleration = 5.0;                                                         ///< As it says.
@@ -224,6 +221,10 @@ class SerialLinkBase : public QPSolver<double>
 		Eigen::VectorXd _redundantTask;                                                             ///< Used to control null space of redundant robots
 		
 		std::shared_ptr<RobotLibrary::Model::KinematicTree> _model;                                 ///< Pointer to the underlying robot model
+		
+		std::vector<double> _jointPositionGains = {100.0};                                          ///< Gains for position error of individual joints
+		
+		std::vector<double> _jointVelocityGains = {20.0};                                           ///< Gains for velocity error of individual joints
 		
 		RobotLibrary::Model::Pose _endpointPose;                                                    ///< Class denoting position and orientation of endpoint frame
 		

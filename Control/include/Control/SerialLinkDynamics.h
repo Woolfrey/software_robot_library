@@ -1,9 +1,10 @@
 /**
- * @file    SerialDynamicControl.h
+ * @file    SerialLinkDynamics.h
  * @author  Jon Woolfrey
  * @email   jonathan.woolfrey@gmail.com
- * @date    July 2025
- * @version 1.0
+ * @date    August 2025
+ * @version 2.0
+ *
  * @brief   Computes joint torques for feedback control of serial link robot arms.
  * 
  * @details This class contains methods for performing torque control of a serial link robot arm
@@ -18,8 +19,8 @@
  * @see https://github.com/Woolfrey/software_simple_qp for the optimisation algorithm used in the control.
  */
 
-#ifndef SERIAL_DYNAMIC_CONTROL_H
-#define SERIAL_DYNAMIC_CONTROL_H
+#ifndef SERIAL_LINK_DYNAMICS_H
+#define SERIAL_LINK_DYNAMICS_H
 
 #include <Control/SerialLinkBase.h>
 
@@ -30,7 +31,7 @@ namespace RobotLibrary { namespace Control {
 /**
  * @brief Algorithms for velocity control of a serial link robot arm.
  */
-class SerialDynamicControl : public SerialLinkBase
+class SerialLinkDynamics : public SerialLinkBase
 {
 	public:
 		/**
@@ -39,9 +40,9 @@ class SerialDynamicControl : public SerialLinkBase
 		 * @param endpointName The name of the reference frame in the KinematicTree to be controlled.
 		 * @pram parameters Control gains and algorithm parameters.
 		 */
-		SerialDynamicControl(std::shared_ptr<RobotLibrary::Model::KinematicTree> model,
-		                     const std::string &endpointName,
-		                     const RobotLibrary::Control::SerialLinkParameters &parameters = SerialLinkParameters());
+		SerialLinkDynamics(std::shared_ptr<RobotLibrary::Model::KinematicTree> model,
+		                   const std::string &endpointName,
+		                   const RobotLibrary::Control::SerialLinkParameters &parameters = SerialLinkParameters());
 		
 		/**
 		 * @brief Solve the joint torques required to move the endpoint at a given acceleration.

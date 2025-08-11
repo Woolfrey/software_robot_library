@@ -4,7 +4,7 @@ authors:
 - family-names: "Woolfrey"
   given-names: "Jon"
   orcid: "https://orcid.org/0000-0001-5926-5669"
-title: "Robot Library"
-version: 1.0.0
-date-released: 2025-04-11
+title: "RobotLibrary"
+version: 2.0.0
+date-released: 2025-08-11
 url: "https://github.com/Woolfrey/software_robot_library"
