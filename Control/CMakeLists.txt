@@ -1,8 +1,9 @@
 
 # List the source files for this library
-add_library(Control src/SerialDynamicControl.cpp
-                    src/SerialKinematicControl.cpp
-                    src/SerialLinkBase.cpp
+add_library(Control src/SerialLinkBase.cpp
+                    src/SerialLinkDynamics.cpp
+                    src/SerialLinkImpedance.cpp
+                    src/SerialLinkKinematics.cpp
 )
 
 # Specify targets to be built
