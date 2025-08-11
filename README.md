@@ -1,8 +1,8 @@
-# :robot: Robot Library :open_book:
+# :robot: Robot Library
 
-Robot Library is a C++ package for modeling, trajectory generation, and control of robots. The current release now supports torque control of robot arms. Check out these repositories for implementations of:
+Robot Library is a C++ package for modeling, trajectory generation, and control of robots. The current release supports velocity, torque, and (inertia-free) impedance control. Check out the following repositories to see it in action:
 - [Velocity control](https://github.com/Woolfrey/control_serial_link_velocity), or
-- [Torque control](https://github.com/Woolfrey/control_kuka_torque).
+- [Impedance control](https://github.com/Woolfrey/control_kuka_impedance).
 
 #### :sparkles: Features:
 - _Everything_ is contained in _one_ library: modeling, control, _and_ trajectory generation.
@@ -40,7 +40,7 @@ The diagram below shows how the different libraries interact:
     <img src = "doc/interaction.png" width="450" height="auto"/>
 </p>
 
-[:top: Back to Top.](#robot-robot-library-open_book)
+[:top: Back to Top.](#robot-robot-library)
 
 ## :floppy_disk: Installation
 
@@ -124,7 +124,7 @@ sudo apt install libeigen3-dev
 
 You should now be able to include different parts of the library in your C++ files.
 
-[:top: Back to Top.](#robot-robot-library-open_book)
+[:top: Back to Top.](#robot-robot-library)
 
 ## :rocket: Using Robot Library
 
@@ -183,7 +183,7 @@ If you would like to see examples where `RobotLibrary` has been applied, you can
 - [Kuka iiwa14 velocity control](https://github.com/Woolfrey/control_kuka_velocity) : a ROS2 package which implements the former action server, and
 - [TestingRobotLibrary](https://github.com/Woolfrey/testing_robot_library) : C++ executables I use for numerical validation of RobotLibrary.
 
-[:top: Back to Top.](#robot-robot-library-open_book)
+[:top: Back to Top.](#robot-robot-library)
     
 ## :handshake: Contributing
 
@@ -194,7 +194,7 @@ Contributions to this repositore are welcome! Feel free to:
 
 If you're looking for ideas, you can always check the [Issues tab](https://github.com/Woolfrey/software_robot_library/issues) for those with :raising_hand: [OPEN]. These are things I'd like to implement, but don't have time for. It'd be much appreciated, and you'll be tagged as a contributor :sunglasses:
 
-[:top: Back to Top.](#robot-robot-library-open_book)
+[:top: Back to Top.](#robot-robot-library)
 
 ## :bookmark_tabs: Citing this Repository
 
@@ -202,21 +202,23 @@ If you find this code useful, spread the word by acknowledging it. Click on `Cit
 
 Here's a BibTeX reference:
 ```
-@software{woolfrey_robot_library_2025
-     author  = {Woolfrey, Jon},
-     month   = aug,
-     title   = {{R}obot {L}ibrary},
-     url     = {https://github.com/Woolfrey/software_robot_library},
-     version = {1.2.0},
-     year    = {2025}
+@misc{woolfrey_robotlibrary_2025,
+  author       = {Woolfrey, Jon},
+  title        = {RobotLibrary},
+  howpublished = {\url{https://github.com/Woolfrey/software_robot_library}},
+  note         = {Version 2.0.0},
+  year         = {2025},
+  month        = {aug},
+  day          = {11},
+  orcid        = {0000-0001-5926-5669}
 }
 ```
 Here's the automatically generated APA format:
 ```
-Woolfrey, J. (2025). Robot Library (Version 1.2.0). Retrieved from https://github.com/Woolfrey/software_robot_library
+Woolfrey, J. (2025). Robot Library (Version 2.0.0). Retrieved from https://github.com/Woolfrey/software_robot_library
 ```
 
-[:top: Back to Top.](#robot-robot-library-open_book)
+[:top: Back to Top.](#robot-robot-library)
 
 ## :scroll: License
 
@@ -227,4 +229,4 @@ This project is licensed under an **Open Source / Commercial Use License (OSCL)*
 
 This license is designed to encourage open collaboration — but if you profit, then so must I (if only a little :pinching_hand:). See the full [LICENSE](./LICENSE) for complete terms.
 
-[:top: Back to Top.](#robot-robot-library-open_book)
+[:top: Back to Top.](#robot-robot-library)
