@@ -2,8 +2,9 @@
  * @file    DataStructures.h
  * @author  Jon Woolfrey
  * @email   jonathan.woolfrey@gmail.com
- * @date    July 2025
- * @version 1.1
+ * @date    August 2025
+ * @version 2.0
+ *
  * @brief   Contains custom structs used in Control classes.
  *
  * @copyright (c) 2025 Jon Woolfrey
@@ -30,9 +31,8 @@ struct SerialLinkParameters
 {
     SerialLinkParameters() = default;                                                               ///< This enables default options
     
-    double jointPositionGain    = 100.0;                                                            ///< Scales the position error feedback  
-    double jointVelocityGain    = 20.0;                                                             ///< Scales the velocity error feedback
     double maxJointAcceleration = 5.0;                                                              ///< Limits joint acceleration
+    
     double minManipulability    = 1e-04;                                                            ///< Threshold for singularity avoidance
     
     unsigned int controlFrequency = 500;                                                            ///< Rate at which control loop operates.    
@@ -50,6 +50,10 @@ struct SerialLinkParameters
                                                                                 0.0,  0.0,  0.0, 2.0, 0.0, 0.0,
                                                                                 0.0,  0.0,  0.0, 0.0, 2.0, 0.0,
                                                                                 0.0,  0.0,  0.0, 0.0, 0.0, 2.0).finished(); ///< Scales twist error feedback                                                                                                                        
+                                                                                  
+    std::vector<double> jointPositionGains;
+    
+    std::vector<double> jointVelocityGains;
                                                                           
     SolverOptions<double> qpsolver = SolverOptions<double>();                                       ///< Parameters for the underlying QP solver
 };
