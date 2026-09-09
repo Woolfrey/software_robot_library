@@ -58,17 +58,17 @@ UnicycleBase::compute_control_limits(RobotLibrary::Model::Limits &linear,
                                      RobotLibrary::Model::Limits &angular,
                                      const Eigen::Vector2d &currentVelocity)
 {
-    linear.upper = std::min(_maxLinearVelocity,
-                            currentVelocity[0] + _maxLinearAcceleration / _controlFrequency);
+    linear.upper  = std::min(_maxLinearVelocity,
+                             currentVelocity[0] + _maxLinearAcceleration / _controlFrequency);
     
-    linear.lower = std::max(-_maxLinearVelocity,
+    linear.lower  = std::max(-_maxLinearVelocity,
                              currentVelocity[0] - _maxLinearAcceleration / _controlFrequency);
                              
     angular.upper = std::min(_maxAngularVelocity,
                              currentVelocity[1] + _maxAngularAcceleration / _controlFrequency);
     
     angular.lower = std::max(-_maxAngularVelocity,
-                              currentVelocity[1] - _maxAngularAcceleration / _controlFrequency);
+                             currentVelocity[1] - _maxAngularAcceleration / _controlFrequency);
                               
     if (linear.lower >= linear.upper)
     {
