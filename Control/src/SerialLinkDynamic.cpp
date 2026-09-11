@@ -81,7 +81,9 @@ SerialLinkDynamic::resolve_endpoint_motion(const Eigen::Vector<double,6> &endpoi
     VectorXd manipulabilityGradient = manipulability_gradient();                                    // Used in a few places, so compute it once here
     VectorXd jointVelocities        = _model->joint_velocities();
     VectorXd coriolisTorques        = _model->joint_coriolis_matrix() * jointVelocities;    
-    MatrixXd inertiaMatrix          = _model->joint_inertia_matrix();        
+    MatrixXd inertiaMatrix          = _model->joint_inertia_matrix();
+    Eigen::LDLT<Eigen::MatrixXd> Mdecomp(inertiaMatrix);
+    MatrixXd jacobianDerivative     = _model->time_derivative(_jacobianMatrix);
     VectorXd lowerBound(numJoints);
     VectorXd upperBound(numJoints);
 
@@ -95,8 +97,8 @@ SerialLinkDynamic::resolve_endpoint_motion(const Eigen::Vector<double,6> &endpoi
         // NOTE: Size of bounds is not known at compile time,
         // so we must manually transfer values
         const auto &[lower, upper] = compute_control_limits(i);
-        lowerBound[i] = lower + 1e-02;
-        upperBound[i] = upper - 1e-02;
+        lowerBound[i] = lower + 1e-03;
+        upperBound[i] = upper - 1e-03;
 
         startPoint[i] = std::clamp(startPoint[i], lower + 1e-03, upper - 1e-03);                    // Ensure within bounds of QP solver might fail
     }
@@ -112,7 +114,7 @@ SerialLinkDynamic::resolve_endpoint_motion(const Eigen::Vector<double,6> &endpoi
     
     _constraintMatrix.row(2 * numJoints) = momentum.transpose();
 
-    double alpha = 5.0 * sqrt(_controlFrequency);
+    double alpha = 2.0 * sqrt(_controlFrequency);
     
     _constraintVector(2 * numJoints) = manipulabilityGradient.dot(jointVelocities)
                                      + alpha * (_manipulability - _minManipulability)
@@ -120,8 +122,7 @@ SerialLinkDynamic::resolve_endpoint_motion(const Eigen::Vector<double,6> &endpoi
     // Now we solve the control
     VectorXd controlAcceleration = VectorXd::Zero(numJoints);
     
-    Vector<double,6> endpointAcceleration = endpointMotion
-                                          - _model->time_derivative(_jacobianMatrix) * jointVelocities; // xddot - Jdot * qdot
+    Vector<double,6> endpointAcceleration = endpointMotion - jacobianDerivative * jointVelocities;  // xddot - Jdot * qdot
     
     if (not is_singular())
     {
@@ -147,7 +148,7 @@ SerialLinkDynamic::resolve_endpoint_motion(const Eigen::Vector<double,6> &endpoi
         {
             if (not _redundantTaskSet)
             {
-                _redundantTask = 0.9 * manipulabilityGradient
+                _redundantTask = 0.1 * manipulabilityGradient
                                - _model->joint_damping_vector()                                     // This term ensures stability
                                - coriolisTorques;                                                   // This term minimises kinetic energy
                               
@@ -162,7 +163,7 @@ SerialLinkDynamic::resolve_endpoint_motion(const Eigen::Vector<double,6> &endpoi
             // See: github.com/Woolfrey/software_simple_qp
             
             controlAcceleration = QPSolver<double>::constrained_least_squares(
-                _redundantTask,                                                                     // x_d
+                Mdecomp.solve(_redundantTask),                                         // x_d
                 inertiaMatrix,                                                                      // W
                 _jacobianMatrix,                                                                    // A
                 endpointAcceleration,                                                               // y
@@ -198,8 +199,24 @@ SerialLinkDynamic::resolve_endpoint_motion(const Eigen::Vector<double,6> &endpoi
             startPoint
         );
     }
-
-    return inertiaMatrix * controlAcceleration;
+    
+    // Contact constraints
+    
+    Eigen::Matrix<double,1,6> C;
+    C << 1.0, 0.0, 0.0, 0.0, 0.0, 0.0;
+    
+    Eigen::MatrixXd Jc     = C * _jacobianMatrix;
+    Eigen::MatrixXd Jc_dot = C *  jacobianDerivative;
+    
+    Eigen::VectorXd fc(1); fc << 5.0;
+    
+    Eigen::MatrixXd invAc = Jc * Mdecomp.solve(Jc.transpose());
+    
+    Eigen::MatrixXd Nc = Eigen::MatrixXd::Identity(7,7) - Mdecomp.solve(Jc.transpose() * invAc.ldlt().solve(Jc));
+    
+   // std::cout << Nc.transpose() * Jc.transpose() << std::endl;
+    
+    return Nc.transpose() * inertiaMatrix * controlAcceleration + Jc.transpose() * fc - Jc.transpose() * invAc.ldlt().solve(Jc_dot * jointVelocities);
 }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
