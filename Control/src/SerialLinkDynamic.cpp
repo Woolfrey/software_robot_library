@@ -23,7 +23,6 @@
 
 namespace RobotLibrary { namespace Control {
 
-
   ///////////////////////////////////////////////////////////////////////////////////////////////////
  //                                            Constructor                                        //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -32,7 +31,7 @@ SerialLinkDynamic::SerialLinkDynamic(std::shared_ptr<RobotLibrary::Model::Kinema
                                      const RobotLibrary::Control::SerialLinkParameters &parameters)
 : SerialLinkBase(model, endpointName, parameters)
 {
-    std::cout << "[INFO] [SERIAL LINK DYNAMICS] ";
+    std::cout << "[INFO] [SERIAL LINK DYNAMIC] ";
     std::cout << "Performing TORQUE control on the " + _model->name() + " robot.";
 }
 
@@ -82,11 +81,11 @@ SerialLinkDynamic::resolve_endpoint_motion(const Eigen::Vector<double,6> &endpoi
     VectorXd jointVelocities        = _model->joint_velocities();
     VectorXd coriolisTorques        = _model->joint_coriolis_matrix() * jointVelocities;    
     MatrixXd inertiaMatrix          = _model->joint_inertia_matrix();
-    Eigen::LDLT<Eigen::MatrixXd> Mdecomp(inertiaMatrix);
     MatrixXd jacobianDerivative     = _model->time_derivative(_jacobianMatrix);
     VectorXd lowerBound(numJoints);
     VectorXd upperBound(numJoints);
 
+    
     VectorXd startPoint = (QPSolver<double>::results().solution.size() == 0)
                         ? VectorXd::Zero(numJoints)
                         : QPSolver<double>::results().solution;                                     // This is needed for the QP solver
@@ -107,18 +106,20 @@ SerialLinkDynamic::resolve_endpoint_motion(const Eigen::Vector<double,6> &endpoi
     _constraintVector.segment(numJoints, numJoints) = -lowerBound;
 
     // Singularity avoidance via control barrier function:
-    // -db/dt <= alpha * b
+    // -db/dt <= \beta * b
     // b = \mu - mu_min - 1/2 * \dot{q}^T M \dot{q}
     
     VectorXd momentum = inertiaMatrix * jointVelocities;
     
     _constraintMatrix.row(2 * numJoints) = momentum.transpose();
 
-    double alpha = 2.0 * sqrt(_controlFrequency);
+    double alpha = 25.0;
+    double beta  = 1000.0;
     
-    _constraintVector(2 * numJoints) = manipulabilityGradient.dot(jointVelocities)
-                                     + alpha * (_manipulability - _minManipulability)
-                                     - jointVelocities.dot(alpha * momentum / 2.0 + coriolisTorques);
+    _constraintVector(2 * numJoints) = alpha * manipulabilityGradient.dot(jointVelocities)
+                                     + alpha * beta * (_manipulability - _minManipulability)
+                                     - jointVelocities.dot(beta * momentum / 2.0 + coriolisTorques);
+    
     // Now we solve the control
     VectorXd controlAcceleration = VectorXd::Zero(numJoints);
     
@@ -148,7 +149,7 @@ SerialLinkDynamic::resolve_endpoint_motion(const Eigen::Vector<double,6> &endpoi
         {
             if (not _redundantTaskSet)
             {
-                _redundantTask = 0.1 * manipulabilityGradient
+                _redundantTask = 1.5 * manipulabilityGradient
                                - _model->joint_damping_vector()                                     // This term ensures stability
                                - coriolisTorques;                                                   // This term minimises kinetic energy
                               
@@ -156,21 +157,20 @@ SerialLinkDynamic::resolve_endpoint_motion(const Eigen::Vector<double,6> &endpoi
             }
             
             // Solve a problem of the form:
-            // min (x_d - x)'*W*(x_d - x)
+            // min 1/2 * x^T*H*x + x^T*f
             // subject to: A*x = y
             //             B*x < z
 
             // See: github.com/Woolfrey/software_simple_qp
             
-            controlAcceleration = QPSolver<double>::constrained_least_squares(
-                Mdecomp.solve(_redundantTask),                                         // x_d
-                inertiaMatrix,                                                                      // W
-                _jacobianMatrix,                                                                    // A
-                endpointAcceleration,                                                               // y
-                _constraintMatrix,                                                                  // B
-                _constraintVector,                                                                  // z
-                startPoint                                                                          // Initial guess
-            );
+            controlAcceleration = QPSolver<double>::solve(
+                  inertiaMatrix,                                                                    // H                                                      
+                -_redundantTask,                                                                    // f
+                 _jacobianMatrix,                                                                   // A
+                  endpointAcceleration,                                                             // y
+                 _constraintMatrix,                                                                 // B
+                 _constraintVector,                                                                 // z
+                  startPoint);
         }
     }
     else                                                                                            // Singular case
@@ -193,30 +193,74 @@ SerialLinkDynamic::resolve_endpoint_motion(const Eigen::Vector<double,6> &endpoi
         
         controlAcceleration = QPSolver<double>::solve(
             H,
-           -_jacobianMatrix.transpose() * (endpointMotion - _model->time_derivative(_jacobianMatrix) * _model->joint_velocities()) ,
+           -_jacobianMatrix.transpose() * endpointAcceleration,
             _constraintMatrix.block(0, 0, 2 * numJoints, numJoints),                                // Use only first 2*numJoints rows
             _constraintVector.head(2 * numJoints),                                                  // Use only first 2*numJoints elements
-            startPoint
+            controlAcceleration
         );
     }
     
-    // Contact constraints
     
-    Eigen::Matrix<double,1,6> C;
-    C << 1.0, 0.0, 0.0, 0.0, 0.0, 0.0;
+    Eigen::Matrix<double,3,6> C;
+    C << 1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+         0.0, 0.0, 0.0, 0.0, 1.0, 0.0,
+         0.0, 0.0, 0.0, 0.0, 0.0, 1.0;
+    
+    Eigen::Vector<double,3> fc;
+    fc << 10.0, 0.0, 0.0;
+    
+    Eigen::MatrixXd constraintJacobian      = C * _jacobianMatrix;
+    Eigen::MatrixXd centripetalAcceleration = C *  jacobianDerivative * jointVelocities;
+    
+    controlAcceleration = QPSolver<double>::constrained_least_squares(
+         controlAcceleration,
+         inertiaMatrix,
+         constraintJacobian,
+        -centripetalAcceleration,
+        _constraintMatrix,
+        _constraintVector,
+         startPoint);
+    
+    return inertiaMatrix * controlAcceleration + constraintJacobian.transpose() * fc;
+    
+    /*
+    // Motion forces
+    
+    Eigen::LDLT<Eigen::MatrixXd> Mdecomp(inertiaMatrix);
+    
+    Eigen::MatrixXd invA = _jacobianMatrix * Mdecomp.solve(_jacobianMatrix.transpose());
+
+    Eigen::LDLT<Eigen::MatrixXd> invAdecomp(invA);
+    
+    Eigen::VectorXd fm = invAdecomp.solve(endpointMotion - jacobianDerivative * jointVelocities
+                                        + _jacobianMatrix * Mdecomp.solve(coriolisTorques));
+
+    _redundantTask = -1.0 * manipulabilityGradient
+                   - _model->joint_damping_vector();
+                               
+    Eigen::MatrixXd N = Eigen::MatrixXd::Identity(7,7) - Mdecomp.solve(_jacobianMatrix.transpose() * invAdecomp.solve(_jacobianMatrix));
+    
+    Eigen::VectorXd tau_2 = _jacobianMatrix.transpose() *  fm + N.transpose() * _redundantTask;
+
+    // Constraint forces
+    
+    Eigen::Matrix<double,3,6> C;
+    C << 1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+         0.0, 0.0, 0.0, 0.0, 1.0, 0.0,
+         0.0, 0.0, 0.0, 0.0, 0.0, 1.0;
+    
+    Eigen::Vector<double,3> fc;
+    fc << 10.0, 0.0, 0.0;
     
     Eigen::MatrixXd Jc     = C * _jacobianMatrix;
     Eigen::MatrixXd Jc_dot = C *  jacobianDerivative;
     
-    Eigen::VectorXd fc(1); fc << 5.0;
-    
     Eigen::MatrixXd invAc = Jc * Mdecomp.solve(Jc.transpose());
     
     Eigen::MatrixXd Nc = Eigen::MatrixXd::Identity(7,7) - Mdecomp.solve(Jc.transpose() * invAc.ldlt().solve(Jc));
-    
-   // std::cout << Nc.transpose() * Jc.transpose() << std::endl;
-    
-    return Nc.transpose() * inertiaMatrix * controlAcceleration + Jc.transpose() * fc - Jc.transpose() * invAc.ldlt().solve(Jc_dot * jointVelocities);
+      
+    return Jc.transpose() * fc + Nc.transpose() * tau_2 - coriolisTorques;
+    */
 }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -233,7 +277,7 @@ SerialLinkDynamic::track_joint_trajectory(const Eigen::VectorXd &desiredPosition
 	or desiredVelocity.size()     != numJoints
 	or desiredAcceleration.size() != numJoints)
 	{
-		throw std::invalid_argument("[ERROR] [SERIAL LINK DYNAMICS] track_joint_trajectory(): "
+		throw std::invalid_argument("[ERROR] [SERIAL LINK DYNAMIC] track_joint_trajectory(): "
 		                            "Incorrect size for input arguments. This robot has "
 		                            + std::to_string(numJoints) + " joints, but "
 		                            "the position argument had " + std::to_string(desiredPosition.size()) + " elements,"
@@ -283,7 +327,7 @@ SerialLinkDynamic::compute_control_limits(const unsigned int &jointNumber)
 	                   
 	if(limits.lower > limits.upper)
 	{
-	    throw std::logic_error("[ERROR] [SERIAL LINK DYNAMICS] compute_control_limits(): "
+	    throw std::logic_error("[ERROR] [SERIAL LINK DYNAMIC] compute_control_limits(): "
 	                           "Lower limit for the '" + _model->link(jointNumber)->joint().name() + "' joint is greater than "
 	                           "upper limit (" + std::to_string(limits.lower) + " > " + std::to_string(limits.upper) + "). "
 	                           "How did that happen???");
