@@ -73,9 +73,9 @@ UnicycleFeedback::track_trajectory(const RobotLibrary::Model::Pose2D &desiredPos
     //  subject to: B * u <= z
     // Hessian H == M, and f == - M * u_d
                            
-    Vector2d f = { -_mass    * (desiredVelocity[0] * cos(e[2]) + _xPositionGain * epsilon_x), 
-                   -_inertia * (desiredVelocity[1] + desiredVelocity[0] * epsilon_y + _yPositionGain * epsilon_y + _orientationGain * sin(e[2])) };
-    
+Vector2d f = { -_mass    * (desiredVelocity[0] * cos(e[2]) + _xPositionGain * epsilon_x), 
+               -_inertia * (desiredVelocity[1] + desiredVelocity[0] * (_yPositionGain * epsilon_y + _orientationGain * sin(e[2]))) };
+               
     // Compute speed limits
     Model::Limits linear, angular;
     
