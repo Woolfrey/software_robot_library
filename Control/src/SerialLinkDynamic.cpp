@@ -200,67 +200,7 @@ SerialLinkDynamic::resolve_endpoint_motion(const Eigen::Vector<double,6> &endpoi
         );
     }
     
-    
-    Eigen::Matrix<double,3,6> C;
-    C << 1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-         0.0, 0.0, 0.0, 0.0, 1.0, 0.0,
-         0.0, 0.0, 0.0, 0.0, 0.0, 1.0;
-    
-    Eigen::Vector<double,3> fc;
-    fc << 10.0, 0.0, 0.0;
-    
-    Eigen::MatrixXd constraintJacobian      = C * _jacobianMatrix;
-    Eigen::MatrixXd centripetalAcceleration = C *  jacobianDerivative * jointVelocities;
-    
-    controlAcceleration = QPSolver<double>::constrained_least_squares(
-         controlAcceleration,
-         inertiaMatrix,
-         constraintJacobian,
-        -centripetalAcceleration,
-        _constraintMatrix,
-        _constraintVector,
-         startPoint);
-    
-    return inertiaMatrix * controlAcceleration + constraintJacobian.transpose() * fc;
-    
-    /*
-    // Motion forces
-    
-    Eigen::LDLT<Eigen::MatrixXd> Mdecomp(inertiaMatrix);
-    
-    Eigen::MatrixXd invA = _jacobianMatrix * Mdecomp.solve(_jacobianMatrix.transpose());
-
-    Eigen::LDLT<Eigen::MatrixXd> invAdecomp(invA);
-    
-    Eigen::VectorXd fm = invAdecomp.solve(endpointMotion - jacobianDerivative * jointVelocities
-                                        + _jacobianMatrix * Mdecomp.solve(coriolisTorques));
-
-    _redundantTask = -1.0 * manipulabilityGradient
-                   - _model->joint_damping_vector();
-                               
-    Eigen::MatrixXd N = Eigen::MatrixXd::Identity(7,7) - Mdecomp.solve(_jacobianMatrix.transpose() * invAdecomp.solve(_jacobianMatrix));
-    
-    Eigen::VectorXd tau_2 = _jacobianMatrix.transpose() *  fm + N.transpose() * _redundantTask;
-
-    // Constraint forces
-    
-    Eigen::Matrix<double,3,6> C;
-    C << 1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-         0.0, 0.0, 0.0, 0.0, 1.0, 0.0,
-         0.0, 0.0, 0.0, 0.0, 0.0, 1.0;
-    
-    Eigen::Vector<double,3> fc;
-    fc << 10.0, 0.0, 0.0;
-    
-    Eigen::MatrixXd Jc     = C * _jacobianMatrix;
-    Eigen::MatrixXd Jc_dot = C *  jacobianDerivative;
-    
-    Eigen::MatrixXd invAc = Jc * Mdecomp.solve(Jc.transpose());
-    
-    Eigen::MatrixXd Nc = Eigen::MatrixXd::Identity(7,7) - Mdecomp.solve(Jc.transpose() * invAc.ldlt().solve(Jc));
-      
-    return Jc.transpose() * fc + Nc.transpose() * tau_2 - coriolisTorques;
-    */
+    return inertiaMatrix * controlAcceleration;
 }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
