@@ -34,14 +34,14 @@ Unicycle::Unicycle(const RobotLibrary::Model::UnicycleParameters &parameters)
   _robotRadii(parameters.robotRadii),
   _robotLengths(parameters.robotLengths)
 {
-    if (_mass <= 0 or _inertia <= 0)
+    if (_mass <= 0.0 or _inertia <= 0.0)
     {
         throw std::invalid_argument("[ERROR] [UNICYCLE] Constructor: "
                                     "Mass and inertia must be positive. Received mass = " +
                                     std::to_string(_mass) + ", inertia = " + std::to_string(_inertia));
     }
     
-    if (_maxLinearVelocity <= 0 or _maxAngularVelocity <= 0)
+    if (_maxLinearVelocity <= 0.0 or _maxAngularVelocity <= 0.0)
     {
         throw std::invalid_argument("[ERROR] [UNICYCLE] Constructor: "
                                     "Velocity limits must be positive. Received maxLinearVelocity = " +
@@ -49,12 +49,19 @@ Unicycle::Unicycle(const RobotLibrary::Model::UnicycleParameters &parameters)
                                     ", maxAngularVelocity = " + std::to_string(_maxAngularVelocity));
     }
 
-    if (_maxLinearAcceleration <= 0 or _maxAngularAcceleration <= 0)
+    if (_maxLinearAcceleration <= 0.0 or _maxAngularAcceleration <= 0.0)
     {
         throw std::invalid_argument("[ERROR] [UNICYCLE] Constructor: "
                                     "Acceleration limits must be positive. Received maxLinearAcceleration = " +
                                     std::to_string(_maxLinearAcceleration) +
                                     ", maxAngularAcceleration = " + std::to_string(_maxAngularAcceleration));
+    }
+    
+    if (_minimumSafeDistance < 0.0)
+    {
+        throw std::invalid_argument("[ERROR] [UNICYCLE] Constructor: "
+                                    "Minimum safe distance must be positive. Received minimumSafeDistance = " +
+                                    std::to_string(_minimumSafeDistance) + ".");
     }
 
     std::string message;
