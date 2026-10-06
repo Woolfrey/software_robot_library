@@ -65,11 +65,11 @@ struct UnicycleFeedbackParameters
 {
     UnicycleFeedbackParameters() = default;
     
-    double controlFrequency    = 100.0;                                                             ///< Rate at which control is computed
-    double minimumSafeDistance =   1.0;                                                             ///< Used in collision avoidance
-    double orientationGain     =  10.0;                                                             ///< Feedback gain on orientation error   
-    double xPositionGain       =   5.0;                                                             ///< Feedback gain on x position error
-    double yPositionGain       =  25.0;                                                             ///< Feedback gain on y position error
+    double controlBarrierScalar =  10.0;                                                            ///< Determines deceleration toward obstacles
+    double controlFrequency     = 100.0;                                                            ///< Rate at which control is computed
+    double lowpassFilterGain    =   0.9;                                                            ///< Used to smooth angular velocity signal
+    double orientationGain      =  10.0;                                                            ///< Feedback gain on orientation error
+    double translationGain      =   5.0;                                                            ///< Feedback gain on x position error
 
     SolverOptions<double> qpSolver = SolverOptions<double>();                                       ///< For underlying QP solver
 };
@@ -112,7 +112,6 @@ struct DDPThreeCircleFootprintParameters
                                  0.0, 200.00, -0.09, 
                                  0.0,  -0.09,  0.10).finished();
 };
-
 
 /**
  * @brief A container for a control barrier function.

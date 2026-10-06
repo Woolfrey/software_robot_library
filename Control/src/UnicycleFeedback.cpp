@@ -29,20 +29,34 @@ UnicycleFeedback::UnicycleFeedback(const RobotLibrary::Model::UnicycleParameters
 : UnicycleBase(controlParameters.controlFrequency,
                modelParameters),
   QPSolver<double>(controlParameters.qpSolver),
+  _controlBarrierScalar(controlParameters.controlBarrierScalar),
+  _lowpassFilterGain(controlParameters.lowpassFilterGain),
   _orientationGain(controlParameters.orientationGain),
-  _xPositionGain(controlParameters.xPositionGain),
-  _yPositionGain(controlParameters.yPositionGain)
+  _translationGain(controlParameters.translationGain)
 {
     // Check that the inputs are sound
-    if (_xPositionGain   <= 0
-    or  _yPositionGain   <= 0
+    if (_translationGain <= 0
     or  _orientationGain <= 0)
     {
-        throw std::invalid_argument("[ERROR] [DIFFERENTIAL DRIVE FEEDBACK] Constructor: "
+        throw std::invalid_argument("[ERROR] [UNICYCLE FEEDBACK] Constructor: "
                                     "Feedback control gains must be positive, but "
-                                    "the x position gain was " + std::to_string(_xPositionGain) + ", "
-                                    "the y position gain was " + std::to_string(_yPositionGain) + ", and "
+                                    "the translation gain was " + std::to_string(_translationGain) + ", and "
                                     "the orientation gain was " + std::to_string(_orientationGain) + ".");
+    }
+    
+    if (_controlBarrierScalar < 0.0)
+    {
+        throw std::invalid_argument("[ERROR] [UNICYCLE FEEDBACK] Constructor: "
+                                    "Control barrier function gain was " + std::to_string(_controlBarrierScalar) + " "
+                                    "but must be positive.");
+    }
+    
+    if (_lowpassFilterGain < 0.0
+    or  _lowpassFilterGain >= 1.0)
+    {
+        throw std::invalid_argument("[ERROR] [UNICYCLE FEEDBACK] Constructor: "
+                                    "Lowpass filter gain was " + std::to_string(_lowpassFilterGain) + " "
+                                    "but must be greater than or equal to 0.0, or less than 1.0");
     }
 }
 
@@ -57,25 +71,50 @@ UnicycleFeedback::track_trajectory(const RobotLibrary::Model::Pose2D &desiredPos
     using namespace Eigen;
     using namespace RobotLibrary;
     
-    // Kanayama, Y., Kimura, Y., Miyazaki, F., & Noguchi, T. (1990, May).
-    // A stable tracking control method for an autonomous mobile robot.
-    // In Proceedings., IEEE International Conference on Robotics and Automation (pp. 384-389). IEEE.
+    Vector2d desiredLinearVelocity = {desiredVelocity[0] * cos(desiredPose.angle()),
+                                      desiredVelocity[0] * sin(desiredPose.angle())};               // Unpack velocity as a vector
+       
+    Vector2d headingVector = {cos(_pose.angle()),
+                              sin(_pose.angle())};                                              
+                              
+    Vector2d translationError = desiredPose.translation() - _pose.translation();
     
-    // Pose error in the GLOBAL frame
-    Vector3d e = _pose.error(desiredPose);
-   
-    // Position error in the LOCAL frame
-    double epsilon_x =  e[0] * cos(_pose.angle()) + e[1] * sin(_pose.angle());
-    double epsilon_y = -e[0] * sin(_pose.angle()) + e[1] * cos(_pose.angle());
+    double linearVelocity = headingVector.transpose() * (desiredLinearVelocity + _translationGain * translationError);
+
+    double squaredErrorNorm = translationError.squaredNorm();
     
+    double threshold = 4e-9;                                                                        // Check for singularity
+
+    double orientationError = (squaredErrorNorm > threshold)                                        // If not singular...
+                            ? atan2(translationError[1], translationError[0]) - _pose.angle()       // Compute angle between current position and desired position
+                            : desiredPose.angle() - _pose.angle();                                  // Otherwise use desired angle from trajectory
+                            
+    orientationError = atan2(sin(orientationError), cos(orientationError));                         // wrap to (-pi, pi] 
+    
+    Vector2d translationErrorDerivative = (desiredLinearVelocity - linearVelocity * headingVector);
+    
+    double crossProduct = translationError[0] * translationErrorDerivative[1]
+                        - translationError[1] * translationErrorDerivative[0];                      // Need to compute 2D cross-product manually
+    
+    double angularVelocity = (squaredErrorNorm > threshold)                                         // If not singular...
+                           ? crossProduct / squaredErrorNorm                                        // Change in angle error from change in velocity
+                           : desiredVelocity[1];                                                    // Otherwise use reference value from trajectory
+
+    double alpha = 0.9;
+    
+    angularVelocity = alpha * _twist[2] + (1.0 - alpha) * angularVelocity;                          // Low-pass filter to smooth out angular velocity command
+                       
+    angularVelocity += _orientationGain * orientationError;                                         // Feedforward + feedback control
+
+
     // Solve a QP problem of the form:
     // min_u 1/2 (u_d - u)^T M (u_d - u)
     //  subject to: B * u <= z
     // Hessian H == M, and f == - M * u_d
-                           
-Vector2d f = { -_mass    * (desiredVelocity[0] * cos(e[2]) + _xPositionGain * epsilon_x), 
-               -_inertia * (desiredVelocity[1] + desiredVelocity[0] * (_yPositionGain * epsilon_y + _orientationGain * sin(e[2]))) };
-               
+    
+    Vector2d f = { -_mass    * linearVelocity,
+                   -_inertia * angularVelocity };
+                   
     // Compute speed limits
     Model::Limits linear, angular;
     
@@ -85,20 +124,21 @@ Vector2d f = { -_mass    * (desiredVelocity[0] * cos(e[2]) + _xPositionGain * ep
                                 angular.upper,
                                 -linear.lower,
                                -angular.lower;
-    
+
+
+    // Need this for computing CBF
+    Model::UnicycleState state;
+    state.pose = _pose;
+    state.velocity[0] = cos(_pose.angle()) * _twist[0] + sin(_pose.angle()) * _twist[1];
+    state.velocity[1] = _twist[2];
+        
     // Compute obstacle constraints
     int n = obstacles.size();                                                                       // Makes referencing easier                             
     _obstacleConstraintMatrix.resize(n,2);
     _obstacleConstraintVector.resize(n);
-
+    
     for (int i = 0; i < n; ++i)
     {
-
-        Model::UnicycleState state;
-        state.pose = _pose;
-        state.velocity[0] = cos(_pose.angle()) * _twist[0] + sin(_pose.angle()) * _twist[1];
-        state.velocity[1] = _twist[2];
-
         const auto &[scalar, rowVector] = compute_barrier_constraints(state , obstacles[i]);
 
         _obstacleConstraintMatrix.row(i) = rowVector;
@@ -134,11 +174,10 @@ UnicycleFeedback::compute_barrier_constraints(const RobotLibrary::Model::Unicycl
 
     if (distance < 0.0)
     {
-        throw std::runtime_error("[ERROR] [DIFFERENTIAL DRIVE FEEDBACK] compute_barrier_constraints(): "
+        throw std::runtime_error("[ERROR] [UNICYCLE FEEDBACK] compute_barrier_constraints(): "
                                  "Collision with '" + obstacle.name() + "' obstacle detected.");
     }
-    
-    
+
     double angle = state.pose.angle();
     
     Vector2d heading(cos(angle), sin(angle));                                                       // A unit vector

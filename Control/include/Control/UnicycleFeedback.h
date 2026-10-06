@@ -57,12 +57,11 @@ class UnicycleFeedback : public RobotLibrary::Control::UnicycleBase,
 
         private:
             
-            double _orientationGain = 5.0;                                                          ///< Feedback gain on orientation error
-            
-            double _xPositionGain   = 1.0;                                                          ///< Feedback gain on x-translation error       
-            
-            double _yPositionGain   = 50.0;                                                         ///< Feedback gain on y-translation error           
- 
+            double _controlBarrierScalar = 10.0;                                                    ///< Dictates decelaration toward obstacles
+            double _lowpassFilterGain    =  0.9;                                                    ///< Used to smooth angular velocity signal
+            double _orientationGain      =  1.0;                                                    ///< Feedback gain on orientation error  
+            double _translationGain      = 10.0;                                                    ///< Feedback gain on y-translation error           
+
             /**
              * @brief Compute the control barrier constraints for an obstacle.
              */
