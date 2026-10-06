@@ -33,12 +33,6 @@ UnicycleBase::UnicycleBase(const double &controlFrequency,
                                     "Control frequency must be positive ("
                                     + std::to_string(_controlFrequency) + " <= 0.0).");
     }
-    else if (_minimumSafeDistance <= 0.0)
-    {
-        throw std::invalid_argument("[ERROR] [DIFFERENTIAL DRIVE BASE] Constructor: "
-                                    "Minimum safe distance must be positive ("
-                                    + std::to_string(_minimumSafeDistance) + " <= 0.0)");
-    }
     
     // Set the constraint matrix here to save time later:
     
