@@ -31,6 +31,10 @@ struct SerialLinkParameters
 {
     SerialLinkParameters() = default;                                                               ///< This enables default options
     
+    double controlBarrierScalar = 1.0;                                                              ///< Used for singularity avoidance
+    
+    double dynamicControlBarrierScalar = 1000.0;                                                    ///< Used in the SerialLinkDynamic class
+    
     double maxJointAcceleration = 5.0;                                                              ///< Limits joint acceleration
     
     double minManipulability    = 1e-04;                                                            ///< Threshold for singularity avoidance
