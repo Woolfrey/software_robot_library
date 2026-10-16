@@ -3,7 +3,7 @@
  * @author  Jon Woolfrey
  * @email   jonathan.woolfrey@gmail.com
  * @date    August 2025
- * @version 2.0
+ * @version 2.1.0
  *
  * @brief   Computes joint torques for feedback control of serial link robot arms.
  * 

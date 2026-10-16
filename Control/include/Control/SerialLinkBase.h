@@ -3,7 +3,7 @@
  * @author  Jon Woolfrey
  * @email   jonathan.woolfrey@gmail.com
  * @date    August 2025
- * @version 2.0.1
+ * @version 2.1.0
  *
  * @brief   A base class providing a standardised interface for all serial link robot arm controllers.
  * 
