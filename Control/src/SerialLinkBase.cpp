@@ -41,7 +41,7 @@ SerialLinkBase::SerialLinkBase(std::shared_ptr<RobotLibrary::Model::KinematicTre
      unsigned int n = _model->number_of_joints();
                  
      // Transfer control options
-     _controlBarrrierScalar = parameters.controlBarrierScalar;
+     _controlBarrierScalar  = parameters.controlBarrierScalar;
      _cartesianPoseGain     = parameters.cartesianPoseGain;
      _cartesianVelocityGain = parameters.cartesianVelocityGain;
      _controlFrequency      = parameters.controlFrequency;
