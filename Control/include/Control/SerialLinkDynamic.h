@@ -95,6 +95,8 @@ class SerialLinkDynamic : public SerialLinkBase
 		 */
 		RobotLibrary::Model::Limits
 		compute_control_limits(const unsigned int &jointNumber);
+		
+		double _dynamicControlBarrierScalar = 1000.0;                                               ///< Currently used for singularity avoidance
 	
 };                                                                                                  // Semicolon needed after a class declaration
 
