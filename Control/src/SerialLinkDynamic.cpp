@@ -3,7 +3,7 @@
  * @author  Jon Woolfrey
  * @email   jonathan.woolfrey@gmail.com
  * @date    August 2025
- * @version 2.0
+ * @version 2.1.0
  *
  * @brief   Computes joint torques required to perform Cartesian, or joint feedback control for a serial link robot arm.
  * 
@@ -29,7 +29,8 @@ namespace RobotLibrary { namespace Control {
 SerialLinkDynamic::SerialLinkDynamic(std::shared_ptr<RobotLibrary::Model::KinematicTree> model,
                                      const std::string &endpointName,
                                      const RobotLibrary::Control::SerialLinkParameters &parameters)
-: SerialLinkBase(model, endpointName, parameters)
+: SerialLinkBase(model, endpointName, parameters),
+  _dynamicControlBarrierScalar(parameters.dynamicControlBarrierScalar)
 {
     std::cout << "[INFO] [SERIAL LINK DYNAMIC] ";
     std::cout << "Performing TORQUE control on the " + _model->name() + " robot.";
@@ -105,20 +106,18 @@ SerialLinkDynamic::resolve_endpoint_motion(const Eigen::Vector<double,6> &endpoi
     _constraintVector.head(numJoints)               =  upperBound;
     _constraintVector.segment(numJoints, numJoints) = -lowerBound;
 
-    // Singularity avoidance via control barrier function:
-    // -db/dt <= \beta * b
-    // b = \mu - mu_min - 1/2 * \dot{q}^T M \dot{q}
+    // Singularity avoidance via control barrier function. See:
+    // Ferraguti, F., Landi, C. T., Singletary, A., Lin, H. C., Ames, A., Secchi, C., & Bonfe, M. (2022).
+    // Safety and efficiency in robotics: The control barrier functions approach.
+    // IEEE Robotics & Automation Magazine, 29(3), 139-151.
     
     VectorXd momentum = inertiaMatrix * jointVelocities;
     
     _constraintMatrix.row(2 * numJoints) = momentum.transpose();
 
-    double alpha = 25.0;
-    double beta  = 1000.0;
-    
-    _constraintVector(2 * numJoints) = alpha * manipulabilityGradient.dot(jointVelocities)
-                                     + alpha * beta * (_manipulability - _minManipulability)
-                                     - jointVelocities.dot(beta * momentum / 2.0 + coriolisTorques);
+    _constraintVector(2 * numJoints) = _controlBarrierScalar * manipulabilityGradient.dot(jointVelocities)
+                                     + _controlBarrierScalar * _dynamicControlBarrierScalar * (_manipulability - _minManipulability)
+                                     - jointVelocities.dot(_dynamicControlBarrierScalar * momentum / 2.0 + coriolisTorques);
     
     // Now we solve the control
     VectorXd controlAcceleration = VectorXd::Zero(numJoints);
