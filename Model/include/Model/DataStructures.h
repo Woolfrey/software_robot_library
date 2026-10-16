@@ -18,6 +18,7 @@
 #define MODEL_DATA_STRUCTS_H
 
 #include <Model/Pose.h>
+#include <Model/Pose2D.h>
 
 namespace RobotLibrary { namespace Model {
 
