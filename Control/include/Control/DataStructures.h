@@ -3,7 +3,7 @@
  * @author  Jon Woolfrey
  * @email   jonathan.woolfrey@gmail.com
  * @date    August 2025
- * @version 2.0
+ * @version 2.1.0
  *
  * @brief   Contains custom structs used in Control classes.
  *
@@ -30,6 +30,10 @@ namespace RobotLibrary { namespace Control {
 struct SerialLinkParameters
 {
     SerialLinkParameters() = default;                                                               ///< This enables default options
+    
+    double controlBarrierScalar = 1.0;                                                              ///< Used for singularity avoidance
+    
+    double dynamicControlBarrierScalar = 1000.0;                                                    ///< Used in the SerialLinkDynamic class
     
     double maxJointAcceleration = 5.0;                                                              ///< Limits joint acceleration
     

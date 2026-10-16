@@ -3,7 +3,7 @@
  * @author  Jon Woolfrey
  * @email   jonathan.woolfrey@gmail.com
  * @date    August 2025
- * @version 2.0.1
+ * @version 2.1.0
  *
  * @brief   A base class providing a standardised interface for all serial link robot arm controllers.
  * 
@@ -188,6 +188,8 @@ class SerialLinkBase : public QPSolver<double>
 		
         bool _redundantTaskSet = false;                                                             ///< When false, a redundant robot will autonomously reconfigure away from a singularity
 
+        double _controlBarrierScalar = 1.0;                                                         ///< Currently used in singularity avoidance
+        
 		double _controlFrequency = 500.0;                                                           ///< Used in certain control calculations.
 				
 		double _manipulability;                                                                     ///< Proximity to a singularity

@@ -3,7 +3,7 @@
  * @author  Jon Woolfrey
  * @email   jonathan.woolfrey@gmail.com
  * @date    August 2025
- * @version 2.0.1
+ * @version 2.1.0
  *
  * @brief   A base class providing a standardised interface for all serial link robot arm controllers.
  * 
@@ -41,6 +41,7 @@ SerialLinkBase::SerialLinkBase(std::shared_ptr<RobotLibrary::Model::KinematicTre
      unsigned int n = _model->number_of_joints();
                  
      // Transfer control options
+     _controlBarrrierScalar = parameters.controlBarrierScalar;
      _cartesianPoseGain     = parameters.cartesianPoseGain;
      _cartesianVelocityGain = parameters.cartesianVelocityGain;
      _controlFrequency      = parameters.controlFrequency;
