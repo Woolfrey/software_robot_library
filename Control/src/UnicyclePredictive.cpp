@@ -255,7 +255,7 @@ UnicyclePredictive::track_trajectory(const std::vector<RobotLibrary::Model::Unic
                             }
                             else
                             {
-                                if(j > 0.5*_predictionSteps || zeroQuery.signedDistance > 1.5)
+                                if(j > 0.5*_predictionSteps || zeroQuery.signedDistance > 1.5) //if the current roobot position is quite far from the obstacle or the obstacle is iat a farther prediction restart.
                                 {
                                     actual_predicted_steps = j-10;
                                     restart_recursions = true;
