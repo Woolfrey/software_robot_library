@@ -28,7 +28,6 @@
 #include <Math/Ellipsoid.h>
 #include <chrono>
 
-
 namespace RobotLibrary { namespace Control {
 
 /**
