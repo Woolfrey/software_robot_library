@@ -3,7 +3,7 @@
  * @author  Jon Woolfrey
  * @email   jonathan.woolfrey@gmail.com
  * @date    August 2025
- * @version 2.0.1
+ * @version 2.1.0
  *
  * @brief   Computes velocity (position) feedback control for a serial link robot arm.
  * 
@@ -94,7 +94,7 @@ SerialLinkKinematic::resolve_endpoint_motion(const Eigen::Vector<double,6> &endp
     _constraintVector.head(numJoints)               = upperBound;
     _constraintVector.segment(numJoints, numJoints) = -lowerBound;
     
-    _constraintVector(2 * numJoints)                = 1.0 * (_manipulability - _minManipulability);
+    _constraintVector(2 * numJoints)                = _controlBarrierScalar * (_manipulability - _minManipulability);
 
     VectorXd controlVelocity = VectorXd::Zero(numJoints);                                           // We need to compute this
 

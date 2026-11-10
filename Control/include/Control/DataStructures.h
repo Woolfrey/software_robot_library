@@ -3,7 +3,7 @@
  * @author  Jon Woolfrey
  * @email   jonathan.woolfrey@gmail.com
  * @date    August 2025
- * @version 2.0
+ * @version 2.1.0
  *
  * @brief   Contains custom structs used in Control classes.
  *
@@ -30,6 +30,10 @@ namespace RobotLibrary { namespace Control {
 struct SerialLinkParameters
 {
     SerialLinkParameters() = default;                                                               ///< This enables default options
+    
+    double controlBarrierScalar = 1.0;                                                              ///< Used for singularity avoidance
+    
+    double dynamicControlBarrierScalar = 1000.0;                                                    ///< Used in the SerialLinkDynamic class
     
     double maxJointAcceleration = 5.0;                                                              ///< Limits joint acceleration
     
@@ -65,11 +69,11 @@ struct UnicycleFeedbackParameters
 {
     UnicycleFeedbackParameters() = default;
     
-    double controlFrequency    = 100.0;                                                             ///< Rate at which control is computed
-    double minimumSafeDistance =   1.0;                                                             ///< Used in collision avoidance
-    double orientationGain     =  10.0;                                                             ///< Feedback gain on orientation error   
-    double xPositionGain       =   5.0;                                                             ///< Feedback gain on x position error
-    double yPositionGain       =  25.0;                                                             ///< Feedback gain on y position error
+    double controlBarrierScalar =  10.0;                                                            ///< Determines deceleration toward obstacles
+    double controlFrequency     = 100.0;                                                            ///< Rate at which control is computed
+    double lowpassFilterGain    =   0.9;                                                            ///< Used to smooth angular velocity signal
+    double orientationGain      =  10.0;                                                            ///< Feedback gain on orientation error
+    double translationGain      =   5.0;                                                            ///< Feedback gain on x position error
 
     SolverOptions<double> qpSolver = SolverOptions<double>();                                       ///< For underlying QP solver
 };

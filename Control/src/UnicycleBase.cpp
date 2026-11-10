@@ -33,12 +33,6 @@ UnicycleBase::UnicycleBase(const double &controlFrequency,
                                     "Control frequency must be positive ("
                                     + std::to_string(_controlFrequency) + " <= 0.0).");
     }
-    else if (_minimumSafeDistance <= 0.0)
-    {
-        throw std::invalid_argument("[ERROR] [DIFFERENTIAL DRIVE BASE] Constructor: "
-                                    "Minimum safe distance must be positive ("
-                                    + std::to_string(_minimumSafeDistance) + " <= 0.0)");
-    }
     
     // Set the constraint matrix here to save time later:
     
@@ -58,17 +52,17 @@ UnicycleBase::compute_control_limits(RobotLibrary::Model::Limits &linear,
                                      RobotLibrary::Model::Limits &angular,
                                      const Eigen::Vector2d &currentVelocity)
 {
-    linear.upper = std::min(_maxLinearVelocity,
-                            currentVelocity[0] + _maxLinearAcceleration / _controlFrequency);
+    linear.upper  = std::min(_maxLinearVelocity,
+                             currentVelocity[0] + _maxLinearAcceleration / _controlFrequency);
     
-    linear.lower = std::max(-_maxLinearVelocity,
+    linear.lower  = std::max(-_maxLinearVelocity,
                              currentVelocity[0] - _maxLinearAcceleration / _controlFrequency);
                              
     angular.upper = std::min(_maxAngularVelocity,
                              currentVelocity[1] + _maxAngularAcceleration / _controlFrequency);
     
     angular.lower = std::max(-_maxAngularVelocity,
-                              currentVelocity[1] - _maxAngularAcceleration / _controlFrequency);
+                             currentVelocity[1] - _maxAngularAcceleration / _controlFrequency);
                               
     if (linear.lower >= linear.upper)
     {

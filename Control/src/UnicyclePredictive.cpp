@@ -128,11 +128,10 @@ UnicyclePredictive::track_trajectory(const std::vector<RobotLibrary::Model::Unic
     using namespace RobotLibrary::Model;
     
     // Global scope
-    double goldenRatio = 0.2/200 ;
-    double roundingError = 1e-12;                                                                   // Used to avoid dividing by zero
+    double roundingError = 1e-08;                                                                   // Used to avoid dividing by zero
     double obstaclePotentialScalar = _obstaclePotentialScalar;                                      // So we can modify it
     unsigned int currentNumberOfRewinds = 0;
-    unsigned int totalNumberOfRewinds = 20;
+    unsigned int totalNumberOfRewinds = 10;
     
     auto predictedStates = _predictedStates;                                                        // Copy this so we can modify it
     auto previousPredictedStates = predictedStates;                                                 // Lagged copy for re-starting
@@ -212,16 +211,15 @@ UnicyclePredictive::track_trajectory(const std::vector<RobotLibrary::Model::Unic
                             }
                         }
                         
-                        /**************************** Harmonic ****************************************/
-                        potentialGradient.head(2) -= (obstaclePotentialScalar / potentialDivisor)
-                                                * query.translationVector / (pow(distance,2.0) + roundingError);
-                        /******************************************************************************/
-                    
-                        /****************************** NON Harmonic **********************************
-                        potentialGradient.head(2) -= (obstaclePotentialScalar / potentialDivisor)
-                                                * query.translationVector / (pow(distance,3.0) + roundingError);
-                        /*******************************************************************************/
-                    }
+                    /**************************** Harmonic ****************************************/
+                    potentialGradient.head(2) -= obstaclePotentialScalar
+                                               * query.translationVector / (pow(distance,2.0) + roundingError);
+                    /******************************************************************************/
+                   
+                    /****************************** NON Harmonic **********************************
+                    potentialGradient.head(2) -= obstaclePotentialScalar
+                                               * query.translationVector / (pow(distance,3.0) + roundingError);
+                    /*******************************************************************************/
                 }
                 
                 if (rewindNeeded) break;                                                            // Break j loop
@@ -274,23 +272,23 @@ UnicyclePredictive::track_trajectory(const std::vector<RobotLibrary::Model::Unic
                                 }
                             }
                         }
-                    
-                        /******************************** Harmonic ************************************/
-                        potentialGradient.head(2) -= (obstaclePotentialScalar / potentialDivisor)
-                                                *  query.translationVector / (pow(distance,2.0) + roundingError);
-
-                        potentialHessian.block(0,0,2,2) += (obstaclePotentialScalar / (potentialDivisor * (pow(distance,2.0) + roundingError)))
-                                                        * ( 2.0 * (query.translationVector * query.translationVector.transpose()) / (pow(distance,2.0) + roundingError)   - Matrix2d::Identity());
-                        /*******************************************************************************/
-
-                        /******************************** NON Harmonic ********************************
-                        potentialGradient.head(2) -= (obstaclePotentialScalar / potentialDivisor)
-                                                * query.translationVector / (pow(distance,3.0) + roundingError);
-
-                        potentialHessian.block(0,0,2,2) += (obstaclePotentialScalar / (potentialDivisor * (pow(distance,3.0) + roundingError)))
-                                                        * ( 3.0 * (query.translationVector * query.translationVector.transpose()) / (pow(distance,2.0) + roundingError) - Matrix2d::Identity());
-                        /*******************************************************************************/
                     }
+                  
+                    /******************************** Harmonic ************************************/
+                    potentialGradient.head(2) -= obstaclePotentialScalar
+                                               *  query.translationVector / (pow(distance,2.0) + roundingError);
+
+                    potentialHessian.block(0,0,2,2) += (obstaclePotentialScalar / (pow(distance,2.0) + roundingError))
+                                                     * ( 2.0 * (query.translationVector * query.translationVector.transpose()) / (pow(distance,2.0) + roundingError)   - Matrix2d::Identity());
+                    /*******************************************************************************/
+
+                    /******************************** NON Harmonic ********************************
+                    potentialGradient.head(2) -= obstaclePotentialScalar
+                                               * query.translationVector / (pow(distance,3.0) + roundingError);
+
+                    potentialHessian.block(0,0,2,2) += (obstaclePotentialScalar / (pow(distance,3.0) + roundingError))
+                                                     * ( 3.0 * (query.translationVector * query.translationVector.transpose()) / (pow(distance,2.0) + roundingError) - Matrix2d::Identity());
+                    /*******************************************************************************/
                 }
                 
                 if (rewindNeeded) break;                                                            // Break j-loop
@@ -340,7 +338,7 @@ UnicyclePredictive::track_trajectory(const std::vector<RobotLibrary::Model::Unic
         
         if (rewindNeeded)
         {   
-            obstaclePotentialScalar *=  goldenRatio;                                                // Increase potential
+            obstaclePotentialScalar *=  1.1;                                                        // Increase potential
             ++currentNumberOfRewinds;                                                               // Increment counter
             predictedStates = previousPredictedStates;                                              // Go back to last solution
             continue;                                                                               // Go back to start if i-loop

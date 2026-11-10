@@ -1,9 +1,9 @@
 
 # List the source files for this library
 
-add_library(Control #src/DDPThreeCircleFootprint.cpp
-                    src/SerialLinkBase.cpp
+add_library(Control src/SerialLinkBase.cpp
                     src/SerialLinkImpedance.cpp
+                    src/SerialLinkDynamic.cpp
                     src/SerialLinkKinematic.cpp
                     src/UnicycleBase.cpp
                     src/UnicycleFeedback.cpp

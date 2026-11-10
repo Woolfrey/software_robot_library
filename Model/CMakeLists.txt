@@ -3,9 +3,7 @@
 add_library(Model src/Joint.cpp
                   src/KinematicTree.cpp
                   src/Link.cpp
-                  src/Obstacle2D.cpp
                   src/Pose.cpp
-                  src/Pose2D.cpp
                   src/RigidBody.cpp
                   src/RigidBody2D.cpp
                   src/Unicycle.cpp
