@@ -7,7 +7,7 @@ add_library(Model src/Joint.cpp
                   src/RigidBody.cpp
                   src/RigidBody2D.cpp
                   src/Unicycle.cpp
-                  src/tinyxml2.cpp
+                  #src/tinyxml2.cpp
 )
 
 # Specify targets to be built

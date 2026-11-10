@@ -101,7 +101,7 @@ MinimumArcLength::MinimumArcLength(const RobotLibrary::Model::Pose2D &startPose,
      _endTime   = endTime;
      
      _startPoint.position     = Eigen::Vector3d(startPose.translation()[0], startPose.translation()[1], startPose.angle());
-     _startPoint.velocity     = Eigen::Vector2d::Zero();
+     _startPoint.velocity     = startVelocity;
      _startPoint.acceleration = Eigen::Vector2d::Zero();
     
      _endPoint.position     = Eigen::Vector3d(endPoint[0], endPoint[1], startPose.angle() + finalLocalHeading);
@@ -159,7 +159,7 @@ MinimumArcLength::query_state(const double &time)
          
             double ds = sqrt(r * r + dr * dr);                                                      // Partial derivative of arc length w.r.t. angle parameter
             
-            _state.velocity[0] = omega * ds;                                                        // Linear velocity = ds/dt = d\theta/dt * ds/d\theta
+            _state.velocity[0] = std::fabs(omega) * ds;                                                        // Linear velocity = ds/dt = d\theta/dt * ds/d\theta
             _state.velocity[1] = omega;                                                             // Angular velocity
             
             _state.acceleration[0] = alpha * ds + (2.0 * r * dr * omega * omega) / ds;              // Linear acceleration

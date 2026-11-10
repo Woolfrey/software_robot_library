@@ -91,6 +91,7 @@ struct UnicyclePredictiveParameters
     double obstaclePotentialScalar  = 1e-03;                                                        ///< Scales the magnitude of the repulsion force
     unsigned int numberOfRecursions = 10;                                                           ///< Number of forward & backward passes to optimise control
     unsigned int predictionSteps    = 50;                                                           ///< Length of prediction horizon
+    double potentialCutoffDistance  = 2.0;                                                           ///<Distance from obstacle after which the potential should not apply        
     
     Eigen::Matrix3d poseErrorWeight = (Eigen::MatrixXd(3,3) << 200.0,   0.00,  0.00,
                                                                  0.0, 200.00, -0.09, 

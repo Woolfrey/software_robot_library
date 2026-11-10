@@ -34,7 +34,8 @@ UnicyclePredictive::UnicyclePredictive(RobotLibrary::Model::UnicycleParameters &
  _numberOfRecursions(controlParameters.numberOfRecursions),
  _obstaclePotentialScalar(controlParameters.obstaclePotentialScalar),
  _predictionSteps(controlParameters.predictionSteps),
- _threshold(controlParameters.maximumControlStepNorm)
+ _threshold(controlParameters.maximumControlStepNorm),
+ _potentialCutoffDistance(controlParameters.potentialCutoffDistance)
 {    
     // Ensure weighting matrices are positive definite:
     std::string message;
@@ -50,6 +51,14 @@ UnicyclePredictive::UnicyclePredictive(RobotLibrary::Model::UnicycleParameters &
         throw std::invalid_argument("[ERROR] [UNICYCLE PREDICTIVE CONTROL] Constructor: "
                                     "Exponent must be positive but received " + std::to_string(controlParameters.exponent) + ".");
     }
+
+    //
+    if (_potentialCutoffDistance <= _minimumSafeDistance)
+    {
+       throw std::logic_error("[ERROR] [UNICYCLE PREDICTIVE CONTROL] Constructor: "
+                              "Potential cutoff distance (" + std::to_string(_potentialCutoffDistance) + ") "
+                              "is less than minimum safe distance (" + std::to_string(_minimumSafeDistance) + ".")
+    }
  
     // Resize vectors based on prediction horizon
     int N = _predictionSteps;
@@ -62,9 +71,7 @@ UnicyclePredictive::UnicyclePredictive(RobotLibrary::Model::UnicycleParameters &
     for (int i = 0; i <= N; ++i)
     {
         double s = (1.0 / N) + (1.0 - (1.0 / N)) * (1.0 - std::exp(-a * (i / (N - 1.0)))) / (1.0 - std::exp(-a));
-        
-        // double s = (1.0 / N) + (1.0 - (1.0 / N)) * (std::exp((a * i)/(N - 1.0)) - 1.0) / (std::exp(a) - 1.0);
-        
+     
         _poseErrorWeight[i] = s * controlParameters.poseErrorWeight;
     }
 }
@@ -146,17 +153,23 @@ UnicyclePredictive::track_trajectory(const std::vector<RobotLibrary::Model::Unic
     }
     
     // Run the optimisation
+    auto recursion_start = std::chrono::high_resolution_clock::now();
+    int actual_predicted_steps = _predictionSteps;
+    bool restart_recursions = false;
+
     for (int i = 0; i < _numberOfRecursions; ++i)
     { 
         // Local scope
         bool   rewindNeeded      = false; 
         double largestStepChange = 0.0;                                                             // Store largest step change in control for this recursio
         Vector3d lagrangeMultipliers;                                                               // This equivalent to a wrench for SE(2)
-        
+        restart_recursions = false;
+        Pose2D zeroPose = predictedStates[0].pose;
         // Backwards recursions
-        for (int j = _predictionSteps; j >= 0; --j)
+        for (int j = actual_predicted_steps; j >= 0; --j)
         {
-            if (j == _predictionSteps)                                                              // i.e final configuration
+            potentialDivisor  = 0.09; 
+            if (j == actual_predicted_steps)                                                              // i.e final configuration
             {
                 Pose2D currentPose = predictedStates[j].pose;                                       // This just makes code shorter
                 Vector3d potentialGradient = -_poseErrorWeight[j] * currentPose.error(desiredStates[j].pose); // NOTE: Force is -K * e = dP/dx
@@ -165,26 +178,39 @@ UnicyclePredictive::track_trajectory(const std::vector<RobotLibrary::Model::Unic
                 for (int k = 0; k < obstacles[j].size(); ++k)
                 {
                     Vector2d currentPosition = currentPose.translation();                           // For brevity
+                    auto zeroQuery = obstacles[j][k].query_point(zeroPose.translation());
                     
                     auto query = obstacles[j][k].query_point(currentPosition);                      // Check for distance, etc.
-                    
-                    double distance = query.signedDistance - _minimumSafeDistance;                  // Subtract safe distance
-   
-                    if (distance < 0.0)
+
+                    if(query.signedDistance < _potentialCutoffDistance)
                     {
-                        if (i > 0 and currentNumberOfRewinds < totalNumberOfRewinds)
+                        double distance = query.signedDistance - _minimumSafeDistance;                  // Subtract safe distance
+    
+                        if (distance < 0.0)
                         {
-                            rewindNeeded = true;
-                            break;                                                                  // Break k loop
+                            if (i > 0 and currentNumberOfRewinds < totalNumberOfRewinds)
+                            {
+                                rewindNeeded = true;
+                                break;                                                                  // Break k loop
+                            }
+                            else
+                            {
+                                if(j > 0.5*_predictionSteps && zeroQuery.signedDistance > 0.5 )
+                                {
+                                    actual_predicted_steps = j-10;
+                                    restart_recursions = true;
+                                    break;
+                                }
+                                else
+
+                                {
+                                    throw std::runtime_error("[ERROR] [UNICYCLE PREDICTIVE CONTROL] track_trajectory(): "
+                                                        "Collision detected with '" + obstacles[j][k].name() + "' "
+                                                        "on prediction step " + std::to_string(j+1) + ".");
+                                }
+                            }
                         }
-                        else
-                        {
-                            throw std::runtime_error("[ERROR] [UNICYCLE PREDICTIVE CONTROL] track_trajectory(): "
-                                                     "Collision detected with '" + obstacles[j][k].name() + "' "
-                                                     "on prediction step " + std::to_string(j+1) + ".");
-                        }
-                    }
-                    
+                        
                     /**************************** Harmonic ****************************************/
                     potentialGradient.head(2) -= obstaclePotentialScalar
                                                * query.translationVector / (pow(distance,2.0) + roundingError);
@@ -197,6 +223,7 @@ UnicyclePredictive::track_trajectory(const std::vector<RobotLibrary::Model::Unic
                 }
                 
                 if (rewindNeeded) break;                                                            // Break j loop
+                if(restart_recursions){i--; break;}
 
                 lagrangeMultipliers = -potentialGradient;                                           // This is a force vector              
             }
@@ -214,22 +241,36 @@ UnicyclePredictive::track_trajectory(const std::vector<RobotLibrary::Model::Unic
                 // Add up effect of obstacles
                 for (int k = 0; k < numObstacles; ++k)
                 {
+                    auto zeroQuery = obstacles[j][k].query_point(zeroPose.translation());
+
                     auto query = obstacles[j+1][k].query_point(nextPose.translation());
                     
-                    double distance = query.signedDistance - _minimumSafeDistance;
+                    if(query.signedDistance < _potentialCutoffDistance)
+                    {
+                        double distance = query.signedDistance - _minimumSafeDistance;
 
-                    if (distance < 0.0)
-                    {           
-                        if (i > 0 and currentNumberOfRewinds < totalNumberOfRewinds)
-                        {
-                            rewindNeeded = true;
-                            break;                                                                  // Break k loop
-                        }
-                        else
-                        {
-                            throw std::runtime_error("[ERROR] [UNICYCLE PREDICTIVE CONTROL] track_trajectory(): "
-                                                     "Collision detected with obstacle '" + obstacles[j+1][k].name() + "' "
-                                                     "on prediction step " + std::to_string(j+1) + ".");
+                        if (distance < 0.0)
+                        {           
+                            if (i > 0 and currentNumberOfRewinds < totalNumberOfRewinds)
+                            {
+                                rewindNeeded = true;
+                                break;                                                                  // Break k loop
+                            }
+                            else
+                            {
+                                if(j > 0.5*_predictionSteps || zeroQuery.signedDistance > 1.5) //if the current roobot position is quite far from the obstacle or the obstacle is iat a farther prediction restart.
+                                {
+                                    actual_predicted_steps = j-10;
+                                    restart_recursions = true;
+                                    break;
+                                }
+                                else 
+                                {
+                                    throw std::runtime_error("[ERROR] [UNICYCLE PREDICTIVE CONTROL] track_trajectory(): "
+                                                        "Collision detected with obstacle '" + obstacles[j+1][k].name() + "' "
+                                                        "on prediction step " + std::to_string(j+1) + ".");
+                                }
+                            }
                         }
                     }
                   
@@ -251,6 +292,8 @@ UnicyclePredictive::track_trajectory(const std::vector<RobotLibrary::Model::Unic
                 }
                 
                 if (rewindNeeded) break;                                                            // Break j-loop
+                if(restart_recursions){i--; break;}
+
                   
                 Vector3d temp = potentialGradient - lagrangeMultipliers;                            // Need this in a couple of places below
                 
@@ -317,6 +360,11 @@ UnicyclePredictive::track_trajectory(const std::vector<RobotLibrary::Model::Unic
         }
         
         if (largestStepChange < _threshold) break;
+        auto recursion_now = std::chrono::high_resolution_clock::now();
+        double time_taken = std::chrono::duration_cast<std::chrono::nanoseconds>(recursion_now - recursion_start).count();
+        if(1e-9*time_taken > 0.008)
+        break;
+
     }
     
     _predictedStates = predictedStates;                                                             // Save solution

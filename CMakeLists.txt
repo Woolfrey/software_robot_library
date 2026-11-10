@@ -18,6 +18,8 @@ message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
 find_package(Eigen3 3.3 REQUIRED NO_MODULE)                                                         # Find Eigen
 
+set(BUILD_SHARED_LIBS ON)
+
 #################################### Download QPSolver #############################################
 
 if(EXISTS "${CMAKE_SOURCE_DIR}/Math/include/Math/QPSolver.h")

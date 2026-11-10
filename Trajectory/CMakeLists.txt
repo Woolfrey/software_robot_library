@@ -4,6 +4,7 @@ add_library(Trajectory src/CartesianSpline.cpp
                        src/TrajectoryBase.cpp
                        src/TrapezoidalVelocity.cpp
                        src/HermiteTrajectory.cpp
+                       src/MinimumArcLength.cpp
 )
 
 target_include_directories(Trajectory PUBLIC
