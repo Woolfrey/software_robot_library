@@ -35,7 +35,7 @@ UnicyclePredictive::UnicyclePredictive(RobotLibrary::Model::UnicycleParameters &
  _obstaclePotentialScalar(controlParameters.obstaclePotentialScalar),
  _predictionSteps(controlParameters.predictionSteps),
  _threshold(controlParameters.maximumControlStepNorm),
- _potentialCutoffDistance(controlParameters.potentialCutoffDist)
+ _potentialCutoffDistance(controlParameters.potentialCutoffDistance)
 {    
     // Ensure weighting matrices are positive definite:
     std::string message;
@@ -51,6 +51,14 @@ UnicyclePredictive::UnicyclePredictive(RobotLibrary::Model::UnicycleParameters &
         throw std::invalid_argument("[ERROR] [UNICYCLE PREDICTIVE CONTROL] Constructor: "
                                     "Exponent must be positive but received " + std::to_string(controlParameters.exponent) + ".");
     }
+
+    //
+    if (_potentialCutoffDistance <= _minimumSafeDistance)
+    {
+       throw std::logic_error("[ERROR] [UNICYCLE PREDICTIVE CONTROL] Constructor: "
+                              "Potential cutoff distance (" + std::to_string(_potentialCutoffDistance) + ") "
+                              "is less than minimum safe distance (" + std::to_string(_minimumSafeDistance) + ".")
+    }
  
     // Resize vectors based on prediction horizon
     int N = _predictionSteps;
@@ -63,9 +71,7 @@ UnicyclePredictive::UnicyclePredictive(RobotLibrary::Model::UnicycleParameters &
     for (int i = 0; i <= N; ++i)
     {
         double s = (1.0 / N) + (1.0 - (1.0 / N)) * (1.0 - std::exp(-a * (i / (N - 1.0)))) / (1.0 - std::exp(-a));
-        
-        // double s = (1.0 / N) + (1.0 - (1.0 / N)) * (std::exp((a * i)/(N - 1.0)) - 1.0) / (std::exp(a) - 1.0);
-        
+     
         _poseErrorWeight[i] = s * controlParameters.poseErrorWeight;
     }
 }
@@ -157,7 +163,6 @@ UnicyclePredictive::track_trajectory(const std::vector<RobotLibrary::Model::Unic
         // Local scope
         bool   rewindNeeded      = false; 
         double largestStepChange = 0.0;                                                             // Store largest step change in control for this recursio
-        double potentialDivisor;                                          // Shrinks potential function with each iteration
         Vector3d lagrangeMultipliers;                                                               // This equivalent to a wrench for SE(2)
         restart_recursions = false;
         Pose2D zeroPose = predictedStates[0].pose;
