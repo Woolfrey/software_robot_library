@@ -19,11 +19,49 @@
 #ifndef UNICYCLE_H
 #define UNICYCLE_H
 
-#include <Model/DataStructures.h>
+#include <Model/DataStructures.h>                                                                    // Limits
 #include <Model/Pose2D.h>
 #include <Model/RigidBody2D.h>
+#include <cmath>                                                                                    // M_PI
 
 namespace RobotLibrary { namespace Model {
+
+/**
+ * @brief A struct for collating parameters for the Unicycle
+ */
+struct UnicycleParameters
+{
+    double inertia                = 0.5 * 5.0 * 0.25 * 0.25;                                        ///< Rotational inertia (kg*m^2)
+    double mass                   = 5.0;                                                            ///< Weight (kg)
+    double maxAngularAcceleration = 10.0;                                                           ///< Maximum rotational acceleration (rad/s/s)
+    double maxAngularVelocity     = 100.0 * M_PI / 30.0;                                            ///< Maximum rotational speed (rad/s)
+    double maxLinearAcceleration  = 5.0;                                                            ///< Maximum forward acceleration (m/s/s)
+    double maxLinearVelocity      = 2.0;                                                            ///< Maximum forward speed (m/s)
+    double minimumSafeDistance    = 0.5;                                                            ///< Used for collision detection
+
+    Eigen::Matrix3d propagationUncertainty = Eigen::Matrix3d::Identity();                           ///< Uncertainty of configuration propagation in Kalman filter
+
+    Eigen::Vector3d robotRadii    = {0.3, 0.3, 0.3};
+    Eigen::Vector3d robotLengths  = {-0.0, 0.0, 0.0};
+
+    UnicycleParameters() = default;
+};
+
+/**
+ * @brief A struct that fully defines the state of a differential drive robot.
+ */
+struct UnicycleState
+{
+    Eigen::Matrix3d covariance = Eigen::Matrix3d::Identity();                                       ///< Uncertainty of the pose
+    Eigen::Vector2d velocity = {0.0, 0.0};                                                          ///< Linear & angular velocity, respectively
+    RobotLibrary::Model::Pose2D pose;                                                               ///< Position & orientation relative to a reference frame.
+
+    UnicycleState() = default;
+
+    UnicycleState(const RobotLibrary::Model::Pose2D& p,
+                  const Eigen::Vector2d& v)
+    : pose(p), velocity(v) {}
+};
 
 /**
  * @brief A class for modeling the kinematics of a planar, mobile robot.

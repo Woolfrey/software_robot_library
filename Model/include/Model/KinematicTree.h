@@ -25,6 +25,7 @@
 #include <Model/DataStructures.h>
 #include <Model/Joint.h>                                                                            // Custom class for describing a moveable connection between links
 #include <Model/Link.h>                                                                             // Custom class combining a rigid body and joint
+#include <Model/Pose.h>                                                                             // SE(3) object
 #include <Math/SkewSymmetric.h>                                                                     // Custom class
 
 #include <fstream>                                                                                  // For loading files
@@ -34,6 +35,15 @@
 #include <tinyxml2.h>                                                                               // For parsing urdf files
 
 namespace RobotLibrary { namespace Model {
+
+/**
+ * @brief A structure containing necessary information for defining a reference frame on a kinematic tree.
+ */
+struct ReferenceFrame
+{
+     Link *link = nullptr;                                                                          ///< The link it is attached to
+     Pose relativePose;                                                                             ///< Pose with respect to local link frame
+};
 
 /**
  * @brief A class that defines the kinematics and dynamics of branching, serial link structures.

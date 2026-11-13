@@ -17,12 +17,7 @@
 #ifndef MODEL_DATA_STRUCTS_H
 #define MODEL_DATA_STRUCTS_H
 
-#include <Model/Pose.h>
-#include <Model/Pose2D.h>
-
 namespace RobotLibrary { namespace Model {
-
-class Link;
 
 /**
  * @brief A data structure for joint limits.
@@ -33,52 +28,6 @@ struct Limits
      double lower;                                                                                  ///< Upper limit
      double upper;                                                                                  ///< Lower limit
 };                                                                                                  // Semicolon needed after declaring a data structure
-
-/**
- * @brief A structure containing necessary information for defining a reference frame on a kinematic tree.
- */
-struct ReferenceFrame
-{
-     Link *link = nullptr;                                                                          ///< The link it is attached to
-     Pose relativePose;                                                                             ///< Pose with respect to local link frame
-};
-
-/**
- * @brief A struct for collating parameters for the Unicycle
- */
-struct UnicycleParameters
-{
-    double inertia                = 0.5 * 5.0 * 0.25 * 0.25;                                        ///< Rotational inertia (kg*m^2)
-    double mass                   = 5.0;                                                            ///< Weight (kg)
-    double maxAngularAcceleration = 10.0;                                                           ///< Maximum rotational acceleration (rad/s/s)
-    double maxAngularVelocity     = 100.0 * M_PI / 30.0;                                            ///< Maximum rotational speed (rad/s)
-    double maxLinearAcceleration  = 5.0;                                                            ///< Maximum forward acceleration (m/s/s)
-    double maxLinearVelocity      = 2.0;                                                            ///< Maximum forward speed (m/s)
-    double minimumSafeDistance    = 0.5;                                                            ///< Used for collision detection
-    
-    Eigen::Matrix3d propagationUncertainty = Eigen::Matrix3d::Identity();                           ///< Uncertainty of configuration propagation in Kalman filter
-
-    Eigen::Vector3d robotRadii    = {0.3, 0.3, 0.3};
-    Eigen::Vector3d robotLengths  = {-0.0, 0.0, 0.0};
-    
-    UnicycleParameters() = default;
-};
-
-/**
- * @brief A struct that fully defines the state of a differential drive robot.
- */
-struct UnicycleState
-{
-    Eigen::Matrix3d covariance = Eigen::Matrix3d::Identity();                                       ///< Uncertainty of the pose
-    Eigen::Vector2d velocity = {0.0, 0.0};                                                          ///< Linear & angular velocity, respectively
-    RobotLibrary::Model::Pose2D pose;                                                               ///< Position & orientation relative to a reference frame.
-
-    UnicycleState() = default;
-
-    UnicycleState(const RobotLibrary::Model::Pose2D& p,
-                  const Eigen::Vector2d& v)
-    : pose(p), velocity(v) {}
-};
 
 } } // namespace
 
