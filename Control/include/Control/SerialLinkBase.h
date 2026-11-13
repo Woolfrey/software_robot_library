@@ -34,6 +34,44 @@
 namespace RobotLibrary { namespace Control {
 
 /**
+ * @brief A data structure for passing control parameters to the SerialLinkBase class in a single argument.
+ */
+struct SerialLinkParameters
+{
+    SerialLinkParameters() = default;                                                               ///< This enables default options
+    
+    double controlBarrierScalar = 1.0;                                                              ///< Used for singularity avoidance
+    
+    double dynamicControlBarrierScalar = 1000.0;                                                    ///< Used in the SerialLinkDynamic class
+    
+    double maxJointAcceleration = 5.0;                                                              ///< Limits joint acceleration
+    
+    double minManipulability    = 1e-04;                                                            ///< Threshold for singularity avoidance
+    
+    unsigned int controlFrequency = 500;                                                            ///< Rate at which control loop operates.    
+    
+    Eigen::Matrix<double,6,6> cartesianPoseGain = (Eigen::MatrixXd(6,6) << 10.0,  0.0,   0.0,  0.0,  0.0,  0.0,
+                                                                            0.0, 10.0,   0.0,  0.0,  0.0,  0.0,
+                                                                            0.0,  0.0,  10.0,  0.0,  0.0,  0.0, 
+                                                                            0.0,  0.0,   0.0,  5.0,  0.0,  0.0,
+                                                                            0.0,  0.0,   0.0,  0.0,  5.0,  0.0,
+                                                                            0.0,  0.0,   0.0,  0.0,  0.0,  5.0).finished(); ///< Scales pose error feedback
+                                                                             
+    Eigen::Matrix<double,6,6> cartesianVelocityGain = (Eigen::MatrixXd(6,6) << 20.0,  0.0,  0.0, 0.0, 0.0, 0.0,
+                                                                                0.0, 20.0,  0.0, 0.0, 0.0, 0.0,
+                                                                                0.0,  0.0, 20.0, 0.0, 0.0, 0.0, 
+                                                                                0.0,  0.0,  0.0, 2.0, 0.0, 0.0,
+                                                                                0.0,  0.0,  0.0, 0.0, 2.0, 0.0,
+                                                                                0.0,  0.0,  0.0, 0.0, 0.0, 2.0).finished(); ///< Scales twist error feedback                                                                                                                        
+                                                                                  
+    std::vector<double> jointPositionGains;
+    
+    std::vector<double> jointVelocityGains;
+                                                                          
+    SolverOptions<double> qpsolver = SolverOptions<double>();                                       ///< Parameters for the underlying QP solver
+};
+
+/**
  * @brief A class that provides a standard interface for all serial link robot arm controllers.
  */
 class SerialLinkBase : public QPSolver<double>

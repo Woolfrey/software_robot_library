@@ -26,6 +26,22 @@
 namespace RobotLibrary { namespace Control {
 
 /**
+ * @brief A data structure for parameters in the feedback control class.
+ */
+struct UnicycleFeedbackParameters
+{
+    UnicycleFeedbackParameters() = default;
+    
+    double controlBarrierScalar =  10.0;                                                            ///< Determines deceleration toward obstacles
+    double controlFrequency     = 100.0;                                                            ///< Rate at which control is computed
+    double lowpassFilterGain    =   0.9;                                                            ///< Used to smooth angular velocity signal
+    double orientationGain      =  10.0;                                                            ///< Feedback gain on orientation error
+    double translationGain      =   5.0;                                                            ///< Feedback gain on x position error
+
+    SolverOptions<double> qpSolver = SolverOptions<double>();                                       ///< For underlying QP solver
+};
+
+/**
  * @brief A class that performs nonlinear feedback control for trajectory tracking of a differential
  *        drive mobile robot.
  */
