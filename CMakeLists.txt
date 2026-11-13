@@ -20,6 +20,27 @@ find_package(Eigen3 3.3 REQUIRED NO_MODULE)                                     
 
 set(BUILD_SHARED_LIBS ON)
 
+######################################## Build selection ###########################################
+# Usage: cmake -B build -DROBOT_LIBRARY_BUILD=SerialLink   (or MobileRobot, or Full)
+
+set(ROBOT_LIBRARY_BUILD "Full" CACHE STRING "Which parts of RobotLibrary to build: SerialLink, MobileRobot, Full")
+set_property(CACHE ROBOT_LIBRARY_BUILD PROPERTY STRINGS SerialLink MobileRobot Full)
+
+if(ROBOT_LIBRARY_BUILD STREQUAL "Full")
+    set(BUILD_SERIAL_LINK  ON)
+    set(BUILD_MOBILE_ROBOT ON)
+elseif(ROBOT_LIBRARY_BUILD STREQUAL "SerialLink")
+    set(BUILD_SERIAL_LINK  ON)
+    set(BUILD_MOBILE_ROBOT OFF)
+elseif(ROBOT_LIBRARY_BUILD STREQUAL "MobileRobot")
+    set(BUILD_SERIAL_LINK  OFF)
+    set(BUILD_MOBILE_ROBOT ON)
+else()
+    message(FATAL_ERROR "ROBOT_LIBRARY_BUILD must be SerialLink, MobileRobot or Full (got '${ROBOT_LIBRARY_BUILD}')")
+endif()
+
+message(STATUS "RobotLibrary build: ${ROBOT_LIBRARY_BUILD}")
+
 #################################### Download QPSolver #############################################
 
 if(EXISTS "${CMAKE_SOURCE_DIR}/Math/include/Math/QPSolver.h")
