@@ -27,6 +27,16 @@
 namespace RobotLibrary { namespace Trajectory {
 
 /**
+ * @brief A data structure for SE(3)
+ */
+struct CartesianState
+{
+     RobotLibrary::Model::Pose pose;                                                                ///< Does this really need an explanation?
+     Eigen::Vector<double,6>   twist;                                                               ///< Linear and angular velocity
+     Eigen::Vector<double,6>   acceleration;                                                        ///<  Linear and angular acceleration
+};                                                                                                  // Semicolon needed after declaration
+
+/**
  * A class that defines splines in 3D space (i.e. SE(3))
  */
 class CartesianSpline

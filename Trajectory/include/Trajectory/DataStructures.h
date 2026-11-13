@@ -17,22 +17,9 @@
 #ifndef TRAJECTORY_DATA_STRUCTS_H
 #define TRAJECTORY_DATA_STRUCTS_H
 
-#include <Model/Pose.h>
-#include <Model/Pose2D.h>
 #include <Eigen/Core>                                                                               // Eigen::VectorXd
- 
-namespace RobotLibrary { namespace Trajectory {
- 
-/**
- * @brief A data structure for SE(3)
- */
-struct CartesianState
-{
-     RobotLibrary::Model::Pose pose;                                                                ///< Does this really need an explanation?
-     Eigen::Vector<double,6>   twist;                                                               ///< Linear and angular velocity
-     Eigen::Vector<double,6>   acceleration;                                                        ///<  Linear and angular acceleration
-};                                                                                                  // Semicolon needed after declaration
 
+namespace RobotLibrary { namespace Trajectory {
 
 /**
  * @brief A data structure for the state of a system.
@@ -43,16 +30,6 @@ struct State
      Eigen::VectorXd velocity;
      Eigen::VectorXd acceleration;
 };                                                                                                  // Semicolon needed after struct declaration
-
-/**
- * @brief A data structure for SE(2) robots
- */
-struct PlanarState
-{
-    RobotLibrary::Model::Pose2D pose;
-    Eigen::Vector<double,3> twist;
-    Eigen::Vector<double,3> acceleration;
-};
 
 } } // namespace
 

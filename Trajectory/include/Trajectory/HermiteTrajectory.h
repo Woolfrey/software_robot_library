@@ -22,11 +22,21 @@
 #define HERMITE_TRAJECTORY_H
 
 #include <Math/Polynomial.h>
-#include <Model/DataStructures.h>
+#include <Model/Pose2D.h>
 #include <Trajectory/DataStructures.h>
 #include <vector>                                                                                   // std::vector
 
 namespace RobotLibrary { namespace Trajectory {
+
+/**
+ * @brief A data structure for SE(2) robots
+ */
+struct PlanarState
+{
+    RobotLibrary::Model::Pose2D pose;
+    Eigen::Vector<double,3> twist;
+    Eigen::Vector<double,3> acceleration;
+};
 
 /**
  * @brief A class for generating splines on the Cartesian plane
